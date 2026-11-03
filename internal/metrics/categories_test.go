@@ -103,3 +103,23 @@ func TestEuerGuesser(t *testing.T) {
 		t.Errorf("line outside the dropdown proposed: %q", line)
 	}
 }
+
+// A line the user emptied is forgotten, not proposed back; an expense
+// gone from Invoice Ninja stays learned.
+func TestEuerLearnForgetsEmptied(t *testing.T) {
+	n := &sources.NinjaDataset{
+		Vendors: []sources.NinjaVendor{{Key: "v1", Name: "Hetzner"}, {Key: "v2", Name: "Kagi"}},
+		Expenses: []sources.NinjaExpense{
+			{Key: "e1", VendorKey: "v1", Notes: "Server", Custom: [4]string{"", "", "EDV"}},
+			{Key: "e2", VendorKey: "v2", Notes: "Suche", Custom: [4]string{"", "", "EDV"}},
+		},
+	}
+	m := bayes.New()
+	metrics.EuerLearn(m, n, 3)
+
+	n.Expenses[0].Custom[2] = "" // emptied
+	n.Expenses = n.Expenses[:1]  // e2 deleted
+	if !metrics.EuerLearn(m, n, 3) || m.Stats().Examples != 1 {
+		t.Fatalf("emptied line kept: %+v", m.Stats())
+	}
+}

@@ -6,21 +6,24 @@ import (
 	"time"
 
 	"andon/internal/db"
+	"andon/internal/model"
 )
 
 // LearnedModel is one stored model: its examples as JSON.
 type LearnedModel struct {
 	Purpose   string
 	ConnID    int64
+	Holder    model.Holder
 	Model     string
 	TrainedAt time.Time
 }
 
-// Learned reads the model of purpose for a connection; ok false if none.
-func Learned(q db.Queryer, purpose string, connID int64) (LearnedModel, bool, error) {
-	m := LearnedModel{Purpose: purpose, ConnID: connID}
+// Learned reads the model of purpose for a connection and holder; ok
+// false if none.
+func Learned(q db.Queryer, purpose string, connID int64, h model.Holder) (LearnedModel, bool, error) {
+	m := LearnedModel{Purpose: purpose, ConnID: connID, Holder: h}
 	var at string
-	err := q.QueryRow("SELECT model, trained_at FROM learned_models WHERE purpose = ? AND conn_id = ?", purpose, connID).Scan(&m.Model, &at)
+	err := q.QueryRow("SELECT model, trained_at FROM learned_models WHERE purpose = ? AND conn_id = ? AND holder = ?", purpose, connID, h).Scan(&m.Model, &at)
 	if errors.Is(err, sql.ErrNoRows) {
 		return m, false, nil
 	}
@@ -33,7 +36,7 @@ func Learned(q db.Queryer, purpose string, connID int64) (LearnedModel, bool, er
 
 // AllLearned lists every stored model.
 func AllLearned(q db.Queryer) ([]LearnedModel, error) {
-	rows, err := q.Query("SELECT purpose, conn_id, model, trained_at FROM learned_models ORDER BY conn_id, purpose")
+	rows, err := q.Query("SELECT purpose, conn_id, holder, model, trained_at FROM learned_models ORDER BY conn_id, purpose, holder")
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +46,7 @@ func AllLearned(q db.Queryer) ([]LearnedModel, error) {
 	for rows.Next() {
 		var m LearnedModel
 		var at string
-		if err := rows.Scan(&m.Purpose, &m.ConnID, &m.Model, &at); err != nil {
+		if err := rows.Scan(&m.Purpose, &m.ConnID, &m.Holder, &m.Model, &at); err != nil {
 			return nil, err
 		}
 		if m.TrainedAt, err = db.ParseTime(at); err != nil {
@@ -56,14 +59,14 @@ func AllLearned(q db.Queryer) ([]LearnedModel, error) {
 
 // SetLearned stores a model.
 func SetLearned(q db.Queryer, m LearnedModel) error {
-	_, err := q.Exec(`INSERT INTO learned_models (purpose, conn_id, model, trained_at) VALUES (?,?,?,?)
-		ON CONFLICT(purpose, conn_id) DO UPDATE SET model = excluded.model, trained_at = excluded.trained_at`,
-		m.Purpose, m.ConnID, m.Model, db.TimeStr(m.TrainedAt))
+	_, err := q.Exec(`INSERT INTO learned_models (purpose, conn_id, holder, model, trained_at) VALUES (?,?,?,?,?)
+		ON CONFLICT(purpose, conn_id, holder) DO UPDATE SET model = excluded.model, trained_at = excluded.trained_at`,
+		m.Purpose, m.ConnID, m.Holder, m.Model, db.TimeStr(m.TrainedAt))
 	return err
 }
 
 // DeleteLearned forgets a model.
-func DeleteLearned(q db.Queryer, purpose string, connID int64) error {
-	_, err := q.Exec("DELETE FROM learned_models WHERE purpose = ? AND conn_id = ?", purpose, connID)
+func DeleteLearned(q db.Queryer, purpose string, connID int64, h model.Holder) error {
+	_, err := q.Exec("DELETE FROM learned_models WHERE purpose = ? AND conn_id = ? AND holder = ?", purpose, connID, h)
 	return err
 }

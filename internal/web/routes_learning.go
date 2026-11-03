@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"andon/internal/model"
 	"andon/internal/services/learn"
 )
 
@@ -29,7 +30,8 @@ func (d Deps) RegisterLearningRoutes(mux *http.ServeMux) {
 	}))
 	mux.HandleFunc("POST "+learningPath+"/reset", d.learningAction(flashDone, func(r *http.Request, ctx Ctx) error {
 		conn, _ := strconv.ParseInt(r.FormValue("conn"), 10, 64)
-		return learn.Reset(d.DB, ctx.Who, r.FormValue("purpose"), conn, d.clientIP(r))
+		holder, _ := strconv.ParseInt(r.FormValue("holder"), 10, 64)
+		return learn.Reset(d.DB, ctx.Who, r.FormValue("purpose"), conn, model.Holder(holder), d.clientIP(r))
 	}))
 }
 

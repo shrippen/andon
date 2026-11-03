@@ -87,8 +87,8 @@ func EuerGuesserOf(n *sources.NinjaDataset, slot int, l EuerLearning) EuerGuesse
 }
 
 // EuerLearn teaches m n's expenses with a line in slot: new ones, and
-// ones whose line changed; an expense gone from n stays learned. It says
-// whether m changed.
+// ones whose line changed; an emptied line is forgotten, an expense gone
+// from n stays learned. It says whether m changed.
 func EuerLearn(m *bayes.Model, n *sources.NinjaDataset, slot int) bool {
 	return euerReader(n, slot).teach(n, slot, m)
 }
@@ -115,9 +115,14 @@ func (g EuerGuesser) teach(n *sources.NinjaDataset, slot int, m *bayes.Model) bo
 	}
 	changed := false
 	for _, e := range n.Expenses {
-		if line := strings.TrimSpace(e.Custom[slot-1]); line != "" && m.Learn(e.Key, line, g.inputOf(e).features()) {
-			changed = true
+		line := strings.TrimSpace(e.Custom[slot-1])
+
+		// An emptied line was wrong: forget it, do not propose it back.
+		if line == "" {
+			changed = m.Forget(e.Key) || changed
+			continue
 		}
+		changed = m.Learn(e.Key, line, g.inputOf(e).features()) || changed
 	}
 	return changed
 }

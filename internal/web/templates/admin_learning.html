@@ -40,11 +40,11 @@
       {{if .Rows}}<div class="table-wrap"><table class="table cards-sm">
         <thead><tr><th>{{t "learn.col_conn"}}</th><th>{{t "learn.col_purpose"}}</th><th class="num">{{t "learn.col_examples"}}</th><th class="num">{{t "learn.col_labels"}}</th><th class="num">{{t "learn.col_features"}}</th><th>{{t "learn.col_trained"}}</th><th></th></tr></thead>
         <tbody>{{range .Rows}}<tr>
-          <td data-card="title">{{.Conn}}</td><td>{{t (print "learn.purpose_" .Purpose)}}</td>
+          <td data-card="title">{{.Conn}}{{with .Whose}} <span class="muted">· {{.}}</span>{{end}}</td><td>{{t (print "learn.purpose_" .Purpose)}}</td>
           <td class="num">{{.Stats.Examples}}</td><td class="num">{{.Stats.Labels}}</td><td class="num">{{.Stats.Features}}</td>
           <td>{{ago .TrainedAt}}</td>
           <td><form method="post" action="/admin/learning/reset"><input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
-            <input type="hidden" name="purpose" value="{{.Purpose}}"><input type="hidden" name="conn" value="{{.ConnID}}">
+            <input type="hidden" name="purpose" value="{{.Purpose}}"><input type="hidden" name="conn" value="{{.ConnID}}"><input type="hidden" name="holder" value="{{.Holder}}">
             <button type="submit" class="btn btn-quiet btn-sm" title="{{t "learn.reset_hint"}}">{{t "learn.reset"}}</button></form></td>
         </tr>{{end}}</tbody>
       </table></div>

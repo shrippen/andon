@@ -25,6 +25,7 @@ import (
 	"andon/internal/model"
 	"andon/internal/repos/content"
 	"andon/internal/repos/misc"
+	"andon/internal/repos/users"
 	"andon/internal/services/access"
 	"andon/internal/services/audit"
 	"andon/internal/services/svcdata"
@@ -120,21 +121,22 @@ func Every(d *sql.DB) time.Duration {
 	return time.Duration(s.Hours) * time.Hour
 }
 
-// Euer is the EÜR model of an Invoice Ninja connection with the
-// settings' threshold; none when switched off or not learned yet (the
+// Euer is the EÜR model of an Invoice Ninja connection, as h reads it
+// (a personal login has a model per holder), with the settings'
+// threshold; none when switched off, empty when not learned yet (the
 // page then learns from its own data only).
-func Euer(d *sql.DB, connID int64) metrics.EuerLearning {
+func Euer(d *sql.DB, conn *model.Connection, h model.Holder) metrics.EuerLearning {
 	s, err := Load(d)
 	if err != nil || s.Mode == ModeOff {
 		return metrics.EuerLearning{}
 	}
 	l := metrics.EuerLearning{Model: bayes.New(), MinP: float64(s.MinPercent) / percent}
-	stored, ok, err := misc.Learned(d, PurposeEuer, connID)
+	stored, ok, err := misc.Learned(d, PurposeEuer, conn.ID, svcdata.HolderOf(conn, h))
 	if err != nil || !ok {
 		return l
 	}
 	if err := json.Unmarshal([]byte(stored.Model), l.Model); err != nil {
-		slog.Warn("learn: stored model unreadable, starting over", "conn", connID, "err", err)
+		slog.Warn("learn: stored model unreadable, starting over", "conn", conn.ID, "err", err)
 		l.Model = bayes.New()
 	}
 	return l
@@ -166,18 +168,20 @@ func Train(ctx context.Context, d *sql.DB, now time.Time) error {
 		if c.Service != string(enums.ServiceInvoiceNinja) {
 			continue
 		}
-		errs = append(errs, trainOne(ctx, d, c, holderOf(c, holders[c.ID]), now))
+		for _, h := range holdersOf(c, holders[c.ID]) {
+			errs = append(errs, trainOne(ctx, d, c, h, now))
+		}
 	}
 	return errors.Join(errs...)
 }
 
-// holderOf is whose credentials read a connection: anyone's for a
-// shared one, the first owner's for a personal one.
-func holderOf(c *model.Connection, holders []model.Holder) model.Holder {
-	if c.CredentialMode != enums.CredentialPersonal || len(holders) == 0 {
-		return model.NoHolder
+// holdersOf is whose data a connection has: one for a shared login, each
+// holder's own for a personal one (a model each).
+func holdersOf(c *model.Connection, holders []model.Holder) []model.Holder {
+	if c.CredentialMode != enums.CredentialPersonal {
+		return []model.Holder{model.NoHolder}
 	}
-	return holders[0]
+	return holders
 }
 
 func trainOne(ctx context.Context, d *sql.DB, c *model.Connection, h model.Holder, now time.Time) error {
@@ -194,23 +198,25 @@ func trainOne(ctx context.Context, d *sql.DB, c *model.Connection, h model.Holde
 		return nil
 	}
 
-	m := bayes.New()
-	stored, ok, err := misc.Learned(d, PurposeEuer, c.ID)
-	if err != nil {
-		return err
-	}
-	if ok {
-		if err := json.Unmarshal([]byte(stored.Model), m); err != nil {
+	// Read, learn and write in one write transaction: a reset meanwhile
+	// waits, and is not overwritten by the model read before it.
+	return db.WithTx(d, func(tx *sql.Tx) error {
+		m := bayes.New()
+		stored, ok, err := misc.Learned(tx, PurposeEuer, c.ID, h)
+		if err != nil {
 			return err
 		}
-	}
-	metrics.EuerLearn(m, n, slot)
-	text, err := json.Marshal(m)
-	if err != nil {
-		return err
-	}
-	return db.WithTx(d, func(tx *sql.Tx) error {
-		return misc.SetLearned(tx, misc.LearnedModel{Purpose: PurposeEuer, ConnID: c.ID, Model: string(text), TrainedAt: now.UTC()})
+		if ok {
+			if err := json.Unmarshal([]byte(stored.Model), m); err != nil {
+				return err
+			}
+		}
+		metrics.EuerLearn(m, n, slot)
+		text, err := json.Marshal(m)
+		if err != nil {
+			return err
+		}
+		return misc.SetLearned(tx, misc.LearnedModel{Purpose: PurposeEuer, ConnID: c.ID, Holder: h, Model: string(text), TrainedAt: now.UTC()})
 	})
 }
 
@@ -218,7 +224,9 @@ func trainOne(ctx context.Context, d *sql.DB, c *model.Connection, h model.Holde
 type Row struct {
 	Purpose   string
 	ConnID    int64
+	Holder    model.Holder
 	Conn      string
+	Whose     string // the holder's name, "" for a shared login
 	Stats     bayes.Stats
 	TrainedAt time.Time
 }
@@ -251,9 +259,25 @@ func Overview(d *sql.DB, who *access.Principal) ([]Row, error) {
 		if err := json.Unmarshal([]byte(s.Model), m); err != nil {
 			slog.Warn("learn: stored model unreadable", "conn", s.ConnID, "err", err)
 		}
-		out = append(out, Row{Purpose: s.Purpose, ConnID: s.ConnID, Conn: cmp.Or(names[s.ConnID], "#"), Stats: m.Stats(), TrainedAt: s.TrainedAt})
+		out = append(out, Row{Purpose: s.Purpose, ConnID: s.ConnID, Holder: s.Holder, Conn: cmp.Or(names[s.ConnID], "#"),
+			Whose: holderName(d, s.Holder), Stats: m.Stats(), TrainedAt: s.TrainedAt})
 	}
 	return out, nil
+}
+
+// holderName names a model's holder: a user, a team; "" shared.
+func holderName(d *sql.DB, h model.Holder) string {
+	if u := h.User(); u > 0 {
+		if user, err := users.Get(d, u); err == nil {
+			return cmp.Or(user.Name, user.Email)
+		}
+	}
+	if tm := h.Team(); tm > 0 {
+		if team, err := users.Team(d, tm); err == nil {
+			return team.Name
+		}
+	}
+	return ""
 }
 
 // TrainNow trains at once. Admin only.
@@ -269,14 +293,14 @@ func TrainNow(ctx context.Context, d *sql.DB, who *access.Principal, ip string) 
 
 // Reset forgets one model; it learns again from the data there is.
 // Admin only.
-func Reset(d *sql.DB, who *access.Principal, purpose string, connID int64, ip string) error {
+func Reset(d *sql.DB, who *access.Principal, purpose string, connID int64, h model.Holder, ip string) error {
 	if !who.IsAdmin() {
 		return ErrDenied
 	}
 	return db.WithTx(d, func(tx *sql.Tx) error {
-		if err := misc.DeleteLearned(tx, purpose, connID); err != nil {
+		if err := misc.DeleteLearned(tx, purpose, connID, h); err != nil {
 			return err
 		}
-		return audit.Log(tx, &who.UserID, "learn.reset", purpose, ip, map[string]any{"conn": connID})
+		return audit.Log(tx, &who.UserID, "learn.reset", purpose, ip, map[string]any{"conn": connID, "holder": int64(h)})
 	})
 }

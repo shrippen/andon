@@ -76,6 +76,17 @@ func (m *Model) Learn(id, label string, features []string) bool {
 	return true
 }
 
+// Forget drops example id; it says whether the model held it.
+func (m *Model) Forget(id string) bool {
+	old, ok := m.seen[id]
+	if !ok {
+		return false
+	}
+	delete(m.seen, id)
+	m.count(old, -1)
+	return true
+}
+
 // Stats counts what the model holds.
 func (m *Model) Stats() Stats {
 	return Stats{Examples: m.n, Labels: len(m.examples), Features: len(m.known)}
