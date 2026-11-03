@@ -7953,7 +7953,8 @@ kept:
 
 learn:
   title: 'Learning'
-  lead: 'Andon learns from your data and decisions (naive Bayes) and proposes where no fixed rule applies: for example an expense''s EUER line. Each model belongs to one connection (with a personal login, to each holder) and is stored: it learns what is new and keeps what it learned from deleted data. A proposal appears only once the model knows at least two classes.'
+  lead: 'Andon learns from your data and decisions (naive Bayes) and proposes where no fixed rule applies: for example an expense''s EUER line. Each model belongs to one connection (with a personal login, to each holder) and is stored: it learns what is new and keeps what it learned from deleted data. A proposal appears only once the model knows at least two classes. It only suggests (a "Suggestion:" line under the field); nothing is filled in.'
+  suggest: 'Suggestion:'
   settings: 'Settings'
   mode: 'Learned proposals'
   mode_on: 'on'
