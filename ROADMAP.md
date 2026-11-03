@@ -1227,6 +1227,13 @@ Vor der Voranmeldung ging der Nutzer die Bankumsätze in Invoice Ninja durch und
 - [ ] Gegen eine Instanz testen (Wegwerf-Container, `.local-test/writes/`): Antwort von `bank_transactions/match`, Steuerfelder der angelegten Ausgabe
 - [x] Hinweis „Reverse Charge“ (§ 13b) bei ausländischen Lieferanten ohne Steuer *(16.10.2026: `in.expense_no_input_vat` meldete solche Ausgaben als „keine Vorsteuer erfasst“, live bei ZSA; jetzt eigener Text mit Kennzahlen 46/47 bzw. 84/85, führt in den USt-Abgleich des Zeitraums)*
 
+### Zusammenfassende Meldung: Datei und Stand je Quartal (notiert 03.11.2026)
+
+Live-Fund 03.11.2026: Für Leistungen an VoiceArchive ApS (DK) fehlte die USt-IdNr. in Invoice Ninja, Andon zählte deshalb nichts, und seit 2021 ist keine Meldung abgegeben. Die Q3-Meldung war am 25.10. fällig, ohne dass Andon warnte. Zwei Rechnungsdaten lagen im falschen Quartal (R2026/0025: Leistung Juni, Datum Juli); nach der Korrektur ist Q2 2026 zu berichtigen. `metrics.ZMOf` rechnet bisher nur das gewählte Quartal und zeigt Werte zum Abtippen.
+- [ ] Datei fürs BZSt-Online-Portal (BOP): je Quartal „CSV fürs BZSt“ mit Länderkennzeichen, USt-IdNr., Betrag in ganzen Euro, Art der Leistung (`S` sonstige Leistung, `L` Lieferung). Kopfzeile, Trennzeichen und Kodierung vorher am Muster des BZSt prüfen, im Test festhalten. Kunden ohne USt-IdNr. sperren den Download mit Nennung. *(ELSTER/ERiC verworfen: Zertifikat und Bibliothek für eine Zeile im Quartal)*
+- [ ] Stand je Quartal wie bei der Voranmeldung: alle Quartale mit Leistungen an EU-Unternehmen, je „gemeldet / offen / überfällig / Berichtigung fällig“; „Als gemeldet merken“ speichert die gemeldeten Zeilen, ändert sich danach eine Summe (Rechnung, Datum, USt-IdNr.), ist eine berichtigte Meldung fällig
+- [ ] Regel mit Frist: offene Meldung vor dem 25. nach dem Quartal (warn), danach überfällig (Fehler); führt nach `/vat` beim Quartal
+
 ### Werkbänke (entschieden 14.10.2026)
 
 `/vat` löst ein Problem mit dem Nutzer, statt es nur zu melden: Zeitraum → Fälle → Vorschlag → Prüfen → Schreiben nach OK gegen frische Daten → Wieder zeigen. Viele Regeln kennen ihr Problem schon und enden beim Hinweis. Aus 32 Vorschlägen hat der Nutzer ausgewählt (Entscheidungsseite mit Kommentaren, 14.10.2026). Reihenfolge nach Abhängigkeit, je Punkt ein PR.
