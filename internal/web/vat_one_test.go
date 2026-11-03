@@ -22,7 +22,7 @@ func TestVATOne(t *testing.T) {
 	}
 	month := studioMonth()
 	page := string(mustGet(t, srv, client, "/vat?span="+month))
-	if !strings.Contains(page, `id="one-demo-b-studio"`) || !strings.Contains(page, `"only": "demo-b-studio"`) {
+	if !strings.Contains(page, `id="one-demo-b-studio"`) || !strings.Contains(page, `"only": "demo-b-studio"`) || !strings.Contains(page, `<form id="vat-one"`) {
 		t.Fatalf("desk lacks its own review:\n%s", page)
 	}
 
@@ -38,12 +38,15 @@ func TestVATOne(t *testing.T) {
 		t.Fatalf("review one: %v %v", resp, err)
 	}
 	one := readBody(t, resp)
-	for _, want := range []string{"Ausgabe „Kabelwerk Studiobedarf“ anlegen", `formaction="/vat/apply"`, `name="only" value="demo-b-studio"`} {
+	// It writes what it showed, through its own form: not the bench's
+	// fields as they are later, not the bench's default button on Enter.
+	for _, want := range []string{"Ausgabe „Kabelwerk Studiobedarf“ anlegen", `<button type="submit" class="btn btn-accent" form="vat-one">`,
+		`form="vat-one" name="pick" value="demo-b-studio"`, `form="vat-one" name="vendor_demo-b-studio" value="Kabelwerk Studiobedarf"`} {
 		if !strings.Contains(one, want) {
 			t.Fatalf("fragment lacks %q:\n%s", want, one)
 		}
 	}
-	if strings.Contains(one, "<html") || strings.Contains(one, "archivieren") {
+	if strings.Contains(one, "<html") || strings.Contains(one, "archivieren") || strings.Contains(one, "formaction") {
 		t.Fatalf("fragment is a page or holds the other case:\n%s", one)
 	}
 

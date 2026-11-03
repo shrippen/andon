@@ -2842,6 +2842,14 @@
     }
   }
 
+  // New hits of a search (htmx) change what the desk would write too.
+  d.addEventListener("htmx:afterSwap", function (e) {
+    var desk = e.target.closest && e.target.closest("[data-desk]");
+    if (desk && !e.target.closest("[data-one]")) {
+      benchStale(desk);
+    }
+  });
+
   // benchSetAct shows the action's block; the parts count again.
   function benchSetAct(form, desk, act) {
     benchStale(desk);

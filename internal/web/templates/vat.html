@@ -148,6 +148,7 @@
         <button type="submit" class="btn btn-outline" data-take-ready hidden>{{t "vatcheck.take_ready"}}</button>
         <small class="muted">{{t "vatcheck.review_hint"}}</small></p>
     </form>
+    <form id="vat-one" method="post" action="/vat/apply" hidden><input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="span" value="{{$p.Span.Key}}"></form>
     {{else}}<p class="muted">{{t "vatcheck.no_cases"}}</p>{{end}}
 
     {{with $c.NoTax}}
@@ -432,11 +433,14 @@
           {{else}}{{if $i.NewVendor}}{{t "vatcheck.do_vendor" "vendor" $i.Vendor}} {{end}}{{t "vatcheck.do_create" "vendor" $i.Vendor}}{{template "vat_new" dict "I" $i "Currency" $.Currency}}{{end}}{{end}}
 
 {{/* A desk's own review (POST /vat/review, only=<case>): its step and
-     a button writing it alone, through the bench's form. */}}
+     a button writing it alone. It sends the step as reviewed through
+     the form vat-one outside the bench's (form attribute): fields
+     changed later do not go, and Enter in the bench never hits it. */}}
 {{define "vat_one"}}{{with .Error}}<p class="error small">{{t .}}</p>{{end}}{{range .Plan.Steps}}
 <div class="card{{if .Problem}} late{{end}}">
   <div class="small">{{template "vat_plan_step" dict "S" . "Currency" $.Plan.Currency}}</div>
-  {{if not .Problem}}<p class="btn-row"><button type="submit" class="btn btn-accent" formaction="/vat/apply" name="only" value="{{.Case}}">{{t "vatcheck.apply_one"}}</button>
+  {{if not .Problem}}{{template "bench_step_in" dict "Step" .Step "Form" "vat-one"}}
+  <p class="btn-row"><button type="submit" class="btn btn-accent" form="vat-one">{{t "vatcheck.apply_one"}}</button>
     <small class="muted">{{t "vatcheck.apply_one_hint"}}</small></p>{{end}}
 </div>{{end}}{{end}}
 

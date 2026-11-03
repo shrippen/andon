@@ -90,7 +90,23 @@ def one(page):
 
     page.click(review)
     page.wait_for_selector(box + " .card")
-    page.click(box + " button[formaction]")
+
+    # Enter in a field (no change, so the review stays) must not write
+    # the reviewed case: the bench's own default button goes.
+    page.focus(f'[name="note_{CREATE}"]')
+    with page.expect_navigation():
+        page.keyboard.press("Enter")
+    page.wait_for_load_state("networkidle")
+    if "err_demo" in page.url:
+        wrong.append("one: Enter wrote the reviewed case")
+        return wrong
+    page.goto(page.url if "/vat?" in page.url else page.url.split("/vat")[0] + "/vat")
+    page.wait_for_load_state("networkidle")
+
+    page.click(f'.bench-entry[data-case="{CREATE}"]')
+    page.click(review)
+    page.wait_for_selector(box + " .card")
+    page.click(box + ' button[form="vat-one"]')
     page.wait_for_url("**error=vatcheck.err_demo**")
     page.wait_for_load_state("networkidle")
     wait(page, f'[data-desk="{SPLIT}"] [data-split]')

@@ -8,7 +8,7 @@ package web
 //	GET  /vat/split    one debit's split, once chosen (htmx)
 //	POST /vat/review   the ticked steps, spelled out, to confirm
 //	                   (only=<case>, htmx: one case, below its desk)
-//	POST /vat/apply    writes the confirmed steps (only=<case>: that one)
+//	POST /vat/apply    writes the confirmed steps
 //	POST /vat/restore  brings a transaction archived as private back
 //	POST /vat/accounts names each bank account business or private
 //	POST /vat/guess    asks the language model about the open ones
@@ -144,7 +144,7 @@ func (d Deps) handleVATReview(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := vatQueryOf(r)
 	plan, err := vatcheck.Review(r.Context(), d.DB, ctx.Who, q.Scope, vatSteps(r))
 	if r.FormValue(benchOnly) != "" && r.Header.Get("HX-Request") != "" {
-		values := map[string]any{"Partial": true, "Plan": plan}
+		values := map[string]any{"Partial": true, "ThemeURL": "", "Plan": plan}
 		if err != nil {
 			values["Error"] = vatError(err)
 		}
