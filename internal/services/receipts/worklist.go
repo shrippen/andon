@@ -333,6 +333,33 @@ func FindScans(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID in
 	return out[:min(len(out), scansFound)], nil
 }
 
+// FreeScans are the scans of ids still free, read fresh in one request:
+// scans the user picked, search hits among them, need not score like a
+// proposal. Linked, hidden and gone ones are missing.
+func FreeScans(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID int64, ids []int64) (map[int64]Candidate, error) {
+	p, err := openPair(d, who)
+	if errors.Is(err, ErrNoPair) || (err == nil && (p.ninja.ID != ninjaID || !p.mapping.Complete())) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	docs, err := p.docsByID(ctx, d, who, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	list := make([]sources.ReceiptDoc, 0, len(docs))
+	for _, doc := range docs {
+		list = append(list, *doc)
+	}
+	out := map[int64]Candidate{}
+	for _, doc := range p.free(list) {
+		out[doc.ID] = Candidate{Doc: doc, Number: docNumber(p.mapping, doc)}
+	}
+	return out, nil
+}
+
 // scansFound is how many hits FindScans offers.
 const scansFound = 8
 

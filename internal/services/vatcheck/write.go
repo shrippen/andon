@@ -138,19 +138,38 @@ func Review(ctx context.Context, d *sql.DB, who *access.Principal, scope string,
 func scanChecks(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, steps []Planned) {
 	expenseChecks(steps)
 	taken := map[int64]bool{}
+	free, err := pickedScans(ctx, d, who, connID, steps)
 	for i := range steps {
 		if steps[i].Action == string(ActionSplit) && steps[i].Problem == workbench.ProblemNone {
 			splitScans(ctx, d, who, connID, &steps[i], taken)
 			continue
 		}
-		scanTitle(ctx, d, who, connID, &steps[i], taken)
+		scanTitle(ctx, d, who, connID, &steps[i], taken, free, err)
 	}
 }
 
+// pickedScans reads the scans picked for a create, link or fill in one
+// request (receipts.FreeScans): those still free.
+func pickedScans(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, steps []Planned) (map[int64]receipts.Candidate, error) {
+	var ids []int64
+	for _, p := range steps {
+		if p.Item.Scan == 0 || p.Action == string(ActionReceipt) || p.Action == string(ActionSplit) {
+			continue
+		}
+		ids = append(ids, p.Item.Scan)
+	}
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	return receipts.FreeScans(ctx, d, who, connID, ids)
+}
+
 // scanTitle names the scan a new expense gets; one no longer free, or
-// taken by an earlier step, is dropped (receipts.ScansFor offers only
-// free ones).
-func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, p *Planned, taken map[int64]bool) {
+// taken by an earlier step, is dropped. Any free scan counts: the user
+// may have picked a search hit no proposal offers (free, from
+// pickedScans).
+func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int64, p *Planned, taken map[int64]bool,
+	free map[int64]receipts.Candidate, freeErr error) {
 	if p.Item.Scan == 0 || p.Action == string(metrics.ActionSkip) || p.Problem != workbench.ProblemNone {
 		return
 	}
@@ -161,8 +180,10 @@ func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int
 		day, _ := metrics.ParseDay(p.Item.Txn.Date)
 		year := time.Date(day.Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
 		scans, err = receipts.Unbooked(ctx, d, who, connID, year, year.AddDate(1, 0, -1))
+	} else if c, ok := free[p.Item.Scan]; ok {
+		scans = []receipts.Candidate{c}
 	} else {
-		scans, err = receipts.ScansFor(ctx, d, who, connID, p.Item.Txn.Amount, p.Item.Txn.Date, p.Item.Vendor)
+		err = freeErr
 	}
 	if err != nil && p.Action == string(ActionReceipt) {
 		p.Problem = ProblemGone // its scan is its only guard against a second expense

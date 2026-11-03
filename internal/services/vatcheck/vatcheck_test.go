@@ -644,3 +644,46 @@ func TestReceiptCase(t *testing.T) {
 		t.Fatalf("without amount: %v %+v", err, plan.Steps)
 	}
 }
+
+// A scan the user searched for and picked is linked even when its score
+// stays below the proposals' (a donation receipt for a bank debit): the
+// review keeps it instead of dropping it unseen while writing the rest.
+func TestFillSearchedScan(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, "demo://invoiceninja")
+	testkit.Conn(t, d, who, space, enums.ServicePaperless, "demo://paperless")
+	ctx := context.Background()
+	today := time.Now().UTC()
+
+	// A gap lacking its scan, and a free scan of another case.
+	var gap, doc *vatcheck.Case
+	for _, s := range metrics.VATSpans(today, "monthly", 3) {
+		p, err := vatcheck.Open(ctx, d, who, scopeOf(conn), s.Key, today)
+		if err != nil {
+			t.Fatalf("open %s: %v", s.Key, err)
+		}
+		for i := range p.Gaps {
+			if gap == nil && p.Gaps[i].Offers(vatcheck.PartScan) {
+				gap = &p.Gaps[i]
+			}
+		}
+		if doc == nil && len(p.Docs) > 0 && p.Docs[0].Scan() != 0 {
+			doc = &p.Docs[0]
+		}
+	}
+	if gap == nil || doc == nil {
+		t.Fatalf("demo lacks a gap without scan (%v) or a free scan (%v)", gap, doc)
+	}
+	offered, err := receipts.ScansFor(ctx, d, who, conn, gap.Txn.Amount, gap.Txn.Date, gap.Txn.Payer)
+	if err != nil || slices.ContainsFunc(offered, func(c receipts.Candidate) bool { return c.Doc.ID == doc.Scan() }) {
+		t.Fatalf("scan %d should not be among the proposals: %v %v", doc.Scan(), err, offered)
+	}
+
+	step := workbench.Step{Case: gap.Txn.Key, Action: string(vatcheck.ActionFill), Fields: map[string]string{
+		vatcheck.FieldFillScan: strconv.FormatInt(doc.Scan(), 10)}}
+	plan, err := vatcheck.Review(ctx, d, who, scopeOf(conn), []workbench.Step{step})
+	if err != nil || plan.Steps[0].Problem != workbench.ProblemNone || plan.Steps[0].Item.Scan != doc.Scan() {
+		t.Fatalf("picked scan %d: %v %+v", doc.Scan(), err, plan.Steps)
+	}
+}
