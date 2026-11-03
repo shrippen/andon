@@ -87,6 +87,18 @@ func (m *Model) Forget(id string) bool {
 	return true
 }
 
+// Prune forgets every example drop names by its id; it says whether
+// the model changed.
+func (m *Model) Prune(drop func(id string) bool) bool {
+	changed := false
+	for id := range m.seen {
+		if drop(id) {
+			changed = m.Forget(id) || changed
+		}
+	}
+	return changed
+}
+
 // Stats counts what the model holds.
 func (m *Model) Stats() Stats {
 	return Stats{Examples: m.n, Labels: len(m.examples), Features: len(m.known)}

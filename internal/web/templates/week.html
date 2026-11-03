@@ -28,16 +28,18 @@
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="week" value="{{$p.Week.Format "2006-01-02"}}">
       <div class="table-wrap"><table class="table cards-sm">
         <thead><tr><th></th><th>{{t "closeweek.seen"}}{{tzMark}}</th><th>{{t "closeweek.entry"}}</th></tr></thead>
-        <tbody>{{range $p.Cases}}{{$c := .}}{{$k := .Key}}<tr data-draft-case="{{$k}}" data-draft-basis="{{index $p.Bases $k}}">
+        <tbody>{{range $i, $_ := $p.Cases}}{{$c := .}}{{$k := .Key}}<tr data-draft-case="{{$k}}" data-draft-basis="{{index $p.Bases $k}}">
           <td><label class="check"><input type="checkbox" name="pick" value="{{$k}}"{{if .Checked}} checked{{end}} aria-label="{{.Title}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
             <input type="hidden" name="act_{{$k}}" value="book"></td>
           <td data-card="title"><b>{{or .Customer "?"}}</b> · {{day .Day}} {{.Start.Format "15:04"}}–{{.End.Format "15:04"}}<br>
             <small class="muted">{{t (print "closeweek.kind_" .Kind)}}: {{.Title}}</small></td>
           <td class="week-entry">
-            {{with $p.Catalog}}<select class="select" name="project_{{$k}}" aria-label="{{t "closeweek.project"}}"><option value="">{{t "closeweek.project"}}</option>
+            {{with $p.Catalog}}<select class="select" id="week-project-{{$i}}" name="project_{{$k}}" aria-label="{{t "closeweek.project"}}"><option value="">{{t "closeweek.project"}}</option>
               {{range .Projects}}<option value="{{.ID}}"{{if eq .ID $c.Project}} selected{{end}}>{{.Customer}} · {{.Name}}</option>{{end}}</select>
-            <select class="select" name="activity_{{$k}}" aria-label="{{t "closeweek.activity"}}"><option value="">{{t "closeweek.activity"}}</option>
-              {{range .Activities}}<option value="{{.ID}}"{{if eq .ID $c.Activity}} selected{{end}}>{{.Name}}</option>{{end}}</select>{{end}}
+            {{template "suggest" (dict "For" (print "week-project-" $i) "Picks" $c.ProjectPicks)}}
+            <select class="select" id="week-activity-{{$i}}" name="activity_{{$k}}" aria-label="{{t "closeweek.activity"}}"><option value="">{{t "closeweek.activity"}}</option>
+              {{range .Activities}}<option value="{{.ID}}"{{if eq .ID $c.Activity}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+            {{template "suggest" (dict "For" (print "week-activity-" $i) "Picks" $c.ActivityPicks)}}{{end}}
             <input class="input" type="datetime-local" name="begin_{{$k}}" value="{{.Start.Format "2006-01-02T15:04"}}" aria-label="{{t "closeweek.begin"}}">
             <input class="input" type="datetime-local" name="end_{{$k}}" value="{{.End.Format "2006-01-02T15:04"}}" aria-label="{{t "closeweek.end"}}">
             <input class="input" name="note_{{$k}}" value="{{.Title}}" aria-label="{{t "closeweek.note"}}">

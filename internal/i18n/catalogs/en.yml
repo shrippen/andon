@@ -7652,7 +7652,7 @@ vendors:
   err_demo: 'The demo does not write to Invoice Ninja.'
 closeweek:
   title: 'Close the week'
-  lead: 'Work other services saw and Kimai lacks: visits at customers (Dawarich) and appointments naming a customer or project (calendar). Proposed are the project and activity you last booked for the customer; after the review Andon enters the times in Kimai.'
+  lead: 'Work other services saw and Kimai lacks: visits at customers (Dawarich) and appointments naming a customer or project (calendar). Proposed are the project and activity you last booked for the customer; below them, as suggestions, those Andon learned from your entries for the words of the appointment or place. After the review Andon enters the times in Kimai.'
   weeks: Weeks
   from: 'Week of {day}'
   sources: 'Read from:'
@@ -7958,7 +7958,7 @@ kept:
 
 learn:
   title: 'Learning'
-  lead: 'Andon learns from your data and decisions (naive Bayes) and proposes where no fixed rule applies: for example an expense''s EUER line. Each model belongs to one connection (with a personal login, to each holder) and is stored: it learns what is new and keeps what it learned from deleted data. A proposal appears only once the model knows at least two classes. It only suggests (a "Suggestion:" line under the field); nothing is filled in.'
+  lead: 'Andon learns from your data and decisions (naive Bayes) and proposes where no fixed rule applies: for example an expense''s EUER line. Each model belongs to one connection (with a personal login, to each holder) and is stored: it learns what is new and keeps what it learned from deleted data; Kimai entries that Kimai no longer returns (deleted or outside the fetched period) it forgets. A proposal appears only once the model knows at least two classes. It only suggests (a "Suggestion:" line under the field); nothing is filled in.'
   suggest: 'Suggestion:'
   settings: 'Settings'
   mode: 'Learned proposals'
@@ -7981,6 +7981,7 @@ learn:
   purpose_category: 'Category of new vendors'
   purpose_private: 'Private or business'
   purpose_vendor: 'Vendor from the booking'
+  purpose_kimai_task: 'Kimai project and activity'
   purpose_ride_class: 'Ride: business or private'
   purpose_sure_category: 'Sure category'
   purpose_mail: 'Invoice mail'
