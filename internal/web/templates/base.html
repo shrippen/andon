@@ -84,8 +84,8 @@
 
 {{/* A space by the viewer's name for it: "Ich" for their own, the
      instance in the viewer's language, else its name. */}}
-{{/* A learned model's guess under a field (Kante .field-suggest): it only suggests, a click puts the value into the field. dict "For" <field id> "Picks" []learn.Pick */}}
-{{define "suggest"}}{{if .Picks}}<p class="field-suggest" data-suggest-for="{{.For}}"><span>{{t "learn.suggest"}}</span> {{range $i, $p := .Picks}}{{if $i}}, {{end}}<button type="button" class="field-suggest-pick" data-value="{{$p.Value}}">{{$p.Label}}</button>{{end}}</p>{{end}}{{end}}
+{{/* A learned model's guess under a field (Kante .field-suggest): it only suggests, a click puts the value into the field. dict "For" <field id> "Picks" []metrics.Pick */}}
+{{define "suggest"}}{{if .Picks}}<p class="field-suggest" data-suggest-for="{{.For}}"><span>{{t "learn.suggest"}}</span> {{range $i, $p := .Picks}}{{if $i}}, {{end}}<button type="button" class="field-suggest-pick" data-value="{{$p.Value}}">{{if $p.Text}}{{t $p.Text}}{{else}}{{$p.Label}}{{end}}</button>{{end}}</p>{{end}}{{end}}
 
 {{define "space_label"}}{{if eq .Kind "personal"}}{{t "settings.level_me"}}{{else if eq .Kind "instance"}}{{t "space.instance"}}{{else}}{{.Name}}{{end}}{{end}}
 
