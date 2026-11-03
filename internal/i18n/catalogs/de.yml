@@ -7832,7 +7832,7 @@ year:
   err_no_ninja: 'Keine Invoice-Ninja-Verbindung, die du nutzen darfst.'
 categorize:
   title: 'Buchungen einordnen'
-  lead: 'Buchungen der letzten 90 Tage, die Sure keiner Kategorie zugeordnet hat, je Händler. Vorgeschlagen ist die Kategorie, die die übrigen Buchungen des Händlers haben; angehakt, wenn sie sich einig sind. Nach dem Prüfen ordnet Andon die Buchungen in Sure ein (der API-Schlüssel braucht Schreibrechte).'
+  lead: 'Buchungen der letzten 90 Tage, die Sure keiner Kategorie zugeordnet hat, je Händler. Vorgeschlagen ist die Kategorie, die die übrigen Buchungen des Händlers haben; angehakt, wenn sie sich einig sind. Hat der Händler keine, stehen darunter aus ähnlichen Buchungen gelernte als Vorschlag; ein Klick wählt sie. Nach dem Prüfen ordnet Andon die Buchungen in Sure ein (der API-Schlüssel braucht Schreibrechte).'
   merchant: 'Händler'
   category: 'Kategorie'
   choose: 'Kategorie wählen'
@@ -7981,6 +7981,7 @@ learn:
   col_trained: 'Zuletzt dazugelernt'
   purpose_euer: 'EÜR-Zeile'
   purpose_ride_class: 'Fahrt: beruflich oder privat'
+  purpose_sure_category: 'Sure-Kategorie'
   purpose_mail: 'Rechnungsmail'
   train: 'Jetzt trainieren'
   reset: 'Zurücksetzen'

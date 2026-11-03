@@ -29,8 +29,9 @@
             <input type="hidden" name="act_{{$k}}" value="file"></td>
           <td data-card="title"><b>{{.Merchant}}</b><br>
             <small class="muted">{{t "categorize.bookings" "n" (len .Txns) "total" (money .Total $p.Currency)}}{{with index .Txns 0}} · {{t "categorize.latest" "day" (day .Date)}}{{end}}{{if .Of}} · {{t "categorize.votes" "n" .Votes "of" .Of}}{{end}}</small></td>
-          <td><select class="select" name="category_{{$k}}" aria-label="{{t "categorize.category"}}"><option value="">{{t "categorize.choose"}}</option>
-            {{range $p.Categories}}<option value="{{.ID}}"{{if eq .ID $c.CategoryID}} selected{{end}}>{{with .Parent}}{{.}} › {{end}}{{.Name}}</option>{{end}}</select></td>
+          <td><select class="select" id="category-{{$k}}" name="category_{{$k}}" aria-label="{{t "categorize.category"}}"><option value="">{{t "categorize.choose"}}</option>
+            {{range $p.Categories}}<option value="{{.ID}}"{{if eq .ID $c.CategoryID}} selected{{end}}>{{with .Parent}}{{.}} › {{end}}{{.Name}}</option>{{end}}</select>
+            {{template "suggest" (dict "For" (print "category-" $k) "Picks" $c.Suggest)}}</td>
         </tr>{{end}}</tbody>
       </table></div>
       <p><button type="submit" class="btn btn-accent">{{t "categorize.review"}}</button></p>
