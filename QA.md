@@ -187,7 +187,7 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 
 **J-C4 Kategorien und EÜR**
 1. Verbund mit Invoice Ninja und Sure → „Kategorien“: Sure-Vorschläge stehen vorausgewählt („Vorschlag“); darunter Sures Tags („#Studio“) mit eigener Auswahl, gilt, wenn die Kategorie keine Zuordnung hat; das EÜR-Feld ist erkannt, keine Zuordnung Kategorie → EÜR; Speichern.
-2. `/euer`: Ausgaben ohne EÜR-Zeile, Vorschlag aus der letzten Ausgabe desselben Lieferanten („wie zuletzt bei diesem Lieferanten“), nichts vorab angehakt; Dropdown-Feld als Auswahl. Anhaken, „Prüfen“ → „In Invoice Ninja schreiben“ (Demo lehnt ab). Ohne gewähltes Feld: Hinweis mit Link zu den Kategorien.
+2. `/euer`: Ausgaben ohne EÜR-Zeile, Vorschlag aus der letzten Ausgabe desselben Lieferanten („wie zuletzt bei diesem Lieferanten“), nichts vorab angehakt; Dropdown-Feld als Auswahl. Anhaken, „Prüfen“ → „In Invoice Ninja schreiben“ (Demo lehnt ab). Ein Feld, dessen Name EÜR nennt, gilt schon vor dem Speichern (auch auf `/vat`, `/year`, im Export); Hinweis mit Link zu den Kategorien nur ohne solches Feld oder nach „–“ gespeichert.
 3. `/vat`: „Neue Ausgabe“ hat eine EÜR-Auswahl, vorbelegt mit der Zeile des Lieferanten; die Prüfung zeigt sie, ein Wert außerhalb des Dropdowns wird übersprungen.
 
 **J-C3 Schreib-Journal**

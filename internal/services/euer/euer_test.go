@@ -82,6 +82,32 @@ func TestEuerBench(t *testing.T) {
 	}
 }
 
+// "–" saved means no EÜR field, also when one is named EÜR: the guess
+// holds only until a choice is saved.
+func TestEuerFieldNone(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	ninja := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, "demo://invoiceninja")
+	sure := testkit.Conn(t, d, who, space, enums.ServiceSure, "demo://sure")
+	id, err := verbund.Create(d, who, "Studio", []int64{ninja, sure}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, today := context.Background(), time.Now()
+
+	if err := verbund.SaveCategories(ctx, d, who, id, verbund.CategorySave{Slot: verbund.NoEuerField}, ""); err != nil {
+		t.Fatal(err)
+	}
+	view, err := verbund.CategoriesOf(ctx, d, who, id)
+	if err != nil || view.Slot != 0 {
+		t.Fatalf("view after none: slot %d %v", view.Slot, err)
+	}
+	page, err := euer.Open(ctx, d, who, "", today.Year(), today)
+	if err != nil || page.Slot != 0 {
+		t.Fatalf("euer after none: slot %d %v", page.Slot, err)
+	}
+}
+
 // demoVendorLines reads the demo's line per vendor as the bench must.
 func demoVendorLines(t *testing.T, ctx context.Context) map[string]string {
 	t.Helper()

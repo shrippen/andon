@@ -58,7 +58,7 @@ type Page struct {
 
 	Lines    []metrics.EuerLine // expenses by EÜR line
 	Unlined  int                // expenses without line
-	EuerSlot int                // 0: no field chosen yet
+	EuerSlot int                // 0: none chosen nor named EÜR
 	Expenses float64            // net, all lines
 
 	Inventory bool // the Verbund has an inventory (caps.Inventory)

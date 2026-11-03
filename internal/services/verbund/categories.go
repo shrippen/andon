@@ -76,6 +76,9 @@ func (v CategoryView) Slots() []Slot {
 // Lines are the EÜR field's choices (metrics.EuerChoices).
 func (v CategoryView) Lines() []string { return v.lines }
 
+// NoField is the value of the page's "–" (NoEuerField).
+func (CategoryView) NoField() int { return NoEuerField }
+
 // HasNinja reports whether the Verbund has an Invoice Ninja (its
 // categories page).
 func (v View) HasNinja() bool { _, ok := v.Has(enums.ServiceInvoiceNinja); return ok }
@@ -193,6 +196,10 @@ func bankNames(ninja *sources.NinjaDataset, votes metrics.Votes, names []string,
 	return out
 }
 
+// NoEuerField is the page's "–": no field holds the EÜR line, not even
+// one named EÜR (sources.EuerNone).
+const NoEuerField = sources.EuerNone
+
 // CategorySave is what the page sends: Sure's categories and the EÜR
 // field.
 type CategorySave struct {
@@ -229,7 +236,7 @@ func (v CategoryView) save(d *sql.DB, who *access.Principal, in CategorySave, ip
 		known := func(_, val string) bool { return keys[val] }
 		c.Sure[v.Bank.ID], c.Tags[v.Bank.ID] = clean(in.Sure, known), clean(in.Tags, known)
 	}
-	if in.Slot >= 0 && in.Slot <= sources.NinjaSlots {
+	if in.Slot >= sources.EuerNone && in.Slot <= sources.NinjaSlots {
 		c.EuerSlot = in.Slot
 	}
 

@@ -58,7 +58,7 @@
         <p class="small muted">{{t "verbund.cat_euer_lead"}}</p>
         <label for="euer-slot">{{t "verbund.cat_euer_field"}}</label>
         <select class="select" id="euer-slot" name="euer_slot"{{if not $v.CanSave}} disabled{{end}}>
-          <option value="0">–</option>
+          <option value="{{$v.NoField}}">–</option>
           {{range $v.Slots}}<option value="{{.N}}"{{if eq .N $v.Slot}} selected{{end}}>{{.Label}}</option>{{end}}</select>
         {{if $v.Slot}}<p class="small muted">{{t "verbund.cat_euer_lines" "lines" (join $v.Lines ", ")}}</p>
         {{else}}<p class="small">{{t "verbund.cat_euer_none"}}</p>{{end}}
