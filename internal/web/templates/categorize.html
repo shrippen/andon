@@ -28,7 +28,7 @@
           <td><label class="check"><input type="checkbox" name="pick" value="{{$k}}"{{if .Ticked}} checked{{end}} aria-label="{{.Merchant}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
             <input type="hidden" name="act_{{$k}}" value="file"></td>
           <td data-card="title"><b>{{.Merchant}}</b><br>
-            <small class="muted">{{t "categorize.bookings" "n" (len .Txns) "total" (money .Total $p.Currency)}}{{with index .Txns 0}} · {{t "categorize.latest" "day" (day .Date)}}{{end}}{{if .Of}} · {{t "categorize.votes" "n" .Votes "of" .Of}}{{end}}</small></td>
+            <small class="muted">{{t "categorize.bookings" "n" (len .Txns) "total" (money .Total $p.Currency)}}{{with index .Txns 0}} · {{t "categorize.latest" "day" (day .Date)}}{{end}}{{if .Of}} · {{t "categorize.votes" "n" .Votes "of" .Of}}{{else if .From}} · {{t (print "categorize.from_" .From)}}{{end}}</small></td>
           <td><select class="select" name="category_{{$k}}" aria-label="{{t "categorize.category"}}"><option value="">{{t "categorize.choose"}}</option>
             {{range $p.Categories}}<option value="{{.ID}}"{{if eq .ID $c.CategoryID}} selected{{end}}>{{with .Parent}}{{.}} › {{end}}{{.Name}}</option>{{end}}</select></td>
         </tr>{{end}}</tbody>

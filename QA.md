@@ -152,6 +152,7 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 **J-C8 Buchungen einordnen**
 1. `/subs` → „Buchungen ohne Kategorie einordnen“: Kabelwerk Studiobedarf mit Vorschlag „Technik“ angehakt, Bäckerei ohne Vorschlag.
 2. „Prüfen“ nennt Anzahl, Summe und Kategorie; „In Sure einordnen“ (Demo lehnt ab).
+3. Gelernt (echte Sure oder Wegwerf-Container): ein Händler ohne eingeordnete Buchung, dessen Wörter (Händler, Buchungstext) eingeordnete Buchungen anderer Händler tragen, hat einen Vorschlag mit „gelernt aus ähnlichen Buchungen“, nicht angehakt; ohne bekanntes Wort keiner. Nach dem Einordnen und „Jetzt trainieren“ steht unter Einstellungen → Instanz → „Lernmodell“ je Sure eine Zeile „Sure-Kategorie“; „aus“ nimmt die gelernten Vorschläge weg, die des Händlers bleiben.
 
 **J-C14 Wiederherstellungsprobe**
 1. Backups-Kachel → Dialog: je System „Wiederherstellung testen, Probe: …“ mit „Getestet“ und „Fehlgeschlagen“.
@@ -189,7 +190,7 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 1. Verbund mit Invoice Ninja und Sure → „Kategorien“: Sure-Vorschläge stehen vorausgewählt („Vorschlag“); darunter Sures Tags („#Studio“) mit eigener Auswahl, gilt, wenn die Kategorie keine Zuordnung hat; das EÜR-Feld ist erkannt, keine Zuordnung Kategorie → EÜR; Speichern.
 2. `/euer`: Ausgaben ohne EÜR-Zeile, Vorschlag aus der letzten Ausgabe desselben Lieferanten („wie zuletzt bei diesem Lieferanten“), sonst gelernt aus ähnlichen Ausgaben („gelernt aus ähnlichen Ausgaben“, naiver Bayes über Wörter, Lieferant und Betrag), nichts vorab angehakt; Dropdown-Feld als Auswahl. Anhaken, „Prüfen“ → „In Invoice Ninja schreiben“ (Demo lehnt ab). Ein Feld, dessen Name EÜR nennt, gilt schon vor dem Speichern (auch auf `/vat`, `/year`, im Export); Hinweis mit Link zu den Kategorien nur ohne solches Feld oder nach „–“ gespeichert.
 3. `/vat`: „Neue Ausgabe“ hat eine EÜR-Auswahl, vorbelegt mit der Zeile des Lieferanten („wie bisher“) oder einer gelernten („gelernt“, auch für neue Lieferanten); die Prüfung zeigt sie, ein Wert außerhalb des Dropdowns wird übersprungen.
-4. Einstellungen → Instanz → „Lernmodell“ (nur Admin): Einstellungen (gelernte Vorschläge an/aus, Mindestsicherheit 50–99 %, Trainieren alle 1–168 h) speichern; „Jetzt trainieren“ → Tabelle zeigt je Invoice Ninja „EÜR-Zeile“ mit Beispielen, Zeilen, Merkmalen, zuletzt dazugelernt (eine Verbindung ohne gelernte Zeile erscheint nicht); „Zurücksetzen“ leert sie. „aus“: `/vat` und `/euer` schlagen nur noch die Zeile des Lieferanten vor.
+4. Einstellungen → Instanz → „Lernmodell“ (nur Admin): Einstellungen (gelernte Vorschläge an/aus, Mindestsicherheit 50–99 %, Trainieren alle 1–168 h) speichern; „Jetzt trainieren“ → Tabelle zeigt je Invoice Ninja „EÜR-Zeile“ (je Sure „Sure-Kategorie“) mit Beispielen, Klassen, Merkmalen, zuletzt dazugelernt (eine Verbindung ohne gelernte Zeile erscheint nicht); „Zurücksetzen“ leert sie. „aus“: `/vat` und `/euer` schlagen nur noch die Zeile des Lieferanten vor, `/categorize` nur die Kategorie des Händlers.
 
 **J-C3 Schreib-Journal**
 1. Kontomenü → „Schreib-Journal“: nach einem Abgleich auf `/vat` und einer Verknüpfung auf `/receipts` stehen beide oben; Bereichs-Chips filtern.

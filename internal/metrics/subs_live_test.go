@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"andon/internal/bayes"
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/sources"
@@ -63,10 +64,10 @@ func TestSubCasesLive(t *testing.T) {
 	}
 
 	t.Logf("Sure categories: %d", len(in.Bank.Categories))
-	for i, c := range metrics.Uncategorized(in.Bank) {
+	for i, c := range metrics.Uncategorized(in.Bank, bayes.Use{Model: bayes.New(), MinP: metrics.EuerMinP}) {
 		if i == 10 {
 			break
 		}
-		t.Logf("uncategorized %-30s %3d bookings, proposed %q (%d of %d), ticked %v", c.Merchant, len(c.Txns), c.CategoryID, c.Votes, c.Of, c.Ticked)
+		t.Logf("uncategorized %-30s %3d bookings, proposed %q from %q (%d of %d), ticked %v", c.Merchant, len(c.Txns), c.CategoryID, c.From, c.Votes, c.Of, c.Ticked)
 	}
 }
