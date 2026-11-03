@@ -435,12 +435,13 @@
 {{/* A desk's own review (POST /vat/review, only=<case>): its step and
      a button writing it alone. It sends the step as reviewed through
      the form vat-one outside the bench's (form attribute): fields
-     changed later do not go, and Enter in the bench never hits it. */}}
+     changed later do not go, and Enter in the bench never hits it.
+     only=<case> keeps another desk's review, still there, out. */}}
 {{define "vat_one"}}{{with .Error}}<p class="error small">{{t .}}</p>{{end}}{{range .Plan.Steps}}
 <div class="card{{if .Problem}} late{{end}}">
   <div class="small">{{template "vat_plan_step" dict "S" . "Currency" $.Plan.Currency}}</div>
   {{if not .Problem}}{{template "bench_step_in" dict "Step" .Step "Form" "vat-one"}}
-  <p class="btn-row"><button type="submit" class="btn btn-accent" form="vat-one">{{t "vatcheck.apply_one"}}</button>
+  <p class="btn-row"><button type="submit" class="btn btn-accent" form="vat-one" name="only" value="{{.Case}}">{{t "vatcheck.apply_one"}}</button>
     <small class="muted">{{t "vatcheck.apply_one_hint"}}</small></p>{{end}}
 </div>{{end}}{{end}}
 

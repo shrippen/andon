@@ -39,8 +39,9 @@ func TestVATOne(t *testing.T) {
 	}
 	one := readBody(t, resp)
 	// It writes what it showed, through its own form: not the bench's
-	// fields as they are later, not the bench's default button on Enter.
-	for _, want := range []string{"Ausgabe „Kabelwerk Studiobedarf“ anlegen", `<button type="submit" class="btn btn-accent" form="vat-one">`,
+	// fields as they are later, not the bench's default button on Enter;
+	// and only its case, should another desk's review still be there.
+	for _, want := range []string{"Ausgabe „Kabelwerk Studiobedarf“ anlegen", `<button type="submit" class="btn btn-accent" form="vat-one" name="only" value="demo-b-studio">`,
 		`form="vat-one" name="pick" value="demo-b-studio"`, `form="vat-one" name="vendor_demo-b-studio" value="Kabelwerk Studiobedarf"`} {
 		if !strings.Contains(one, want) {
 			t.Fatalf("fragment lacks %q:\n%s", want, one)

@@ -88,6 +88,16 @@ def one(page):
     if page.inner_html(box).strip():
         wrong.append("one: review kept after a change")
 
+    # Another desk's review leaves only that one on the page.
+    page.click(review)
+    page.wait_for_selector(box + " .card")
+    page.click(f'.bench-entry[data-case="{SCAN}"]')
+    page.click(f'[data-desk="{SCAN}"] [hx-post="/vat/review"]')
+    page.wait_for_selector(f"#one-{SCAN} .card")
+    if page.inner_html(box).strip():
+        wrong.append("one: another desk's review kept")
+
+    page.click(f'.bench-entry[data-case="{CREATE}"]')
     page.click(review)
     page.wait_for_selector(box + " .card")
 

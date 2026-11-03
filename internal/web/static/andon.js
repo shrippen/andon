@@ -2842,12 +2842,22 @@
     }
   }
 
-  // New hits of a search (htmx) change what the desk would write too.
+  // New hits of a search (htmx) change what the desk would write too;
+  // a desk's new review leaves the only one on the page.
   d.addEventListener("htmx:afterSwap", function (e) {
     var desk = e.target.closest && e.target.closest("[data-desk]");
-    if (desk && !e.target.closest("[data-one]")) {
-      benchStale(desk);
+    if (!desk) {
+      return;
     }
+    if (!e.target.closest("[data-one]")) {
+      benchStale(desk);
+      return;
+    }
+    [].forEach.call(d.querySelectorAll("[data-desk]"), function (other) {
+      if (other !== desk) {
+        benchStale(other);
+      }
+    });
   });
 
   // benchSetAct shows the action's block; the parts count again.
