@@ -62,7 +62,8 @@ func TestOpen(t *testing.T) {
 }
 
 // The customer's latest entry comes first; when its activity is gone,
-// the pair the title names, as learned from Kimai's entries.
+// the pair the title names, as learned from Kimai's entries, not
+// ticked ahead.
 func TestCasesLearned(t *testing.T) {
 	sheet := func(id, customer, project int64, day, activity, notes string) sources.KimaiSheet {
 		return sources.KimaiSheet{ID: id, Begin: day + "T09:00:00", CustomerID: customer, ProjectID: project, Activity: activity, Notes: notes}
@@ -84,7 +85,7 @@ func TestCasesLearned(t *testing.T) {
 	}
 
 	got := b.cases(bayes.Use{Model: bayes.New(), MinP: 0.6})
-	if c := got[0]; c.Project != 10 || c.Activity != 5 || c.From != metrics.WeekFromLearned || !c.Checked {
+	if c := got[0]; c.Project != 10 || c.Activity != 5 || c.From != metrics.WeekFromLearned || c.Checked {
 		t.Errorf("learned: %+v", c)
 	}
 	if c := got[1]; c.Project != 20 || c.Activity != 6 || c.From != metrics.WeekFromLatest || !c.Checked {

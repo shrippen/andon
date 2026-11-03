@@ -19,7 +19,7 @@ func TestKimaiDataNormalizesSheetsAndProjects(t *testing.T) {
 			"id": 1, "begin": "2026-01-05T09:00:00", "end": "2026-01-05T11:00:00",
 			"duration": 7200, "rate": 150.0, "billable": true, "exported": false,
 			"project": {"id": 10, "customer": {"id": 20, "name": "Acme"}},
-			"activity": {"name": "Dev"}, "user": {"id": 5}
+			"activity": {"name": "Dev"}, "user": {"id": 5}, "description": "Relaunch Startseite"
 		}]`))
 	})
 	mux.HandleFunc("/api/projects/10", func(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +51,7 @@ func TestKimaiDataNormalizesSheetsAndProjects(t *testing.T) {
 		t.Fatalf("expected 1 timesheet, got %d", len(data.Timesheets))
 	}
 	sheet := data.Timesheets[0]
-	if sheet.Minutes != 120 || sheet.CustomerID != 20 || sheet.Activity != "Dev" || !sheet.Billable {
+	if sheet.Minutes != 120 || sheet.CustomerID != 20 || sheet.Activity != "Dev" || !sheet.Billable || sheet.Notes != "Relaunch Startseite" {
 		t.Fatalf("unexpected sheet: %+v", sheet)
 	}
 	if len(data.Customers) != 1 || data.Customers[0].Name != "Acme" {

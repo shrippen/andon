@@ -157,7 +157,7 @@ func (b book) cases(l bayes.Use) []Case {
 
 		// The latest entry leaves it open: what the model learned.
 		learned, ok := guess.Guess(g)
-		if !c.Checked && ok && activityID(b.catalog, learned) > 0 {
+		if (c.Project == 0 || c.Activity == 0) && ok && activityID(b.catalog, learned) > 0 {
 			c.propose(b.catalog, learned, metrics.WeekFromLearned)
 		}
 		out = append(out, c)
@@ -166,13 +166,13 @@ func (b book) cases(l bayes.Use) []Case {
 }
 
 // propose takes p when the catalog offers its project; ticked with its
-// activity too.
+// activity too, unless learned: a guess waits for the user's tick.
 func (c *Case) propose(cat *sources.KimaiCatalog, p metrics.WeekProposal, from metrics.WeekFrom) {
 	if !offered(cat, p.ProjectID) {
 		return
 	}
 	c.Project, c.Activity, c.From = p.ProjectID, activityID(cat, p), from
-	c.Checked = c.Activity > 0
+	c.Checked = c.Activity > 0 && from != metrics.WeekFromLearned
 }
 
 // offered says whether the catalog lists project id.

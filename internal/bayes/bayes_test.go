@@ -84,3 +84,16 @@ func TestUseNeedsTwoLabels(t *testing.T) {
 		t.Fatal("two labels propose nothing")
 	}
 }
+
+// Prune forgets the examples it names, and only those.
+func TestPrune(t *testing.T) {
+	m := New()
+	m.Learn("a:1", "x", []string{"w"})
+	m.Learn("b:1", "y", []string{"v"})
+	if !m.Prune(func(id string) bool { return id == "a:1" }) || m.Stats().Examples != 1 || m.Knows("w") || !m.Knows("v") {
+		t.Fatalf("prune: %+v", m.Stats())
+	}
+	if m.Prune(func(string) bool { return false }) {
+		t.Fatal("nothing pruned, changed")
+	}
+}
