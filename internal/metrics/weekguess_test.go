@@ -8,11 +8,17 @@ import (
 	"andon/internal/sources"
 )
 
-// Kimai's entries teach project and activity by their words; a gap gets
-// the pair its title names, only of its own customer, never without a
-// known word beside its customer's and projects' names. A booked gap
-// teaches its place.
+// Kimai's entries teach project and activity by their words; a gap's
+// first suggestion is the pair its title names, only of its own
+// customer, never without a known word beside its customer's and
+// projects' names. A booked gap teaches its place.
 func TestWeekGuess(t *testing.T) {
+	first := func(ps []metrics.WeekProposal) metrics.WeekProposal {
+		if len(ps) == 0 {
+			return metrics.WeekProposal{}
+		}
+		return ps[0]
+	}
 	kimai := &sources.KimaiDataset{
 		Customers: []sources.KimaiCustomer{{ID: 1, Name: "Fotohaus Elbe"}, {ID: 2, Name: "Werft"}},
 		Projects:  []sources.KimaiProject{{ID: 10, Name: "Kampagne Herbst", CustomerID: 1}, {ID: 11, Name: "Imagefilm", CustomerID: 1}, {ID: 20, Name: "Hafen", CustomerID: 2}},
@@ -48,7 +54,7 @@ func TestWeekGuess(t *testing.T) {
 		{metrics.WeekGap{CustomerID: 1, Title: "Fotohaus Elbe Kampagne Herbst"}, metrics.WeekProposal{}},    // only a project's name known
 	}
 	for i, c := range cases {
-		if got, _ := g.Guess(c.gap); got != c.want {
+		if got := first(g.Suggest(c.gap, 3)); got != c.want {
 			t.Errorf("%d %q: %+v, want %+v", i, c.gap.Title, got, c.want)
 		}
 	}
@@ -60,8 +66,8 @@ func TestWeekGuess(t *testing.T) {
 		t.Fatal("gap not learned")
 	}
 	g = metrics.WeekGuesserOf(kimai, use)
-	if got, ok := g.Guess(place); !ok || got.ProjectID != 10 || got.Activity != "Dreh" {
-		t.Errorf("place: %+v %v", got, ok)
+	if got := g.Suggest(place, 3); len(got) == 0 || got[0].ProjectID != 10 || got[0].Activity != "Dreh" {
+		t.Errorf("place: %+v", got)
 	}
 }
 

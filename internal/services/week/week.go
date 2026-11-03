@@ -4,8 +4,8 @@
 //
 //	Dawarich ─visits──┐
 //	calendar ─events──┼─► gaps ─► project, activity, times proposed ─► review ─► Kimai
-//	Kimai ──entries───┘   (the customer's latest project and activity,
-//	                       else learned from titles: metrics.WeekGuesser)
+//	Kimai ──entries───┘   (the customer's latest project and activity;
+//	                       learned ones only suggested: metrics.WeekGuesser)
 package week
 
 import (
@@ -91,8 +91,10 @@ type Case struct {
 	metrics.WeekGap
 	Customer          string
 	Project, Activity int64 // proposed, 0 none
-	From              metrics.WeekFrom
-	Checked           bool // proposal complete: ticked
+	Checked           bool  // proposal complete: ticked
+
+	// Learned, only suggested under the selects; nothing is filled in.
+	ProjectPicks, ActivityPicks []metrics.Pick
 }
 
 // Page is the bench for one Verbund and week.
@@ -144,8 +146,11 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, d
 	return p, nil
 }
 
-// cases are the gaps with their proposals: the customer's latest
-// entry, else what l learned.
+// maxPicks is the most suggestions under a select.
+const maxPicks = 3
+
+// cases are the gaps with their proposals (the customer's latest entry)
+// and what l learned, as suggestions.
 func (b book) cases(l bayes.Use) []Case {
 	names := metrics.KimaiCustomerNames(b.kimai)
 	proposals := metrics.WeekProposals(b.kimai)
@@ -153,31 +158,61 @@ func (b book) cases(l bayes.Use) []Case {
 	var out []Case
 	for _, g := range b.gaps {
 		c := Case{WeekGap: g, Customer: names[g.CustomerID]}
-		c.propose(b.catalog, proposals[g.CustomerID], metrics.WeekFromLatest)
-
-		// The latest entry leaves it open: what the model learned.
-		learned, ok := guess.Guess(g)
-		if (c.Project == 0 || c.Activity == 0) && ok && activityID(b.catalog, learned) > 0 {
-			c.propose(b.catalog, learned, metrics.WeekFromLearned)
-		}
+		c.propose(b.catalog, proposals[g.CustomerID])
+		c.suggest(b.catalog, guess.Suggest(g, maxPicks))
 		out = append(out, c)
 	}
 	return out
 }
 
 // propose takes p when the catalog offers its project; ticked with its
-// activity too, unless learned: a guess waits for the user's tick.
-func (c *Case) propose(cat *sources.KimaiCatalog, p metrics.WeekProposal, from metrics.WeekFrom) {
+// activity too.
+func (c *Case) propose(cat *sources.KimaiCatalog, p metrics.WeekProposal) {
 	if !offered(cat, p.ProjectID) {
 		return
 	}
-	c.Project, c.Activity, c.From = p.ProjectID, activityID(cat, p), from
-	c.Checked = c.Activity > 0 && from != metrics.WeekFromLearned
+	c.Project, c.Activity = p.ProjectID, activityID(cat, p)
+	c.Checked = c.Activity > 0
+}
+
+// suggest lists the learned pairs' projects and activities the catalog
+// offers, each once, without what the select already holds.
+func (c *Case) suggest(cat *sources.KimaiCatalog, pairs []metrics.WeekProposal) {
+	has := func(picks []metrics.Pick, v string) bool {
+		return slices.ContainsFunc(picks, func(p metrics.Pick) bool { return p.Value == v })
+	}
+	for _, p := range pairs {
+		if name, ok := projectName(cat, p.ProjectID); ok && p.ProjectID != c.Project {
+			if v := strconv.FormatInt(p.ProjectID, 10); !has(c.ProjectPicks, v) {
+				c.ProjectPicks = append(c.ProjectPicks, metrics.Pick{Value: v, Label: name})
+			}
+		}
+		a := activityID(cat, p)
+		if a == 0 || a == c.Activity {
+			continue
+		}
+		if v := strconv.FormatInt(a, 10); !has(c.ActivityPicks, v) {
+			c.ActivityPicks = append(c.ActivityPicks, metrics.Pick{Value: v, Label: p.Activity})
+		}
+	}
+}
+
+// projectName is the catalog's name of project id.
+func projectName(cat *sources.KimaiCatalog, id int64) (string, bool) {
+	if cat == nil {
+		return "", false
+	}
+	i := slices.IndexFunc(cat.Projects, func(p sources.KimaiPick) bool { return p.ID == id })
+	if i < 0 {
+		return "", false
+	}
+	return cat.Projects[i].Name, true
 }
 
 // offered says whether the catalog lists project id.
 func offered(cat *sources.KimaiCatalog, id int64) bool {
-	return cat != nil && slices.ContainsFunc(cat.Projects, func(p sources.KimaiPick) bool { return p.ID == id })
+	_, ok := projectName(cat, id)
+	return ok
 }
 
 // activityID finds the proposed activity by name in the catalog: the

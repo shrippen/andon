@@ -9,16 +9,16 @@ import (
 	"andon/internal/sources"
 )
 
-// Learned project and activity for a week gap, when the customer's
-// latest entry leaves them open: a naive Bayes model over the words of
-// Kimai's entries and of the gaps the user booked.
+// Learned project and activity suggested for a week gap ("Vorschlag:"
+// under its selects; nothing is filled in): a naive Bayes model over the
+// words of Kimai's entries and of the gaps the user booked.
 //
 //	Kimai entry   w:<word> description, project,  ─┐
 //	              customer, activity; c:<customer> │
 //	booked gap    w:<word> title (appointment or  ─┼─► bayes.Model
 //	              place);  c:<customer>            │   label "<project>:<activity>"
 //	                                               ▼
-//	gap ──► features without its names ──► Best ≥ MinP, a known word, its customer's project
+//	gap ──► features without its names ──► Suggest (best ≥ MinP, a known word), its customer's projects
 //
 // A gap's words from its customer's name and its projects' names are
 // left out when guessing (c:<customer> stands for them): every gap
@@ -26,17 +26,8 @@ import (
 // propose the customer's most frequent pair ("Telefonat Fotohaus Elbe"
 // → Dreh). Evidence is another known word ("Schnitt", a place). So a
 // Dawarich place named only like the customer ("Fotohaus Elbe") gets no
-// learned proposal, also after booking it. The model is stored per
+// learned suggestion, also after booking it. The model is stored per
 // Kimai (services/learn).
-
-// WeekFrom says where a gap's proposal comes from.
-type WeekFrom string
-
-const (
-	WeekFromNothing WeekFrom = ""
-	WeekFromLatest  WeekFrom = "latest"  // the customer's latest entry
-	WeekFromLearned WeekFrom = "learned" // the model
-)
 
 // customerFeature prefixes a Kimai customer's feature.
 const customerFeature = "c:"
@@ -50,14 +41,14 @@ const (
 // labelSep parts a label's project id from its activity name.
 const labelSep = ":"
 
-// WeekGuesser proposes project and activity for one Kimai's gaps.
+// WeekGuesser suggests project and activity for one Kimai's gaps.
 type WeekGuesser struct {
 	learn bayes.Use
 	owner map[int64]int64           // project → customer
 	named map[int64]map[string]bool // customer → its and its projects' name words
 }
 
-// WeekGuesserOf proposes from l; l.Model learns k's entries first
+// WeekGuesserOf suggests from l; l.Model learns k's entries first
 // (WeekLearn), in memory.
 func WeekGuesserOf(k *sources.KimaiDataset, l bayes.Use) WeekGuesser {
 	g := WeekGuesser{learn: l, owner: map[int64]int64{}, named: map[int64]map[string]bool{}}
@@ -132,20 +123,24 @@ func WeekLearnGap(m *bayes.Model, g WeekGap, p WeekProposal) bool {
 	return m.Learn(gapExample+g.Key, label, g.features())
 }
 
-// Guess is the learned project and activity for g; only a project of
-// g's customer counts: another's would leave the gap open.
-func (w WeekGuesser) Guess(g WeekGap) (WeekProposal, bool) {
+// Suggest is the learned pairs for g, likeliest first, at most max;
+// none unless the likeliest is a project of g's customer (another's
+// would leave the gap open), and only its customer's after it.
+func (w WeekGuesser) Suggest(g WeekGap, max int) []WeekProposal {
 	// The customer's and its projects' names leave: c:<customer> says it.
 	features := slices.DeleteFunc(g.features(), func(f string) bool { return w.named[g.CustomerID][f] })
-	best, ok := w.learn.Best(features, IsWordFeature)
-	if !ok {
-		return WeekProposal{}, false
+	var out []WeekProposal
+	for i, guess := range w.learn.Suggest(features, IsWordFeature, max) {
+		p, ok := weekParse(guess.Label)
+		if ok && w.owner[p.ProjectID] == g.CustomerID {
+			out = append(out, p)
+			continue
+		}
+		if i == 0 {
+			return nil
+		}
 	}
-	p, ok := weekParse(best.Label)
-	if !ok || w.owner[p.ProjectID] != g.CustomerID {
-		return WeekProposal{}, false
-	}
-	return p, true
+	return out
 }
 
 // features are the gap's title words and its customer.

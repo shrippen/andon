@@ -2,6 +2,7 @@ package week
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -61,9 +62,9 @@ func TestOpen(t *testing.T) {
 	}
 }
 
-// The customer's latest entry comes first; when its activity is gone,
-// the pair the title names, as learned from Kimai's entries, not
-// ticked ahead.
+// The customer's latest entry fills the selects; what the model learned
+// from Kimai's entries is only suggested: here the activity the title
+// names, while the latest entry's activity is gone.
 func TestCasesLearned(t *testing.T) {
 	sheet := func(id, customer, project int64, day, activity, notes string) sources.KimaiSheet {
 		return sources.KimaiSheet{ID: id, Begin: day + "T09:00:00", CustomerID: customer, ProjectID: project, Activity: activity, Notes: notes}
@@ -85,15 +86,20 @@ func TestCasesLearned(t *testing.T) {
 	}
 
 	got := b.cases(bayes.Use{Model: bayes.New(), MinP: 0.6})
-	if c := got[0]; c.Project != 10 || c.Activity != 5 || c.From != metrics.WeekFromLearned || c.Checked {
-		t.Errorf("learned: %+v", c)
+	c := got[0]
+	if c.Project != 10 || c.Activity != 0 || c.Checked {
+		t.Errorf("learned filled in: %+v", c)
 	}
-	if c := got[1]; c.Project != 20 || c.Activity != 6 || c.From != metrics.WeekFromLatest || !c.Checked {
+	// Project 10 is in its select already: only the activity is suggested.
+	if want := []metrics.Pick{{Value: "5", Label: "Dreh"}}; len(c.ProjectPicks) != 0 || !slices.Equal(c.ActivityPicks, want) {
+		t.Errorf("picks: %+v %+v", c.ProjectPicks, c.ActivityPicks)
+	}
+	if c := got[1]; c.Project != 20 || c.Activity != 6 || !c.Checked {
 		t.Errorf("latest: %+v", c)
 	}
 
-	// Learning off: the latest entry's project, unticked.
-	if c := b.cases(bayes.Use{})[0]; c.Project != 10 || c.Activity != 0 || c.From != metrics.WeekFromLatest || c.Checked {
+	// Learning off: the latest entry's project, nothing suggested.
+	if c := b.cases(bayes.Use{})[0]; c.Project != 10 || c.Activity != 0 || c.Checked || c.ActivityPicks != nil {
 		t.Errorf("off: %+v", c)
 	}
 }
@@ -119,9 +125,9 @@ func TestTeachBooked(t *testing.T) {
 	}
 }
 
-// The purpose and the origin have their texts.
+// The purpose has its text.
 func TestTexts(t *testing.T) {
-	for _, k := range []string{"learn.purpose_" + purposeTask, "closeweek.origin_" + string(metrics.WeekFromLearned)} {
+	for _, k := range []string{"learn.purpose_" + purposeTask} {
 		if !i18n.Has(k) {
 			t.Errorf("no text %s", k)
 		}
