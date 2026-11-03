@@ -377,11 +377,13 @@ func categoryName(n *sources.NinjaDataset, key string) string {
 // replaces a vendor's own history.
 func (b book) apply(c *Case) {
 	g := c.Guess
+	learned := c.Learned
+	c.Learned = false // asked for, Claude's reading overrules the learned sort
 	if g.Private && c.Action != metrics.ActionLink {
 		c.Action = metrics.ActionSkip
 		return
 	}
-	if c.Private && c.Action == metrics.ActionNone {
+	if c.Private && (c.Action == metrics.ActionNone || (learned && c.Action == metrics.ActionSkip)) {
 		// Paid privately, but the model reads it as business.
 		c.Action = metrics.ActionCreate
 	}

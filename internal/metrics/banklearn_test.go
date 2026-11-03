@@ -100,3 +100,52 @@ func TestLearnedDraft(t *testing.T) {
 		t.Fatalf("draft: %+v", d)
 	}
 }
+
+// A learned vendor is no sure vendor: a mixed account's debit stays
+// unsorted (not a ticked expense), and a transfer stays a transfer.
+func TestLearnedVendorNotSure(t *testing.T) {
+	n := learnedNinja()
+	n.BankTxns = append(n.BankTxns,
+		sources.NinjaBankTxn{Key: "m1", Date: "2026-10-09", Payer: "AMZN Mktp DE*PP00PP", Description: "Amazon Marketplace", Amount: 17.99,
+			Debit: true, Role: sources.RoleMixed, Status: sources.BankOpen},
+		sources.NinjaBankTxn{Key: "u1", Date: "2026-10-10", Payer: "Arian", Description: "Amazon Marketplace Umbuchung", Amount: 100,
+			Debit: true, Role: sources.RoleBusiness, Status: sources.BankOpen},
+		sources.NinjaBankTxn{Key: "u2", Date: "2026-10-10", Payer: "Arian", Description: "Umbuchung", Amount: 100,
+			Role: sources.RolePrivate, Status: sources.BankOpen},
+	)
+	l := learnedOf(n)
+	l.Private = bayes.Use{} // only the vendor model speaks
+	in := metrics.VATInputs{Ninja: n, Start: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), End: time.Date(2026, 10, 31, 0, 0, 0, 0, time.UTC),
+		Today: time.Date(2026, 11, 3, 0, 0, 0, 0, time.UTC), Learned: l}
+	byKey := map[string]metrics.BankCase{}
+	for _, c := range metrics.BankCases(in) {
+		byKey[c.Txn.Key] = c
+	}
+	if c := byKey["m1"]; c.Action == metrics.ActionCreate || c.Draft.From == metrics.FromHistory {
+		t.Errorf("mixed debit: %s from %s", c.Action, c.Draft.From)
+	}
+	if c := byKey["u1"]; c.Transfer == nil || c.Draft.From == metrics.FromHistory {
+		t.Errorf("transfer: %s from %s transfer %v", c.Action, c.Draft.From, c.Transfer)
+	}
+}
+
+// A decision taken back is forgotten: a booking brought back from
+// private, an expense unlinked from its booking.
+func TestLearnForgetsTakenBack(t *testing.T) {
+	n := learnedNinja()
+	m := bayes.New()
+	metrics.LearnPrivate(m, n)
+	before := m.Stats().Examples
+	n.BankTxns[2].Archived = false // t3 restored
+	if !metrics.LearnPrivate(m, n) || m.Stats().Examples != before-1 {
+		t.Errorf("restored booking kept: %d → %d", before, m.Stats().Examples)
+	}
+
+	v := bayes.New()
+	metrics.LearnVendors(v, n)
+	before = v.Stats().Examples
+	n.Expenses[0].TxnKey = "" // e1 unlinked
+	if !metrics.LearnVendors(v, n) || v.Stats().Examples != before-1 {
+		t.Errorf("unlinked expense kept: %d → %d", before, v.Stats().Examples)
+	}
+}

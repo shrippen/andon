@@ -98,7 +98,7 @@ func taxLabel(e sources.NinjaExpense) string {
 }
 
 // learnExpenses learns label(expense) from its booking's features; an
-// expense whose label was emptied is forgotten.
+// expense whose label was emptied or that was unlinked is forgotten.
 func learnExpenses(m *bayes.Model, n *sources.NinjaDataset, label func(sources.NinjaExpense) string) bool {
 	if n == nil {
 		return false
@@ -107,11 +107,8 @@ func learnExpenses(m *bayes.Model, n *sources.NinjaDataset, label func(sources.N
 	txns := linkedTxns(n)
 	for _, e := range n.Expenses {
 		t, ok := txns[e.Key]
-		if !ok {
-			continue
-		}
 		l := label(e)
-		if l == "" {
+		if !ok || l == "" { // unlinked or emptied: taken back
 			changed = m.Forget(e.Key) || changed
 			continue
 		}
@@ -139,7 +136,8 @@ func LearnPrivate(m *bayes.Model, n *sources.NinjaDataset) bool {
 			label = labelBusiness
 		}
 		if label == "" {
-			continue // open: nothing decided yet
+			changed = m.Forget(t.Key) || changed // open: nothing decided, or taken back
+			continue
 		}
 		changed = m.Learn(t.Key, label, bankFeatures(t, nil)) || changed
 	}
