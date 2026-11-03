@@ -3,6 +3,7 @@ package metrics
 import (
 	"testing"
 
+	"andon/internal/bayes"
 	"andon/internal/sources"
 )
 
@@ -19,12 +20,12 @@ func TestUncategorized(t *testing.T) {
 		{ID: "6", Date: "2026-09-03", Name: "Bäckerei", CategoryID: "snacks"},
 		{ID: "7", Date: "2026-10-03", Name: "Umbuchung", Transfer: true},
 	}}
-	got := Uncategorized(bank)
+	got := Uncategorized(bank, bayes.Use{})
 	if len(got) != 2 {
 		t.Fatalf("cases: %+v", got)
 	}
 	dkb, bakery := got[0], got[1]
-	if dkb.Key != "m-dkb-ag" || len(dkb.Txns) != 2 || dkb.Txns[0].ID != "2" || dkb.CategoryID != "fees" || !dkb.Ticked || dkb.Total != -5 {
+	if dkb.Key != "m-dkb-ag" || len(dkb.Txns) != 2 || dkb.Txns[0].ID != "2" || dkb.CategoryID != "fees" || !dkb.Ticked || dkb.Total != -5 || dkb.Suggest != nil {
 		t.Errorf("dkb: %+v", dkb)
 	}
 	if bakery.CategoryID != "food" || bakery.Votes != 1 || bakery.Of != 2 || bakery.Ticked {

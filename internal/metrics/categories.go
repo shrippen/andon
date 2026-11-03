@@ -12,6 +12,7 @@ import (
 	"slices"
 	"sort"
 
+	"andon/internal/bayes"
 	"andon/internal/sources"
 )
 
@@ -127,16 +128,18 @@ func EuerChoices(n *sources.NinjaDataset, slot int) []string {
 }
 
 // EuerCase is an expense whose EÜR field is empty, with the proposed
-// line ("" = none) and where it comes from (EuerGuesser).
+// line ("" = none) and where it comes from (EuerGuesser), or the lines
+// the model suggests.
 type EuerCase struct {
 	Expense sources.NinjaExpense
 	Line    string
 	From    EuerFrom
+	Picks   []Pick
 }
 
 // EuerCases are the expenses from since on with an empty EÜR field in
 // slot, newest first.
-func EuerCases(n *sources.NinjaDataset, slot int, since string, l EuerLearning) []EuerCase {
+func EuerCases(n *sources.NinjaDataset, slot int, since string, l bayes.Use) []EuerCase {
 	if n == nil || slot < 1 || slot > sources.NinjaSlots {
 		return nil
 	}
@@ -148,6 +151,7 @@ func EuerCases(n *sources.NinjaDataset, slot int, since string, l EuerLearning) 
 		}
 		c := EuerCase{Expense: e}
 		c.Line, c.From = g.GuessExpense(e)
+		c.Picks = g.SuggestExpense(e)
 		out = append(out, c)
 	}
 	sort.SliceStable(out, func(a, b int) bool { return out[a].Expense.Date > out[b].Expense.Date })

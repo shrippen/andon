@@ -2,6 +2,7 @@ package bayes
 
 import (
 	"encoding/json"
+	"slices"
 	"testing"
 )
 
@@ -64,5 +65,73 @@ func TestRelearnAndStore(t *testing.T) {
 	g, ok := back.Best([]string{"teilauto"}, 0.5)
 	if !ok || g.Label != "Reise" || back.Stats() != m.Stats() {
 		t.Fatalf("stored: %+v %v %+v", g, ok, back.Stats())
+	}
+}
+
+// A model that knows one label only cannot tell anything apart: every
+// known feature gives p = 1. It proposes nothing until a second label
+// has examples.
+func TestUseNeedsTwoLabels(t *testing.T) {
+	m := New()
+	m.Learn("1", "other", []string{"ihre", "newsletter"})
+	u := Use{Model: m, MinP: 0.99}
+	evidence := func(string) bool { return true }
+	if g, ok := u.Best([]string{"ihre", "rechnung"}, evidence); ok {
+		t.Fatalf("one label proposes %+v", g)
+	}
+	m.Learn("2", "invoice", []string{"rechnung"})
+	u.MinP = 0.8
+	if _, ok := u.Best([]string{"newsletter"}, evidence); !ok {
+		t.Fatal("two labels propose nothing")
+	}
+}
+
+// Prune forgets the examples it names, and only those.
+func TestPrune(t *testing.T) {
+	m := New()
+	m.Learn("a:1", "x", []string{"w"})
+	m.Learn("b:1", "y", []string{"v"})
+	if !m.Prune(func(id string) bool { return id == "a:1" }) || m.Stats().Examples != 1 || m.Knows("w") || !m.Knows("v") {
+		t.Fatalf("prune: %+v", m.Stats())
+	}
+	if m.Prune(func(string) bool { return false }) {
+		t.Fatal("nothing pruned, changed")
+	}
+}
+
+// Suggest lists the likely labels, best first: the best must reach
+// MinP, the others a third of it; at most max; nothing without evidence
+// or with one label. Here: EDV 0.50, GWG 0.33, Reise 0.17.
+func TestSuggest(t *testing.T) {
+	m := New()
+	for i, l := range []string{"EDV", "EDV", "EDV", "GWG", "GWG", "Reise"} {
+		m.Learn(string(rune('a'+i)), l, []string{"server"})
+	}
+	m.Learn("z", "Reise", []string{"bahn"})
+	evidence := func(string) bool { return true }
+	labels := func(gs []Guess) (out []string) {
+		for _, g := range gs {
+			out = append(out, g.Label)
+		}
+		return out
+	}
+
+	cases := []struct {
+		minP float64
+		max  int
+		want []string
+	}{
+		{0.4, 3, []string{"EDV", "GWG", "Reise"}}, // others from 0.13
+		{0.4, 2, []string{"EDV", "GWG"}},
+		{0.6, 3, nil}, // the best is below MinP
+	}
+	for _, c := range cases {
+		got := labels(Use{Model: m, MinP: c.minP}.Suggest([]string{"server"}, evidence, c.max))
+		if !slices.Equal(got, c.want) {
+			t.Errorf("MinP %.2f max %d: %v, want %v", c.minP, c.max, got, c.want)
+		}
+	}
+	if got := (Use{Model: m, MinP: 0.4}).Suggest([]string{"unbekannt"}, evidence, 3); got != nil {
+		t.Fatalf("no evidence: %+v", got)
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/services/widgetlib"
 	"andon/internal/widgets"
 )
@@ -136,5 +137,27 @@ func TestDetailTableCSV(t *testing.T) {
 	}
 	if got := string(blob); got != "CSV\n\"1.234,50 €\"\nΣ\n" {
 		t.Fatalf("csv: %q", got)
+	}
+}
+
+// A dialog form field shows what a model suggests under its control,
+// selects nothing: "Vorschlag: beruflich" for the ride's class.
+func TestDetailFormSuggest(t *testing.T) {
+	field := widgets.FormField{Name: "class", Label: widgets.T("detail.travel.class"), Kind: widgets.FieldSelect,
+		Options: []widgets.FormOption{{Value: "", Label: widgets.Txt("detail.travel.class_auto")}, {Value: "business", Label: widgets.Txt("ride.class.business")}},
+		Suggest: []metrics.Pick{{Value: "business", Text: "ride.class.business"}}}
+	body := &widgets.DetailBody{Blocks: []widgets.Block{{Kind: widgets.BlockForm, Data: widgets.Form{Do: "ride_class", Fields: []widgets.FormField{field}, Submit: widgets.T("detail.travel.class_save")}}}}
+	dialog := &widgetlib.DetailDialog{Type: "travel", Head: widgetlib.DetailHead{Title: "Reisen"}, Body: body}
+
+	rec := httptest.NewRecorder()
+	if err := (Deps{}).Page(rec, Ctx{Locale: enums.LocaleDE}, detailBlocks, http.StatusOK, map[string]any{"Dialog": dialog, "D": body, "PlacementID": int64(3), "ThemeURL": ""}); err != nil {
+		t.Fatal(err)
+	}
+	got := rec.Body.String()
+	if !strings.Contains(got, `<p class="field-suggest" data-suggest-for="df-class"><span>Vorschlag:</span> <button type="button" class="field-suggest-pick" data-value="business">beruflich</button></p>`) {
+		t.Fatalf("no suggestion line: %s", got)
+	}
+	if strings.Contains(got, `value="business" selected`) {
+		t.Fatal("suggestion selected")
 	}
 }

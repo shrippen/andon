@@ -205,6 +205,7 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 				sc.datasets[rules.FailedDataset] = append(failed, rules.Failed{Service: conn.Service, Name: conn.Name, Host: rules.HostOf(conn.URL)})
 				continue
 			}
+			result.Data = openMails(d, conn, l.holder, result.Data)
 			runs = append(runs, run{conn: conn, login: l, owner: owner, result: result})
 			if result.Data != nil {
 				runs[len(runs)-1].extra = companions(ctx, d, target, l.holder)
@@ -284,6 +285,23 @@ func runSpace(ctx context.Context, d *sql.DB, sp *model.Space, mine []*model.Con
 		fresh += n
 	}
 	return fresh, nil
+}
+
+// openMails leaves the mails its holder set aside as no invoice out of
+// a mailbox's dataset (marks of h's login, 0 for a shared one): no
+// "unrecorded invoice" hint, no receipt from them. Other data passes.
+func openMails(d *sql.DB, conn *model.Connection, h model.Holder, raw any) any {
+	box, ok := raw.(*sources.MailDataset)
+	if !ok {
+		return raw
+	}
+	rows, err := data.MailReads(d, conn.ID)
+	if err != nil {
+		slog.Warn("analysis: mail marks", "connection", conn.Name, "err", err)
+		return raw
+	}
+	h = svcdata.HolderOf(conn, h)
+	return metrics.MailOpen(box, func(inv sources.MailInvoice) bool { return data.Dismissed(rows, h, inv.UID, inv.Key()) })
 }
 
 // companions reads the datasets fetched beside the connection's own

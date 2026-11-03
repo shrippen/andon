@@ -6,11 +6,15 @@ package metrics
 //
 //	DKB AG  12× no category ─┐
 //	DKB AG   4× "Gebühren" ──┴─► propose "Gebühren" for the 12
+//
+// A merchant without filed bookings gets learned categories as a
+// suggestion (surecatguess.go), never chosen.
 
 import (
 	"slices"
 	"strings"
 
+	"andon/internal/bayes"
 	"andon/internal/sources"
 )
 
@@ -26,6 +30,10 @@ type CatCase struct {
 	CategoryID string
 	Votes, Of  int
 	Ticked     bool // every filed booking agrees
+
+	// Suggest are learned categories, best first, without votes only;
+	// the page offers them, nothing chooses them.
+	Suggest []Pick
 }
 
 // catPrefix is a case key's prefix.
@@ -33,7 +41,12 @@ const catPrefix = "m-"
 
 // Uncategorized lists the merchants with bookings Sure has not filed;
 // transfers between own accounts need no category and stay out.
-func Uncategorized(bank *sources.BankData) []CatCase {
+// l.Model learns bank's filed bookings first (CatLearn), in memory.
+func Uncategorized(bank *sources.BankData, l bayes.Use) []CatCase {
+	if l.Model != nil {
+		CatLearn(l.Model, bank)
+	}
+
 	byKey := map[string]*CatCase{}
 	votes := map[string]map[string]int{}
 	var order []string
@@ -76,6 +89,9 @@ func Uncategorized(bank *sources.BankData) []CatCase {
 			}
 		}
 		c.Ticked = c.Of > 0 && c.Votes == c.Of
+		if c.Of == 0 {
+			c.Suggest = catSuggest(l, c, bank)
+		}
 		out = append(out, c)
 	}
 

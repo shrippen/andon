@@ -1,6 +1,10 @@
 package widgets
 
-import "time"
+import (
+	"time"
+
+	"andon/internal/metrics"
+)
 
 // DetailBody is a dialog's content as blocks; the template "details/body"
 // draws any of them, so most types need no template of their own. The
@@ -300,6 +304,7 @@ type FormField struct {
 	Kind    FieldKind
 	Value   string
 	Options []FormOption
+	Suggest []metrics.Pick // what a learned model suggests, shown under the field
 }
 
 // FieldKind is how a form field is drawn.

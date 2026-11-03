@@ -64,20 +64,20 @@ func TestEuerBench(t *testing.T) {
 		t.Fatalf("after saving: %+v %v", page, err)
 	}
 	vendorLine := demoVendorLines(t, ctx)
-	// The vendor's line where it has one, else a learned one or none.
+	// The vendor's line where it has one; else none, a learned one only suggested.
 	learned := 0
 	for _, c := range page.Cases {
 		want := vendorLine[c.Expense.VendorKey]
 		switch {
-		case want != "" && (c.Line != want || c.From != metrics.EuerFromVendor):
-			t.Errorf("%s: line %q (%s), vendor's %q", c.Expense.Key, c.Line, c.From, want)
-		case want == "" && c.Line != "" && c.From != metrics.EuerFromLearned:
-			t.Errorf("%s: line %q from %q without vendor line", c.Expense.Key, c.Line, c.From)
-		case c.From == metrics.EuerFromLearned:
+		case want != "" && (c.Line != want || c.From != metrics.EuerFromVendor || c.Picks != nil):
+			t.Errorf("%s: line %q (%s) picks %+v, vendor's %q", c.Expense.Key, c.Line, c.From, c.Picks, want)
+		case want == "" && c.Line != "":
+			t.Errorf("%s: line %q filled without vendor line", c.Expense.Key, c.Line)
+		case c.Picks != nil:
 			learned++
 		}
 	}
-	t.Logf("%d of %d cases learned", learned, len(page.Cases))
+	t.Logf("%d of %d cases suggested", learned, len(page.Cases))
 
 	c := page.Cases[0]
 	step := workbench.Step{Case: c.Expense.Key, Action: euer.ActSet, Fields: map[string]string{euer.FieldLine: page.Lines[0]}}

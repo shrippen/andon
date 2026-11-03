@@ -87,6 +87,18 @@ func (m *Model) Forget(id string) bool {
 	return true
 }
 
+// Prune forgets every example drop names by its id; it says whether
+// the model changed.
+func (m *Model) Prune(drop func(id string) bool) bool {
+	changed := false
+	for id := range m.seen {
+		if drop(id) {
+			changed = m.Forget(id) || changed
+		}
+	}
+	return changed
+}
+
 // Stats counts what the model holds.
 func (m *Model) Stats() Stats {
 	return Stats{Examples: m.n, Labels: len(m.examples), Features: len(m.known)}
@@ -227,4 +239,54 @@ func compareStr(a, b string) int {
 		return 1
 	}
 	return 0
+}
+
+// otherShare: a label after the best is suggested from this share of
+// MinP on ("EDV, GWG" when GWG is likely too).
+const otherShare = 3
+
+// minLabels is how many labels a model needs before it proposes: with
+// one, nothing is told apart.
+const minLabels = 2
+
+// Use is a model as a page uses it: with the least probability a
+// proposal needs. A nil Model proposes nothing (learning switched off).
+type Use struct {
+	Model *Model
+	MinP  float64
+}
+
+// On says whether there is a model to ask.
+func (u Use) On() bool { return u.Model != nil }
+
+// Best is the likeliest label if the model knows two labels or more, it
+// reaches MinP and at least one of the evidence features (those for which evidence is true) is known:
+// without evidence, a prior or a weak feature (an amount) alone would
+// decide.
+func (u Use) Best(features []string, evidence func(string) bool) (Guess, bool) {
+	if u.Model == nil || len(u.Model.examples) < minLabels {
+		return Guess{}, false // one label: every known feature gives p = 1
+	}
+	if !slices.ContainsFunc(features, func(f string) bool { return evidence(f) && u.Model.Knows(f) }) {
+		return Guess{}, false
+	}
+	return u.Model.Best(features, u.MinP)
+}
+
+// Suggest is what a page offers under a field ("Vorschlag: EDV, GWG"):
+// the best label if it reaches MinP, then others from MinP/otherShare
+// on, at most max, best first. Nothing is filled in: the user picks.
+func (u Use) Suggest(features []string, evidence func(string) bool, max int) []Guess {
+	best, ok := u.Best(features, evidence)
+	if !ok {
+		return nil
+	}
+	out := []Guess{best}
+	for _, g := range u.Model.Rank(features)[1:] {
+		if len(out) >= max || g.P < u.MinP/otherShare {
+			break
+		}
+		out = append(out, g)
+	}
+	return out[:min(len(out), max)]
 }

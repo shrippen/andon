@@ -47,7 +47,7 @@ func TestEuerPages(t *testing.T) {
 	}
 	page = string(mustGet(t, srv, client, "/euer"))
 	// A dropdown field is a select; a proposal is not ticked ahead.
-	if !strings.Contains(page, `name="act_`) || !strings.Contains(page, "mit Vorschlag") || !strings.Contains(page, `<select class="select" name="line_`) {
+	if !strings.Contains(page, `name="act_`) || !strings.Contains(page, "mit Vorschlag") || !strings.Contains(page, `name="line_`) || !strings.Contains(page, `<select class="select" id="line-`) {
 		t.Fatalf("euer after setup:\n%s", page)
 	}
 	if regexp.MustCompile(`name="pick" value="[^"]*" checked`).MatchString(page) {

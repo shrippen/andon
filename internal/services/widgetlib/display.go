@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"slices"
 	"sort"
@@ -28,6 +29,7 @@ import (
 	"andon/internal/services/hints"
 	"andon/internal/services/history"
 	"andon/internal/services/linkstatus"
+	"andon/internal/services/sites"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/util"
 	"andon/internal/services/verbund"
@@ -361,9 +363,9 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 			// A dialog's own data is fetched on open, then cached.
 			qFresh = svcdata.Cached
 		}
-		slot := runQuery(ctx, d, sourceFor(q, target), q.Params, target, holderAt(who, here, target), qFresh)
+		slot := openMails(d, runQuery(ctx, d, sourceFor(q, target), q.Params, target, holderAt(who, here, target), qFresh), target, holderAt(who, here, target))
 		for _, c := range more {
-			slot = mergeSlot(slot, runQuery(ctx, d, sourceFor(q, c), q.Params, c, holderAt(who, here, c), qFresh))
+			slot = mergeSlot(slot, openMails(d, runQuery(ctx, d, sourceFor(q, c), q.Params, c, holderAt(who, here, c), qFresh), c, holderAt(who, here, c)))
 		}
 		frag.Slots[q.Name] = slot
 	}
@@ -471,9 +473,13 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		if err != nil {
 			return nil, err
 		}
+		// Marks of the login whose mailbox the tile shows (holderAt, as
+		// its data): a personal mailbox is each holder's own.
+		h := holderAt(who, here, conn)
 		sent := map[uint32]bool{}
-		for uid, fields := range reads {
-			_, sent[uid] = fields[mailForwardedKey]
+		box, _ := frag.Slots["data"].Data.(*sources.MailDataset)
+		for _, inv := range mailsOf(box) {
+			_, sent[inv.UID] = data.ReadOf(reads, h, inv.UID, inv.Key())[data.MailForwarded]
 		}
 		frag.Slots[widgets.ForwardedSlot] = Slot{Data: sent}
 	}
@@ -511,6 +517,9 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 				frag.Slots[widgets.IPSeenSlot] = Slot{Data: seen}
 			}
 		}
+	}
+	if kind.Extra == widgets.ExtraRideModel && conn != nil && from == originStored {
+		frag.Slots[widgets.RideModelSlot] = Slot{Data: sites.Learned(d, conn, who)}
 	}
 	if kind.Extra == widgets.ExtraHistory {
 		h, err := history.Load(d, widget.SpaceID, 0, time.Now().UTC())
@@ -850,8 +859,30 @@ func Demo(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64, 
 	return load(ctx, d, who, w, svcdata.Cached, originDemo, loadTile)
 }
 
-// mailForwardedKey marks a mail sent to Paperless (see mailfwd).
-const mailForwardedKey = "forwarded"
+// openMails leaves the mails h set aside as no invoice out of a
+// mailbox's slot: tiles count and match invoices only (mail invoices,
+// receipts, month close). Other slots pass.
+func openMails(d *sql.DB, slot Slot, conn *model.Connection, h model.Holder) Slot {
+	box, ok := slot.Data.(*sources.MailDataset)
+	if !ok || box == nil || conn == nil {
+		return slot
+	}
+	rows, err := data.MailReads(d, conn.ID)
+	if err != nil {
+		slog.Warn("widgetlib: mail marks", "connection", conn.Name, "err", err)
+		return slot
+	}
+	slot.Data = metrics.MailOpen(box, func(inv sources.MailInvoice) bool { return data.Dismissed(rows, h, inv.UID, inv.Key()) })
+	return slot
+}
+
+// mailsOf are box's mails; none without a run.
+func mailsOf(box *sources.MailDataset) []sources.MailInvoice {
+	if box == nil {
+		return nil
+	}
+	return box.Invoices
+}
 
 // timelineMax caps what the recent-timeline tile loads.
 const timelineMax = 50

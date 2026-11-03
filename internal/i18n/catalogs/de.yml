@@ -4256,6 +4256,12 @@ billing:
   forwarded_singular: '{count} Datei an Paperless übergeben.'
   no_paperless: Keine Paperless-Verbindung im Bereich
   no_mails: Keine erkannten Rechnungsmails (Stand des letzten Prüflaufs).
+  mail_dismiss: Keine Rechnung
+  mail_dismiss_hint: 'Blendet die Mail aus; Andon lernt daraus, welche Mails keine Rechnungen sind.'
+  mail_dismissed: 'Mail ausgeblendet. Bei Mails desselben Absenders schlägt Andon künftig „keine Rechnung“ vor.'
+  mail_kind_invoice: Rechnung
+  mail_kind_other: keine Rechnung
+  mail_restore: Rückgängig
   lead: Unabgerechnete Kimai-Zeiten als Rechnungsentwurf in Invoice Ninja anlegen, und das Jahrespaket für die Steuer.
   drafts: Rechnungsentwürfe
   since: 'Arbeit seit {day}'
@@ -4277,6 +4283,7 @@ mailfwd:
   no_files: Die Mail hat keine PDF- oder Bilddatei.
   no_login: 'Für {name} fehlt dein persönlicher Zugang.'
   demo: 'Demo-Verbindungen nehmen keine Änderungen an.'
+  no_mail: 'Die Mail ist nicht mehr im Postfach (Stand des letzten Prüflaufs).'
 palette:
   open: Suchen
   title: Befehlspalette
@@ -6335,6 +6342,8 @@ audit_action:
   mail:
     read: 'Mail gelesen'
     to_paperless: 'Mail an Paperless übergeben'
+    dismiss: 'Mail als keine Rechnung ausgeblendet'
+    restore: 'Ausgeblendete Mail zurückgeholt'
   notify:
     channel_added: 'Benachrichtigungskanal angelegt'
   oidc:
@@ -7464,7 +7473,6 @@ vatcheck:
   origin_sure: 'Sure'
   origin_model: 'Claude'
   origin_vendor: 'wie bisher'
-  origin_learned: 'gelernt'
   origin_scan: 'Beleg'
   origin_booking: 'Umsatz'
   number: 'Rechnungsnr.'
@@ -7609,7 +7617,6 @@ euer:
   expense: Ausgabe
   line: 'EÜR-Zeile'
   from_vendor: 'wie zuletzt bei diesem Lieferanten'
-  from_learned: 'gelernt aus ähnlichen Ausgaben'
   no_vendor: 'Lieferant ohne frühere Zeile'
   review: 'Prüfen'
   empty: 'Alle Ausgaben aus {year} haben ihre EÜR-Zeile.'
@@ -7646,7 +7653,7 @@ vendors:
   err_demo: 'Die Demo schreibt nicht in Invoice Ninja.'
 closeweek:
   title: 'Woche schließen'
-  lead: 'Arbeit, die andere Dienste gesehen haben und Kimai nicht: Besuche bei Kunden (Dawarich) und Termine, die einen Kunden oder ein Projekt nennen (Kalender). Vorgeschlagen sind Projekt und Tätigkeit, die du für den Kunden zuletzt gebucht hast; nach dem Prüfen trägt Andon die Zeiten in Kimai ein.'
+  lead: 'Arbeit, die andere Dienste gesehen haben und Kimai nicht: Besuche bei Kunden (Dawarich) und Termine, die einen Kunden oder ein Projekt nennen (Kalender). Vorgeschlagen sind Projekt und Tätigkeit, die du für den Kunden zuletzt gebucht hast; darunter stehen als Vorschlag die, die Andon aus deinen Einträgen zu den Wörtern des Termins oder Orts gelernt hat. Nach dem Prüfen trägt Andon die Zeiten in Kimai ein.'
   weeks: Wochen
   from: 'Woche ab {day}'
   sources: 'Gelesen aus:'
@@ -7823,7 +7830,7 @@ year:
   err_no_ninja: 'Keine Invoice-Ninja-Verbindung, die du nutzen darfst.'
 categorize:
   title: 'Buchungen einordnen'
-  lead: 'Buchungen der letzten 90 Tage, die Sure keiner Kategorie zugeordnet hat, je Händler. Vorgeschlagen ist die Kategorie, die die übrigen Buchungen des Händlers haben; angehakt, wenn sie sich einig sind. Nach dem Prüfen ordnet Andon die Buchungen in Sure ein (der API-Schlüssel braucht Schreibrechte).'
+  lead: 'Buchungen der letzten 90 Tage, die Sure keiner Kategorie zugeordnet hat, je Händler. Vorgeschlagen ist die Kategorie, die die übrigen Buchungen des Händlers haben; angehakt, wenn sie sich einig sind. Hat der Händler keine, stehen darunter aus ähnlichen Buchungen gelernte als Vorschlag; ein Klick wählt sie. Nach dem Prüfen ordnet Andon die Buchungen in Sure ein (der API-Schlüssel braucht Schreibrechte).'
   merchant: 'Händler'
   category: 'Kategorie'
   choose: 'Kategorie wählen'
@@ -7952,27 +7959,36 @@ kept:
 
 learn:
   title: 'Lernmodell'
-  lead: 'Andon lernt aus deinen Ausgaben, welche EÜR-Zeile zu welchen Wörtern gehört (naiver Bayes), und schlägt sie auf dem USt-Abgleich und der EÜR-Zuordnung vor, wenn der Lieferant noch keine hat. Das Modell wird gespeichert: es lernt neue und geänderte Ausgaben dazu und behält, was es aus gelöschten gelernt hat.'
+  lead: 'Andon lernt aus deinen Daten und Entscheidungen (naiver Bayes) und schlägt dort vor, wo keine feste Regel greift: etwa die EÜR-Zeile einer Ausgabe. Jedes Modell gilt für eine Verbindung (bei persönlichem Login für jeden Inhaber) und wird gespeichert: es lernt Neues dazu und behält, was es aus gelöschten Daten gelernt hat; Kimai-Einträge, die Kimai nicht mehr liefert (gelöscht oder außerhalb des abgerufenen Zeitraums), vergisst es. Ein Vorschlag erscheint erst, wenn das Modell mindestens zwei Klassen kennt. Es schlägt nur vor (Zeile „Vorschlag:“ unter dem Feld), ausgefüllt wird nichts.'
+  suggest: 'Vorschlag:'
   settings: 'Einstellungen'
   mode: 'Gelernte Vorschläge'
   mode_on: 'an'
-  mode_off: 'aus (nur die Zeile des Lieferanten)'
+  mode_off: 'aus (nur feste Regeln)'
   min_percent: 'Mindestsicherheit in %'
   min_percent_hint: 'Ein gelernter Vorschlag erscheint erst ab dieser Wahrscheinlichkeit. Höher heißt seltener, aber treffsicherer.'
   hours: 'Trainieren alle … Stunden'
-  hours_hint: 'Im Hintergrund, aus den zuletzt abgerufenen Daten von Invoice Ninja. Die Seiten lernen zusätzlich die aktuellen Daten mit, ohne zu speichern.'
+  hours_hint: 'Im Hintergrund, aus den zuletzt abgerufenen Daten der Verbindungen. Die Seiten lernen zusätzlich die aktuellen Daten mit, ohne zu speichern; Entscheidungen auf den Seiten lernt das Modell sofort.'
   models: 'Gespeicherte Modelle'
-  none: 'Noch kein Modell gespeichert. Es entsteht beim ersten Training, sobald eine Invoice-Ninja-Verbindung ein EÜR-Feld hat.'
+  none: 'Noch kein Modell gespeichert. Ein Modell entsteht, sobald es etwas gelernt hat: beim Training aus den Daten oder bei deiner ersten Entscheidung.'
   col_conn: 'Verbindung'
   col_purpose: 'Lernt'
   col_examples: 'Beispiele'
-  col_labels: 'Zeilen'
+  col_labels: 'Klassen'
   col_features: 'Merkmale'
-  col_trained: 'Zuletzt trainiert'
+  col_trained: 'Zuletzt dazugelernt'
   purpose_euer: 'EÜR-Zeile'
+  purpose_tax: 'Steuersatz neuer Lieferanten'
+  purpose_category: 'Kategorie neuer Lieferanten'
+  purpose_private: 'Privat oder geschäftlich'
+  purpose_vendor: 'Lieferant aus dem Umsatz'
+  purpose_kimai_task: 'Kimai-Projekt und -Tätigkeit'
+  purpose_ride_class: 'Fahrt: beruflich oder privat'
+  purpose_sure_category: 'Sure-Kategorie'
+  purpose_mail: 'Rechnungsmail'
   train: 'Jetzt trainieren'
   reset: 'Zurücksetzen'
-  reset_hint: 'Vergisst alles Gelernte; das Modell lernt danach neu aus den Daten, die Invoice Ninja jetzt hat.'
+  reset_hint: 'Vergisst alles Gelernte. Was aus den Daten einer Verbindung stammt, lernt das Modell beim nächsten Training neu; was nur aus deinen Entscheidungen stammt, ist verloren.'
   saved: 'Gespeichert.'
   trained: 'Trainiert.'
   was_reset: 'Zurückgesetzt.'
