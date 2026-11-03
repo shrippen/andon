@@ -51,8 +51,8 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
         </button>
       </div>
-      <p class="install-note" lang="en"><code>latest</code> is the newest release, <code>edge</code> follows development. To pin a release line, use e.g. <code>0.7</code>. Runs on a Raspberry Pi.</p>
-      <p class="install-note" lang="de"><code>latest</code> ist das neueste Release, <code>edge</code> folgt der Entwicklung. Eine Release-Linie festlegen, z. B. <code>0.7</code>. Läuft auf einem Raspberry Pi.</p>
+      <p class="install-note" lang="en"><code>latest</code> is the newest release, <code>edge</code> follows development. To pin a release line, use e.g. <code>0.8</code>. Runs on a Raspberry Pi.</p>
+      <p class="install-note" lang="de"><code>latest</code> ist das neueste Release, <code>edge</code> folgt der Entwicklung. Eine Release-Linie festlegen, z. B. <code>0.8</code>. Läuft auf einem Raspberry Pi.</p>
       <div class="install-links">
         <a class="btn btn-primary" href="#install"><span lang="en">Install</span><span lang="de">Installieren</span></a>
         <a class="btn btn-ghost" href="https://github.com/shrippen/andon">GitHub</a>
@@ -161,9 +161,9 @@
 <section class="section" id="faq">
   <h2 lang="en">Questions</h2><h2 lang="de">Fragen</h2>
   <div class="faq">
-    <details><summary><span lang="en">Does it change anything in my services?</span><span lang="de">Ändert es etwas in meinen Diensten?</span></summary><div><p lang="en">Almost never. It reads. The exceptions are actions you start yourself: a Kimai timer, a draft invoice in Invoice Ninja, marking billed time as exported.</p><p lang="de">Fast nie. Es liest. Ausnahmen sind Aktionen, die du selbst auslöst: ein Kimai-Timer, ein Rechnungsentwurf in Invoice Ninja, abgerechnete Zeit als exportiert markieren.</p></div></details>
+    <details><summary><span lang="en">Does it change anything in my services?</span><span lang="de">Ändert es etwas in meinen Diensten?</span></summary><div><p lang="en">Only what you confirm. Boards and hints only read. Workbenches write to Invoice Ninja, Kimai, Snipe-IT, Kept, Sure, Paperless, FreshRSS or Gitea, but each shows every step first, writes only after you confirm, checks again against fresh data and notes each write in the journal. Actions you start yourself (a Kimai timer, a draft invoice) write too.</p><p lang="de">Nur, was du bestätigst. Boards und Hinweise lesen nur. Werkbänke schreiben in Invoice Ninja, Kimai, Snipe-IT, Kept, Sure, Paperless, FreshRSS oder Gitea, zeigen aber vorher jeden Schritt, schreiben erst nach deiner Bestätigung, prüfen noch einmal gegen frische Daten und halten jeden Schreibvorgang im Journal fest. Aktionen, die du selbst auslöst (ein Kimai-Timer, ein Rechnungsentwurf), schreiben auch.</p></div></details>
     <details><summary><span lang="en">Do I need Kimai or Invoice Ninja?</span><span lang="de">Brauche ich Kimai oder Invoice Ninja?</span></summary><div><p lang="en">No. Without them it is a start page for your homelab. Each service is optional, and the gallery shows demo previews for the ones you do not have.</p><p lang="de">Nein. Ohne sie ist es eine Startseite für dein Homelab. Jeder Dienst ist optional, und die Galerie zeigt Demo-Vorschauen für die, die du nicht hast.</p></div></details>
-    <details><summary><span lang="en">What about the AI summary?</span><span lang="de">Was ist mit der KI-Zusammenfassung?</span></summary><div><p lang="en">It is off unless you add an Anthropic API key. It only sends hint counts, no names, amounts or tokens.</p><p lang="de">Sie ist aus, bis du einen Anthropic-API-Schlüssel hinterlegst. Sie sendet nur die Anzahl der Hinweise, keine Namen, Beträge oder Tokens.</p></div></details>
+    <details><summary><span lang="en">What about AI?</span><span lang="de">Was ist mit KI?</span></summary><div><p lang="en">It is off unless you add an Anthropic API key. Then the weekly review carries a summary written from the number of open hints per rule (no names or amounts; switch it off under notifications). Everything else goes to Claude only when you press a button that asks it, such as "Ask Andon", "What to do?" on a hint, reading a receipt or proposing bookings; each one names, beside it or in its tooltip, what it sends. Tokens and passwords are never sent to Claude.</p><p lang="de">Sie ist aus, bis du einen Anthropic-API-Schlüssel hinterlegst. Dann trägt der Wochenrückblick eine Zusammenfassung, geschrieben aus der Anzahl offener Hinweise je Regel (keine Namen oder Beträge; abwählbar unter Benachrichtigungen). Alles andere geht nur an Claude, wenn du einen Knopf drückst, der Claude fragt, etwa „Frag Andon“, „Was tun?“ an einem Hinweis, einen Beleg lesen oder Buchungen vorschlagen; jeder nennt daneben oder im Tooltip, was er sendet. Tokens und Passwörter gehen nie an Claude.</p></div></details>
     <details><summary><span lang="en">How many users does it handle?</span><span lang="de">Wie viele Benutzer schafft es?</span></summary><div><p lang="en">It is built for one to ten people on one instance, with SQLite. A Raspberry Pi is enough.</p><p lang="de">Es ist für ein bis zehn Personen auf einer Instanz gebaut, mit SQLite. Ein Raspberry Pi reicht.</p></div></details>
   </div>
 </section>
@@ -171,6 +171,56 @@
   <h2 lang="en">Changes</h2><h2 lang="de">Änderungen</h2>
   <p lang="en">What each release brought, newest first. Every release adds an entry here and the same notes on the release page.</p><p lang="de">Was jede Version gebracht hat, die neueste zuerst. Jede Version bekommt hier einen Eintrag und dieselben Notizen auf der Release-Seite.</p>
   <ol class="changelog">
+    <li class="release" id="v0.8.0">
+      <div class="release-head"><b class="release-version">0.8.0</b><time datetime="2026-11-03"><span lang="en">3 Nov 2026</span><span lang="de">3. Nov. 2026</span></time></div>
+      <div class="release-body">
+        <p class="release-lead"><span lang="en">Andon now does the paperwork with you instead of only pointing at it. Workbenches take the open cases of a service, propose what to write, show every step before anything leaves Andon, and write only what you confirmed, checked again against fresh data. The largest is the VAT check on Invoice Ninja's bank feed, up to the ELSTER figures.</span><span lang="de">Andon erledigt den Papierkram jetzt mit dir, statt nur darauf zu zeigen. Werkbänke nehmen die offenen Fälle eines Dienstes, schlagen vor, was zu schreiben ist, zeigen jeden Schritt, bevor etwas Andon verlässt, und schreiben nur, was du bestätigt hast, noch einmal gegen frische Daten geprüft. Die größte ist der USt-Abgleich auf Invoice Ninjas Bankumsätzen, bis zu den ELSTER-Kennzahlen.</span></p>
+        <div class="release-group" data-kind="new"><h3><span lang="en">New</span><span lang="de">Neu</span></h3><ul>
+          <li><span lang="en">Workbenches, in their own menu with an overview and favourites: VAT check, receipt hunt, EÜR lines, close the week in Kimai, subscriptions, updates as pull requests, inventory of the devices on the network and complete purchases; more on the pages they belong to: reminders on Invoice Ninja's schedule, Sure categories, vendor clean-up and release feeds. Each one works inside a bundle and shows what it would write before it writes.</span><span lang="de">Werkbänke, in einem eigenen Menü mit Übersicht und Favoriten: USt-Abgleich, Belegjagd, EÜR-Zeilen, Woche in Kimai schließen, Abos, Updates als Pull Requests, Inventur der Geräte im Netz und Anschaffungen vervollständigen; weitere auf den Seiten, zu denen sie gehören: Mahnlauf nach Invoice Ninjas Mahnplan, Sure-Kategorien, Lieferanten aufräumen und Release-Feeds. Jede arbeitet in einem Verbund und zeigt, was sie schreiben würde, bevor sie schreibt.</span></li>
+          <li><span lang="en">VAT check: the period's bank transactions from Invoice Ninja (with Sure beside it) are linked to expenses, invoices and payments, or become new expenses with scan, EÜR line and invoice number; a debit can be split over several receipts, receipts without an expense become one. Period cards show what is open and due; the ELSTER figures and the recapitulative statement (ZM) are ready to copy.</span><span lang="de">USt-Abgleich: Die Bankumsätze des Zeitraums aus Invoice Ninja (mit Sure daneben) werden mit Ausgaben, Rechnungen und Zahlungen verknüpft oder zu neuen Ausgaben mit Beleg, EÜR-Zeile und Rechnungsnummer; eine Abbuchung lässt sich auf mehrere Belege aufteilen, Belege ohne Ausgabe werden zu einer. Zeitraum-Karten zeigen, was offen und fällig ist; ELSTER-Kennzahlen und Zusammenfassende Meldung stehen zum Kopieren bereit.</span></li>
+          <li><span lang="en">Work in progress stays: every change on a workbench is kept as a draft, so closing the page loses nothing. A draft gives way when its proposal changes (another reminder stage, another tag, another amount).</span><span lang="de">Zwischenstand bleibt: Jede Änderung in einer Werkbank wird gesichert, das Schließen der Seite verliert nichts. Ändert sich der Vorschlag (andere Mahnstufe, anderer Tag, anderer Betrag), gilt wieder der neue.</span></li>
+          <li><span lang="en">"Review this one" on the VAT check writes a single transaction while the others wait.</span><span lang="de">„Nur diesen prüfen“ im USt-Abgleich schreibt einen einzelnen Umsatz, die anderen warten.</span></li>
+          <li><span lang="en">Accounts in a bundle are business, private, mixed, clearing, reserve or ignored; the reserve covers VAT and income tax before free cash does.</span><span lang="de">Konten im Verbund sind geschäftlich, privat, gemischt, Verrechnung, Rücklage oder ignoriert; die Rücklage deckt Umsatz- und Einkommensteuer, bevor freies Geld es tut.</span></li>
+          <li><span lang="en">Write journal: every write of a workbench, with undo where the service allows it.</span><span lang="de">Schreib-Journal: jeder Schreibvorgang einer Werkbank, mit Rückgängig, wo der Dienst es erlaubt.</span></li>
+          <li><span lang="en">Year: EÜR preparation with depreciation, home office and the documents for the tax return; analyses of client health, price increases and project post-calculation; a year review and "Ask Andon".</span><span lang="de">Jahr: EÜR-Vorbereitung mit AfA, Homeoffice und den Unterlagen für die Steuererklärung; Auswertungen zu Kundenzustand, Preiserhöhung und Nachkalkulation; Jahresrückblick und „Frag Andon“.</span></li>
+          <li><span lang="en">Photovoltaics from Home Assistant: yield, own use and feed-in as a tile, with hints for a low or missing yield, an idle battery and falling own use.</span><span lang="de">Photovoltaik aus Home Assistant: Ertrag, Eigenverbrauch und Einspeisung als Kachel, mit Hinweisen bei niedrigem oder fehlendem Ertrag, ruhendem Speicher und sinkendem Eigenverbrauch.</span></li>
+          <li><span lang="en">AI costs: token use and cost of the LLM providers (xAI included), and a hint when a provider charges without an expense in Invoice Ninja.</span><span lang="de">KI-Kosten: Token-Nutzung und Kosten der LLM-Anbieter (auch xAI), und ein Hinweis, wenn ein Anbieter abbucht, ohne dass in Invoice Ninja eine Ausgabe steht.</span></li>
+          <li><span lang="en">Kept as a second inventory beside Snipe-IT: deadlines, receipts, warranties, location and room of new devices.</span><span lang="de">Kept als zweites Inventar neben Snipe-IT: Fristen, Belege, Garantien, Ort und Raum neuer Geräte.</span></li>
+          <li><span lang="en">Homelab cost per service, a dismissible notice for admins when a newer Andon is out, and moving a connection to another server (or taking over from another connection) without losing tiles, history or notes.</span><span lang="de">Homelab-Kosten je Dienst, ein ausblendbarer Hinweis für Admins, wenn eine neuere Andon-Version da ist, und Verbindungen auf einen anderen Server umziehen (oder von einer anderen übernehmen), ohne Kacheln, Verlauf oder Notizen zu verlieren.</span></li>
+        </ul></div>
+        <div class="release-group" data-kind="improved"><h3><span lang="en">Improved</span><span lang="de">Verbessert</span></h3><ul>
+          <li><span lang="en">FRITZ!Box reads everything over TR-064; Vikunja 2, current Ghostfolio versions and GoToSocial are recognised.</span><span lang="de">FRITZ!Box liest alles über TR-064; Vikunja 2, aktuelle Ghostfolio-Versionen und GoToSocial werden erkannt.</span></li>
+          <li><span lang="en">Number format in the profile: amounts read and typed as "1.234,56" or "1,234.56", independent of the language.</span><span lang="de">Zahlenformat im Profil: Beträge lesen und tippen sich als „1.234,56“ oder „1,234.56“, unabhängig von der Sprache.</span></li>
+          <li><span lang="en">One loading feedback everywhere; dialogs show texts instead of keys; counts use the singular ("1 hint").</span><span lang="de">Ein Ladefeedback überall; Dialoge zeigen Texte statt Schlüssel; Zähltexte kennen die Einzahl („1 Hinweis“).</span></li>
+          <li><span lang="en">Fewer and truer hints from real data: duplicates removed, reverse charge named as such, deleted Invoice Ninja entries ignored.</span><span lang="de">Weniger und treffendere Hinweise aus echten Daten: Doppelte entfernt, Reverse Charge als solches benannt, gelöschte Einträge in Invoice Ninja übergangen.</span></li>
+          <li><span lang="en">The container dialog opens in 2 instead of 10 seconds; Vaultwarden keeps its admin session.</span><span lang="de">Der Container-Dialog öffnet in 2 statt 10 Sekunden; Vaultwarden behält seine Admin-Sitzung.</span></li>
+        </ul></div>
+        <div class="release-group" data-kind="fixed"><h3><span lang="en">Fixed</span><span lang="de">Behoben</span></h3><ul>
+          <li><span lang="en">The edit mode broke after reloading a board.</span><span lang="de">Der Bearbeitungsmodus brach nach dem Neuladen eines Boards ab.</span></li>
+          <li><span lang="en">Snipe-IT costs in German format were misread.</span><span lang="de">Snipe-IT-Kosten im deutschen Format wurden falsch gelesen.</span></li>
+          <li><span lang="en">A rule threshold Andon could not read ("abc", or "1.234,56") saved a rule "&gt; 0" that fired on every value; it is now refused.</span><span lang="de">Eine Schwelle, die Andon nicht lesen konnte („abc“ oder „1.234,56“), speicherte eine Regel „&gt; 0“, die bei jedem Wert anschlug; sie wird jetzt abgelehnt.</span></li>
+          <li><span lang="en">Status checks asked DNS twice when many ran at once.</span><span lang="de">Statusprüfungen fragten DNS doppelt, wenn viele gleichzeitig liefen.</span></li>
+        </ul></div>
+        <div class="release-group" data-kind="breaking"><h3><span lang="en">Note</span><span lang="de">Beachten</span></h3><ul>
+          <li><span lang="en">Rules a category shares are named after it: four Snipe-IT rules (warranty, GWG, missing expense, replacement) become inventory.*, six Sure and Firefly III rules (missed recurring, low balance, uncategorised, unusual expense, unused subscription, negative spendable) become bank.*. Migration 0026 moves hints and rule settings along.</span><span lang="de">Regeln, die eine Kategorie teilt, heißen nach ihr: vier Snipe-IT-Regeln (Garantie, GWG, fehlende Ausgabe, Ersatz) werden zu inventory.*, sechs Sure- und Firefly-III-Regeln (verpasste Abbuchung, niedriger Kontostand, ohne Kategorie, ungewöhnliche Ausgabe, ungenutztes Abo, negatives Verfügbares) zu bank.*. Migration 0026 zieht Hinweise und Regeleinstellungen mit.</span></li>
+          <li><span lang="en">The image is published only on ghcr.io/shrippen/andon, signed. Migrations 0025 to 0027 run at start.</span><span lang="de">Das Image erscheint nur noch auf ghcr.io/shrippen/andon, signiert. Die Migrationen 0025 bis 0027 laufen beim Start.</span></li>
+          <li><span lang="en">Workbenches write to your services. They were tested against throwaway containers of the services, not yet over months of real bookkeeping: read each review before you confirm.</span><span lang="de">Werkbänke schreiben in deine Dienste. Getestet wurden sie gegen Wegwerf-Container der Dienste, noch nicht über Monate echter Buchhaltung: Lies jede Prüfung, bevor du bestätigst.</span></li>
+        </ul></div>
+        <div class="release-shots">
+          <figure><img lang="en" src="shots/release-0.8.0-benches-en.webp" alt="The workbenches overview: customers and money, devices and operations, overview, each with its open hints and a star for the menu bar" loading="lazy"><img lang="de" src="shots/release-0.8.0-benches-de.webp" alt="Die Übersicht der Werkbänke: Kunden und Geld, Geräte und Betrieb, Überblick, jede mit ihren offenen Hinweisen und einem Stern für die Menüleiste" loading="lazy"></figure>
+          <figure><img lang="en" src="shots/release-0.8.0-vat-en.webp" alt="The VAT check: the period&#x27;s open transactions on the left, the desk of one debit on the right with scan, vendor, category, tax and note" loading="lazy"><img lang="de" src="shots/release-0.8.0-vat-de.webp" alt="Der USt-Abgleich: links die offenen Umsätze des Zeitraums, rechts die Arbeitsfläche einer Abbuchung mit Beleg, Lieferant, Kategorie, Steuer und Notiz" loading="lazy"></figure>
+          <figure><img lang="en" src="shots/release-0.8.0-vat-one-en.webp" alt="&quot;Review this one&quot;: the step of one transaction spelled out below its desk, with &quot;Write this one&quot;" loading="lazy"><img lang="de" src="shots/release-0.8.0-vat-one-de.webp" alt="„Nur diesen prüfen“: der Schritt eines Umsatzes ausgeschrieben unter seiner Arbeitsfläche, mit „Nur diesen schreiben“" loading="lazy"></figure>
+        </div>
+        <div class="flow">
+          <div class="flow-node"><b lang="en">Change</b><b lang="de">Ändern</b><span><span lang="en">a field or a tick on a case</span><span lang="de">ein Feld oder ein Häkchen an einem Fall</span></span></div><div class="flow-arrow"></div>
+          <div class="flow-node"><b lang="en">Draft</b><b lang="de">Zwischenstand</b><span><span lang="en">kept per user, bundle and period</span><span lang="de">gesichert je Benutzer, Verbund und Zeitraum</span></span></div><div class="flow-arrow"></div>
+          <div class="flow-node hl"><b lang="en">Review</b><b lang="de">Prüfen</b><span><span lang="en">every step spelled out, nothing written yet</span><span lang="de">jeder Schritt ausgeschrieben, noch nichts geschrieben</span></span></div><div class="flow-arrow"></div>
+          <div class="flow-node"><b lang="en">Write</b><b lang="de">Schreiben</b><span><span lang="en">checked again against fresh data</span><span lang="de">noch einmal gegen frische Daten geprüft</span></span></div><div class="flow-arrow"></div>
+          <div class="flow-node"><b lang="en">Journal</b><b lang="de">Journal</b><span><span lang="en">one entry per write, undo where possible</span><span lang="de">ein Eintrag je Schreibvorgang, Rückgängig wo möglich</span></span></div>
+        </div>
+        <a class="release-notes" href="https://github.com/shrippen/andon/compare/v0.7.0...v0.8.0"><span lang="en">All changes since 0.7.0 →</span><span lang="de">Alle Änderungen seit 0.7.0 →</span></a>
+      </div>
+    </li>
     <li class="release" id="v0.7.0">
       <div class="release-head"><b class="release-version">0.7.0</b><time datetime="2026-10-07"><span lang="en">7 Oct 2026</span><span lang="de">7. Okt. 2026</span></time></div>
       <div class="release-body">
@@ -267,6 +317,9 @@
         <a class="release-notes" href="https://github.com/shrippen/andon/compare/v0.5.0...v0.6.0"><span lang="en">All changes since 0.5.0 →</span><span lang="de">Alle Änderungen seit 0.5.0 →</span></a>
       </div>
     </li>
+  </ol>
+  <details class="changelog-more"><summary><span lang="en">Older releases</span><span lang="de">Ältere Versionen</span></summary>
+    <ol class="changelog">
     <li class="release" id="v0.5.0">
       <div class="release-head"><b class="release-version">0.5.0</b><time datetime="2026-10-03"><span lang="en">3 Oct 2026</span><span lang="de">3. Okt. 2026</span></time></div>
       <div class="release-body">
@@ -299,9 +352,6 @@
         <a class="release-notes" href="https://github.com/shrippen/andon/compare/v0.4.0...v0.5.0"><span lang="en">All changes since 0.4.0 →</span><span lang="de">Alle Änderungen seit 0.4.0 →</span></a>
       </div>
     </li>
-  </ol>
-  <details class="changelog-more"><summary><span lang="en">Older releases</span><span lang="de">Ältere Versionen</span></summary>
-    <ol class="changelog">
       <li class="release" id="v0.4.0">
         <div class="release-head"><b class="release-version">0.4.0</b><time datetime="2026-09-26"><span lang="en">26 Sep 2026</span><span lang="de">26. Sep. 2026</span></time></div>
         <div class="release-body">
@@ -331,7 +381,7 @@
       <div><h4><span lang="en">Source</span><span lang="de">Quelltext</span></h4><a href="https://github.com/shrippen/andon">GitHub</a><a href="https://github.com/shrippen/andon/issues">Issues</a><a href="https://github.com/shrippen/andon/releases">Releases</a></div>
     </nav>
   </div>
-  <div class="foot-meta"><p>GPL-3.0 · shrippen · <a href="#changes">v0.7</a></p></div>
+  <div class="foot-meta"><p>GPL-3.0 · shrippen · <a href="#changes">v0.8</a></p></div>
 </footer>
 
 </body>

@@ -92,6 +92,55 @@
         }
       ],
       "settle": 3000
+    },
+    {
+      "name": "release-0.8.0-benches",
+      "url": "/benches",
+      "settle": 1500
+    },
+    {
+      "name": "release-0.8.0-vat",
+      "url": "/vat?span={month}",
+      "actions": [
+        {
+          "wait": ".bench-entry[data-case='demo-b-studio']"
+        },
+        {
+          "click": ".bench-entry[data-case='demo-b-studio']"
+        },
+        {
+          "eval": "document.querySelector('#cases').scrollIntoView()"
+        },
+        {
+          "sleep": 600
+        }
+      ],
+      "settle": 1500
+    },
+    {
+      "name": "release-0.8.0-vat-one",
+      "url": "/vat?span={month}",
+      "actions": [
+        {
+          "wait": ".bench-entry[data-case='demo-b-studio']"
+        },
+        {
+          "click": ".bench-entry[data-case='demo-b-studio']"
+        },
+        {
+          "click": "[data-desk='demo-b-studio'] [hx-post='/vat/review']"
+        },
+        {
+          "wait": "#one-demo-b-studio .card"
+        },
+        {
+          "eval": "document.querySelector('#case-demo-b-studio .btn-row').scrollIntoView({block: 'center'})"
+        },
+        {
+          "sleep": 600
+        }
+      ],
+      "settle": 1500
     }
   ],
   "page": {
