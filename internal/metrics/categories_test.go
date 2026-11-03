@@ -66,9 +66,9 @@ func TestEuerFromVendor(t *testing.T) {
 	}
 }
 
-// A new vendor gets the line of expenses with the same words; its own
-// last line wins once it has one; a line outside the dropdown is never
-// proposed.
+// A new vendor is suggested the line of expenses with the same words;
+// its own last line fills the field once it has one; a line outside the
+// dropdown is never suggested.
 func TestEuerGuesser(t *testing.T) {
 	n := &sources.NinjaDataset{
 		Vendors: []sources.NinjaVendor{{Key: "v1", Name: "Hetzner Online GmbH"}, {Key: "v2", Name: "teilAuto eG"}, {Key: "v3", Name: "Kagi Inc"}},
@@ -81,26 +81,31 @@ func TestEuerGuesser(t *testing.T) {
 	}
 	g := metrics.EuerGuesserOf(n, 3, bayes.Use{Model: bayes.New(), MinP: metrics.EuerMinP})
 
-	if line, from := g.Guess(metrics.EuerInput{Vendor: "Netcup GmbH", Texts: []string{"Cloud Server"}, Amount: 9}); line != "EDV" || from != metrics.EuerFromLearned {
-		t.Errorf("new hoster: %q %q", line, from)
+	// Learned lines are only suggested, never filled.
+	if line, from := g.Guess(metrics.EuerInput{Vendor: "Netcup GmbH", Texts: []string{"Cloud Server"}, Amount: 9}); line != "" || from != metrics.EuerFromNothing {
+		t.Errorf("new hoster filled: %q %q", line, from)
 	}
-	if line, from := g.Guess(metrics.EuerInput{Vendor: "Stadtmobil", Texts: []string{"Carsharing Fahrt"}, Amount: 120}); line != "Reise" || from != metrics.EuerFromLearned {
-		t.Errorf("car sharing: %q %q", line, from)
+	if got := g.Suggest(metrics.EuerInput{Vendor: "Netcup GmbH", Texts: []string{"Cloud Server"}, Amount: 9}); first(got) != "EDV" {
+		t.Errorf("new hoster: %+v", got)
 	}
-	if line, from := g.Guess(metrics.EuerInput{VendorKey: "v2", Vendor: "teilAuto eG", Texts: []string{"Server"}}); line != "Reise" || from != metrics.EuerFromVendor {
-		t.Errorf("known vendor: %q %q", line, from)
+	if got := g.Suggest(metrics.EuerInput{Vendor: "Stadtmobil", Texts: []string{"Carsharing Fahrt"}, Amount: 120}); first(got) != "Reise" {
+		t.Errorf("car sharing: %+v", got)
+	}
+	known := metrics.EuerInput{VendorKey: "v2", Vendor: "teilAuto eG", Texts: []string{"Server"}}
+	if line, from := g.Guess(known); line != "Reise" || from != metrics.EuerFromVendor || g.Suggest(known) != nil {
+		t.Errorf("known vendor: %q %q %+v", line, from, g.Suggest(known))
 	}
 	// The amount alone is no evidence.
 	for _, amount := range []float64{0, 4.80, 9.80} {
-		if line, _ := g.Guess(metrics.EuerInput{Vendor: "Bäckerei Schmidt", Texts: []string{"Brötchen"}, Amount: amount}); line != "" {
-			t.Errorf("nothing known at %v proposes %q", amount, line)
+		if got := g.Suggest(metrics.EuerInput{Vendor: "Bäckerei Schmidt", Texts: []string{"Brötchen"}, Amount: amount}); got != nil {
+			t.Errorf("nothing known at %v suggests %+v", amount, got)
 		}
 	}
 
 	n.ExpenseFields[2] = sources.ExpenseField{Label: "EÜR", Options: []string{"EDV"}}
 	g = metrics.EuerGuesserOf(n, 3, bayes.Use{Model: bayes.New(), MinP: metrics.EuerMinP})
-	if line, _ := g.Guess(metrics.EuerInput{Texts: []string{"Carsharing"}}); line != "" {
-		t.Errorf("line outside the dropdown proposed: %q", line)
+	if got := g.Suggest(metrics.EuerInput{Texts: []string{"Carsharing"}}); got != nil {
+		t.Errorf("line outside the dropdown suggested: %+v", got)
 	}
 }
 

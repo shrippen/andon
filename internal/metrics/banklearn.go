@@ -8,7 +8,7 @@ import (
 	"andon/internal/sources"
 )
 
-// Learned proposals for an open booking on the VAT check, each its own
+// Learned suggestions for an open booking on the VAT check, each its own
 // model per Invoice Ninja (services/learn), all reading the booking's
 // words: payer, booking text, Sure's merchant.
 //
@@ -18,8 +18,9 @@ import (
 //	category  expenses linked to a booking         category key
 //	tax       expenses linked to a booking         rate ("19", "none")
 //
-// Stronger sources win: a vendor named in the booking, the vendor's last
-// expense, Sure's mapping; a learned guess fills what they leave open.
+// Fixed rules fill: a vendor named in the booking, the vendor's last
+// expense, Sure's mapping. A model only suggests, under a field they
+// leave empty ("Vorschlag: Technik, Büro"); the user's click fills it.
 
 // Purposes of the VAT check's models.
 const (
@@ -147,11 +148,15 @@ func LearnPrivate(m *bayes.Model, n *sources.NinjaDataset) bool {
 	return changed
 }
 
-// guess is u's label for a booking, "" none.
-func guess(u bayes.Use, t sources.NinjaBankTxn, sure *sources.BankTxn) string {
-	g, ok := u.Best(bankFeatures(t, sure), IsWordFeature)
-	if !ok {
-		return ""
+// maxPicks is the most values a suggestion line names.
+const maxPicks = 3
+
+// suggest is what u suggests for a booking, best first; none without a
+// known word of it.
+func suggest(u bayes.Use, t sources.NinjaBankTxn, sure *sources.BankTxn) []string {
+	var out []string
+	for _, g := range u.Suggest(bankFeatures(t, sure), IsWordFeature, maxPicks) {
+		out = append(out, g.Label)
 	}
-	return g.Label
+	return out
 }

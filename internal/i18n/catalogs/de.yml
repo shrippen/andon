@@ -7464,9 +7464,6 @@ vatcheck:
   origin_sure: 'Sure'
   origin_model: 'Claude'
   origin_vendor: 'wie bisher'
-  origin_learned: 'gelernt'
-  learned_create: 'Gelernt: ähnliche Abbuchungen privater und gemischter Konten wurden als Ausgabe gebucht.'
-  learned_skip: 'Gelernt: ähnliche Abbuchungen privater und gemischter Konten wurden als privat archiviert.'
   origin_scan: 'Beleg'
   origin_booking: 'Umsatz'
   number: 'Rechnungsnr.'
@@ -7611,7 +7608,6 @@ euer:
   expense: Ausgabe
   line: 'EÜR-Zeile'
   from_vendor: 'wie zuletzt bei diesem Lieferanten'
-  from_learned: 'gelernt aus ähnlichen Ausgaben'
   no_vendor: 'Lieferant ohne frühere Zeile'
   review: 'Prüfen'
   empty: 'Alle Ausgaben aus {year} haben ihre EÜR-Zeile.'

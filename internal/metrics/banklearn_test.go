@@ -58,38 +58,57 @@ func learnedOf(n *sources.NinjaDataset) metrics.BankLearning {
 		Category: use(metrics.LearnCategories), Tax: use(metrics.LearnTaxes)}
 }
 
-// An unnamed Amazon booking finds its vendor (and so its category and
-// tax); the bakery on the mixed account is proposed private, the hoster
-// a new expense; without the models nothing of it.
+// The models only suggest: an unnamed Amazon booking gets its vendor
+// and category as suggestions (every tax is 19 %: one class, nothing to
+// suggest), the fields stay empty; the bakery on
+// the mixed account suggests private, the hoster a new expense, and
+// neither changes its action. Without the models nothing is suggested.
 func TestBankLearning(t *testing.T) {
 	n := learnedNinja()
 	in := metrics.VATInputs{Ninja: n, Start: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), End: time.Date(2026, 10, 31, 0, 0, 0, 0, time.UTC),
-		Today: time.Date(2026, 11, 3, 0, 0, 0, 0, time.UTC), Learned: learnedOf(n)}
+		Today: time.Date(2026, 11, 3, 0, 0, 0, 0, time.UTC)}
+	plain := map[string]metrics.BankCase{}
+	for _, c := range metrics.BankCases(in) {
+		plain[c.Txn.Key] = c
+	}
+	in.Learned = learnedOf(n)
 	byKey := map[string]metrics.BankCase{}
 	for _, c := range metrics.BankCases(in) {
 		byKey[c.Txn.Key] = c
 	}
 
-	if d := byKey["o1"].Draft; d.VendorKey != "v1" || d.VendorFrom != metrics.FromLearned || d.CategoryKey != "c1" || d.TaxRate != 19 {
-		t.Errorf("Amazon: %+v", d)
+	d := byKey["o1"].Draft
+	if d.VendorKey != "" || d.CategoryKey != "" || d.TaxKnown {
+		t.Errorf("Amazon filled: %+v", d)
 	}
-	if c := byKey["o2"]; c.Action != metrics.ActionSkip || !c.Learned {
-		t.Errorf("bakery: %s learned %v", c.Action, c.Learned)
+	if first(d.Suggest.Vendor) != "Versandhandel Europa S.à r.l." || first(d.Suggest.Category) != "c1" || d.Suggest.Tax != nil {
+		t.Errorf("Amazon suggests: %+v", d.Suggest)
 	}
-	if c := byKey["o3"]; c.Action != metrics.ActionCreate || !c.Learned {
-		t.Errorf("hoster: %s learned %v", c.Action, c.Learned)
+	for key, want := range map[string]metrics.BankAction{"o2": metrics.ActionSkip, "o3": metrics.ActionCreate} {
+		c := byKey[key]
+		if c.Action != plain[key].Action || first(c.Suggest) != string(want) {
+			t.Errorf("%s: action %s (without model %s), suggests %+v", key, c.Action, plain[key].Action, c.Suggest)
+		}
 	}
 
 	in.Learned = metrics.BankLearning{}
 	for _, c := range metrics.BankCases(in) {
-		if c.Learned || c.Draft.VendorFrom == metrics.FromLearned {
-			t.Errorf("%s learned without models", c.Txn.Key)
+		if c.Suggest != nil || !c.Draft.Suggest.None() {
+			t.Errorf("%s suggests without models", c.Txn.Key)
 		}
 	}
 }
 
-// A new vendor without history gets the learned category and tax; an
-// expense without tax teaches "none".
+// first is the value of a suggestion line's first pick, "" none.
+func first(ps []metrics.Pick) string {
+	if len(ps) == 0 {
+		return ""
+	}
+	return ps[0].Value
+}
+
+// A new vendor without history gets the learned category and tax as
+// suggestions; an expense without tax teaches "none".
 func TestLearnedDraft(t *testing.T) {
 	n := learnedNinja()
 	n.Expenses[2].TaxName, n.Expenses[2].TaxRate = "", 0
@@ -97,36 +116,18 @@ func TestLearnedDraft(t *testing.T) {
 	l.Vendor = bayes.Use{} // the hoster stays a new vendor
 
 	d := metrics.DraftWith(n, sources.NinjaBankTxn{Payer: "Hostingfirma Server", Description: "Server Miete", Amount: 9.9, Debit: true}, l)
-	if d.CategoryKey != "c2" || d.From != metrics.FromLearned || !d.NoTax || d.TaxFrom != metrics.FromLearned {
+	if d.CategoryKey != "" || d.TaxKnown || first(d.Suggest.Category) != "c2" || first(d.Suggest.Tax) != "none" || d.Suggest.Tax[0].Text != "vatcheck.no_tax" {
 		t.Fatalf("draft: %+v", d)
 	}
 }
 
-// A learned vendor is no sure vendor: a mixed account's debit stays
-// unsorted (not a ticked expense), and a transfer stays a transfer.
-func TestLearnedVendorNotSure(t *testing.T) {
+// What a fixed rule fills is not suggested: a vendor named in the
+// booking brings its history, and the models stay silent on it.
+func TestFilledNotSuggested(t *testing.T) {
 	n := learnedNinja()
-	n.BankTxns = append(n.BankTxns,
-		sources.NinjaBankTxn{Key: "m1", Date: "2026-10-09", Payer: "AMZN Mktp DE*PP00PP", Description: "Amazon Marketplace", Amount: 17.99,
-			Debit: true, Role: sources.RoleMixed, Status: sources.BankOpen},
-		sources.NinjaBankTxn{Key: "u1", Date: "2026-10-10", Payer: "Arian", Description: "Amazon Marketplace Umbuchung", Amount: 100,
-			Debit: true, Role: sources.RoleBusiness, Status: sources.BankOpen},
-		sources.NinjaBankTxn{Key: "u2", Date: "2026-10-10", Payer: "Arian", Description: "Umbuchung", Amount: 100,
-			Role: sources.RolePrivate, Status: sources.BankOpen},
-	)
-	l := learnedOf(n)
-	l.Private = bayes.Use{} // only the vendor model speaks
-	in := metrics.VATInputs{Ninja: n, Start: time.Date(2026, 10, 1, 0, 0, 0, 0, time.UTC), End: time.Date(2026, 10, 31, 0, 0, 0, 0, time.UTC),
-		Today: time.Date(2026, 11, 3, 0, 0, 0, 0, time.UTC), Learned: l}
-	byKey := map[string]metrics.BankCase{}
-	for _, c := range metrics.BankCases(in) {
-		byKey[c.Txn.Key] = c
-	}
-	if c := byKey["m1"]; c.Action == metrics.ActionCreate || c.Draft.From == metrics.FromHistory {
-		t.Errorf("mixed debit: %s from %s", c.Action, c.Draft.From)
-	}
-	if c := byKey["u1"]; c.Transfer == nil || c.Draft.From == metrics.FromHistory {
-		t.Errorf("transfer: %s from %s transfer %v", c.Action, c.Draft.From, c.Transfer)
+	d := metrics.DraftWith(n, sources.NinjaBankTxn{Payer: "Nordhost GmbH", Description: "Server Miete", Amount: 9.9, Debit: true}, learnedOf(n))
+	if d.VendorKey != "v2" || d.From != metrics.FromHistory || !d.Suggest.None() {
+		t.Fatalf("draft: %+v", d)
 	}
 }
 
@@ -169,15 +170,5 @@ func TestLearnKeepsWithoutBank(t *testing.T) {
 	window.BankTxns = n.BankTxns[1:] // t1 left the window, e1 still links it
 	if metrics.LearnVendors(m, &window); m.Stats().Examples != before {
 		t.Errorf("booking out of window: %d → %d", before, m.Stats().Examples)
-	}
-}
-
-// With a learned vendor, the tax from its history says "learned".
-func TestLearnedVendorTaxOrigin(t *testing.T) {
-	n := learnedNinja()
-	n.BankRead = true
-	d := metrics.DraftWith(n, sources.NinjaBankTxn{Payer: "AMZN Mktp DE*KK", Description: "Amazon Marketplace", Amount: 9, Debit: true}, learnedOf(n))
-	if d.VendorFrom != metrics.FromLearned || d.TaxFrom != metrics.FromLearned {
-		t.Fatalf("draft: %+v", d)
 	}
 }

@@ -58,7 +58,6 @@ const (
 	FromHistory DraftFrom = "history" // the vendor's last expense
 	FromSure    DraftFrom = "sure"    // Sure's merchant and category
 	FromModel   DraftFrom = "model"   // the language model, on request
-	FromLearned DraftFrom = "learned" // a learned model (BankLearning)
 )
 
 // ExpenseDraft is a new expense for an open debit. VendorKey or
@@ -73,9 +72,21 @@ type ExpenseDraft struct {
 	EuerFrom              EuerFrom
 	Bill                  bool // the vendor's last expense was billed to a client
 	From                  DraftFrom
-	VendorFrom            DraftFrom // FromLearned when the model named the vendor
-	TaxFrom               DraftFrom // the tax's origin when not From's
-	NoTax                 bool      // the tax known is none
+	Suggest               DraftSuggest
+}
+
+// DraftSuggest is what the learned models suggest under the fields a
+// fixed rule left empty; they never fill one.
+type DraftSuggest struct {
+	Vendor   []Pick // by name, the vendor field is text
+	Category []Pick // category keys
+	Tax      []Pick // rates ("19") or "none"
+	Euer     []Pick // EÜR lines
+}
+
+// None says whether nothing is suggested.
+func (s DraftSuggest) None() bool {
+	return s.Vendor == nil && s.Category == nil && s.Tax == nil && s.Euer == nil
 }
 
 // BankCase is one open transaction with what it could be.
@@ -90,7 +101,7 @@ type BankCase struct {
 	Action   BankAction
 	Private  bool      // paid from an account with private bookings (private, mixed)
 	Mixed    bool      // on a mixed account
-	Learned  bool      // a private account's debit the model sorted (business or private)
+	Suggest  []Pick    // a private account's debit: create or skip, as the model learned it
 	Transfer *Transfer // money moved to or from another own account
 }
 
@@ -164,25 +175,26 @@ func BankCases(in VATInputs) []BankCase {
 		out = append(out, c)
 	}
 	pairTransfers(in, out)
-	sortPrivate(out, in.Learned.Private)
+	suggestPrivate(out, in.Learned.Private)
 	return out
 }
 
-// sortPrivate lets the model sort a private or mixed account's debit
-// that no expense fits and that is no transfer: booked before as
-// business → a new expense; set aside as private → archive. After the
-// transfers: a transfer's side is never sorted.
-func sortPrivate(cases []BankCase, u bayes.Use) {
+// suggestPrivate lets the model suggest for a private or mixed
+// account's debit that no expense fits and that is no transfer: booked
+// before as business → a new expense; set aside as private → archive.
+// After the transfers: a transfer's side gets nothing. The action stays.
+func suggestPrivate(cases []BankCase, u bayes.Use) {
 	for i := range cases {
 		c := &cases[i]
 		if !c.Private || !c.Txn.Debit || c.Transfer != nil || len(c.Expenses) > 0 {
 			continue
 		}
-		switch guess(u, c.Txn, c.Sure) {
-		case labelBusiness:
-			c.Action, c.Learned = ActionCreate, true
-		case labelPrivate:
-			c.Action, c.Learned = ActionSkip, true
+		for _, label := range suggest(u, c.Txn, c.Sure) {
+			act := ActionCreate
+			if label == labelPrivate {
+				act = ActionSkip
+			}
+			c.Suggest = append(c.Suggest, Pick{Value: string(act), Text: "vatcheck.act_" + string(act)})
 		}
 	}
 }
@@ -521,10 +533,9 @@ func DraftWith(n *sources.NinjaDataset, t sources.NinjaBankTxn, l BankLearning) 
 }
 
 // draftOf fills a new expense: a known vendor (its first word is a word
-// of the booking: "Mietwagen Nord" is not "Nordhost"; else the one the
-// model learned from earlier bookings) brings its last category and tax;
-// otherwise Sure's merchant and category help, then the learned
-// category and tax.
+// of the booking: "Mietwagen Nord" is not "Nordhost") brings its last
+// category and tax; otherwise Sure's merchant and category help. The
+// learned models only suggest for what stays empty.
 func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.BankTxn, l BankLearning) ExpenseDraft {
 	var d ExpenseDraft
 	text := t.Payer + " " + t.Description
@@ -537,18 +548,10 @@ func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.Bank
 			break
 		}
 	}
-	if key := guess(l.Vendor, t, sure); d.VendorKey == "" && key != "" {
-		if i := slices.IndexFunc(n.Vendors, func(v sources.NinjaVendor) bool { return v.Key == key }); i >= 0 {
-			d.Vendor, d.VendorKey, d.VendorFrom = n.Vendors[i].Name, key, FromLearned
-		}
-	}
 	if last, ok := lastExpense(n, d.VendorKey); ok {
 		d.CategoryKey, d.TaxName, d.TaxRate, d.TaxKnown, d.From = last.CategoryKey, last.TaxName, last.TaxRate, true, FromHistory
 		d.Bill = last.Billable
 		d.Category = categoryName(n, d.CategoryKey)
-		if d.VendorFrom == FromLearned {
-			d.From, d.TaxFrom = FromLearned, FromLearned // a guessed vendor's history is no sure one: not ticked, not private-proof
-		}
 		return d
 	}
 	if d.Vendor == "" {
@@ -564,32 +567,42 @@ func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.Bank
 			}
 		}
 	}
-	learnedDraft(&d, n, t, sure, l)
+	suggestDraft(&d, n, t, sure, l)
 	return d
 }
 
-// learnedDraft fills what a new vendor's draft lacks from the models:
-// its category and tax.
-func learnedDraft(d *ExpenseDraft, n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.BankTxn, l BankLearning) {
-	if key := guess(l.Category, t, sure); d.CategoryKey == "" && key != "" {
-		if name := categoryName(n, key); name != "" {
-			d.Category, d.CategoryKey, d.From = name, key, FromLearned
+// suggestDraft adds the models' suggestions for the fields the draft
+// left empty: vendor, category, tax. Values no longer set up are left out.
+func suggestDraft(d *ExpenseDraft, n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.BankTxn, l BankLearning) {
+	if d.VendorKey == "" {
+		for _, key := range suggest(l.Vendor, t, sure) {
+			if i := slices.IndexFunc(n.Vendors, func(v sources.NinjaVendor) bool { return v.Key == key }); i >= 0 {
+				d.Suggest.Vendor = append(d.Suggest.Vendor, Pick{Value: n.Vendors[i].Name, Label: n.Vendors[i].Name})
+			}
 		}
 	}
-	rate := guess(l.Tax, t, sure)
-	if rate == "" || d.TaxKnown {
+	if d.CategoryKey == "" {
+		for _, key := range suggest(l.Category, t, sure) {
+			if name := categoryName(n, key); name != "" {
+				d.Suggest.Category = append(d.Suggest.Category, Pick{Value: key, Label: name})
+			}
+		}
+	}
+	if d.TaxKnown {
 		return
 	}
-	if rate == noTaxLabel {
-		d.TaxKnown, d.NoTax, d.TaxFrom = true, true, FromLearned
-		return
+	for _, rate := range suggest(l.Tax, t, sure) {
+		if rate == noTaxLabel {
+			d.Suggest.Tax = append(d.Suggest.Tax, Pick{Value: noTaxLabel, Text: "vatcheck.no_tax"})
+			continue
+		}
+		r, err := strconv.ParseFloat(rate, 64)
+		i := slices.IndexFunc(n.TaxRates, func(x sources.NinjaTaxRate) bool { return x.Rate == r })
+		if err != nil || i < 0 {
+			continue // a rate no longer set up
+		}
+		d.Suggest.Tax = append(d.Suggest.Tax, Pick{Value: rate, Label: n.TaxRates[i].Name + " " + strconv.FormatFloat(r, 'f', -1, 64) + " %"})
 	}
-	r, err := strconv.ParseFloat(rate, 64)
-	i := slices.IndexFunc(n.TaxRates, func(x sources.NinjaTaxRate) bool { return x.Rate == r })
-	if err != nil || i < 0 {
-		return // a rate no longer set up
-	}
-	d.TaxName, d.TaxRate, d.TaxKnown, d.TaxFrom = n.TaxRates[i].Name, r, true, FromLearned
 }
 
 // lastExpense is the vendor's newest expense.

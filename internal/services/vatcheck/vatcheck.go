@@ -235,6 +235,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 			b.apply(&cs)
 		}
 		cs.Draft.Euer, cs.Draft.EuerFrom = euer.Guess(euerInput(cs.Draft, cs.Txn))
+		cs.Draft.Suggest.Euer = euer.Suggest(euerInput(cs.Draft, cs.Txn))
 		if cs.Txn.Debit {
 			cs.Note = noteOf(cs.Txn)
 		}
@@ -377,21 +378,16 @@ func categoryName(n *sources.NinjaDataset, key string) string {
 // replaces a vendor's own history.
 func (b book) apply(c *Case) {
 	g := c.Guess
-	learned := c.Learned
-	c.Learned = false // asked for, Claude's reading overrules the learned sort
 	if g.Private && c.Action != metrics.ActionLink {
 		c.Action = metrics.ActionSkip
 		return
 	}
-	if c.Private && (c.Action == metrics.ActionNone || (learned && c.Action == metrics.ActionSkip)) {
+	if c.Private && c.Action == metrics.ActionNone {
 		// Paid privately, but the model reads it as business.
 		c.Action = metrics.ActionCreate
 	}
 	if !c.Txn.Debit || c.Draft.From == metrics.FromHistory {
 		return
-	}
-	if c.Draft.VendorFrom == metrics.FromLearned && g.Vendor != "" {
-		claudeVendor(&c.Draft, g.Vendor)
 	}
 	if c.Draft.VendorKey == "" && g.Vendor != "" {
 		c.Draft.Vendor = g.Vendor
@@ -412,21 +408,6 @@ func (b book) apply(c *Case) {
 		c.Draft.TaxRate, c.Draft.TaxKnown = g.TaxRate, true
 	}
 	c.Draft.From = metrics.FromModel
-}
-
-// claudeVendor lets Claude's vendor, asked for, decide over a learned
-// one: the same vendor confirms it with its history; another replaces
-// it and the history, keeping a category Sure's mapping set.
-func claudeVendor(d *metrics.ExpenseDraft, vendor string) {
-	if equalFold(d.Vendor, vendor) {
-		d.VendorFrom = metrics.FromNothing
-		return
-	}
-	keep := metrics.ExpenseDraft{Euer: d.Euer, EuerFrom: d.EuerFrom}
-	if d.From == metrics.FromSure {
-		keep.Category, keep.CategoryKey, keep.From = d.Category, d.CategoryKey, d.From
-	}
-	*d = keep
 }
 
 func inSpan(day string, s metrics.VATSpan) bool {
@@ -629,6 +610,7 @@ func (b book) gapCases(ctx context.Context, d *sql.DB, who *access.Principal, s 
 		cs := Case{BankCase: metrics.BankCase{Txn: txn, Expenses: []sources.NinjaExpense{e}, Action: ActionFill,
 			Draft: metrics.ExpenseDraft{Vendor: vendor, VendorKey: e.VendorKey}}, parts: parts}
 		cs.Draft.Euer, cs.Draft.EuerFrom = euer.GuessExpense(e)
+		cs.Draft.Suggest.Euer = euer.SuggestExpense(e)
 		b.gapped(&cs)
 		b.propose(ctx, d, who, &cs)
 		out = append(out, cs)
@@ -683,6 +665,7 @@ func (b book) docCases(ctx context.Context, d *sql.DB, who *access.Principal, s 
 		cs := Case{BankCase: metrics.BankCase{Txn: txn, Action: ActionReceipt, Draft: metrics.DraftOf(b.ninja, txn)},
 			Scans: []receipts.Candidate{sc}, Note: strings.TrimSpace(sc.Doc.Title), parts: parts}
 		cs.Draft.Euer, cs.Draft.EuerFrom = euer.Guess(euerInput(cs.Draft, txn))
+		cs.Draft.Suggest.Euer = euer.Suggest(euerInput(cs.Draft, txn))
 		if b.numberSlot > 0 {
 			cs.Number = sc.Number
 		}

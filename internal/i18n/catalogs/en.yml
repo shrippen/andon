@@ -7463,9 +7463,6 @@ vatcheck:
   origin_sure: 'Sure'
   origin_model: 'Claude'
   origin_vendor: 'as before'
-  origin_learned: 'learned'
-  learned_create: 'Learned: similar debits of private and mixed accounts were booked as expenses.'
-  learned_skip: 'Learned: similar debits of private and mixed accounts were archived as private.'
   origin_scan: 'scan'
   origin_booking: 'transaction'
   number: 'Invoice no.'
@@ -7610,7 +7607,6 @@ euer:
   expense: Expense
   line: 'EUER line'
   from_vendor: 'as last time with this vendor'
-  from_learned: 'learned from similar expenses'
   no_vendor: 'Vendor without an earlier line'
   review: 'Review'
   empty: 'Every expense of {year} has its EUER line.'
