@@ -6,6 +6,13 @@
 //	         attachments → Paperless consumes each one
 //	Read:    on request, Claude reads the attachments' invoice fields;
 //	         Forward then titles the documents "Vendor Number"
+//	Dismiss: "no invoice": hides the mail from the list (Restore undoes)
+//
+// Marks (read, sent, no invoice) are stored per holder and mail key: a
+// personal mailbox is each holder's own, UIDs of two of them overlap.
+//
+// Forward and Dismiss teach the mailbox's model (purpose "mail"); List
+// only adds its suggestion to each mail, in the mailbox's order.
 package mailfwd
 
 import (
@@ -15,11 +22,15 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/http"
+	"slices"
 	"time"
 
+	"andon/internal/bayes"
 	"andon/internal/db"
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/outbound"
 	"andon/internal/repos/content"
@@ -29,6 +40,7 @@ import (
 	auditsvc "andon/internal/services/audit"
 	"andon/internal/services/boards"
 	"andon/internal/services/connections"
+	"andon/internal/services/learn"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/verbund"
 	"andon/internal/sources"
@@ -41,7 +53,16 @@ var (
 	ErrNoFiles = errors.New("mailfwd.no_files")
 	// ErrDemo means a demo connection, which takes no writes.
 	ErrDemo = errors.New("mailfwd.demo")
+	// ErrNoMail means the mail is no longer in the mailbox's last run.
+	ErrNoMail = errors.New("mailfwd.no_mail")
 )
+
+// PurposeMail is the model telling invoice mails from others.
+const PurposeMail = "mail"
+
+func init() {
+	learn.Register(learn.Purpose{Key: PurposeMail, Service: enums.ServiceMail})
+}
 
 // LoginError names the connection whose personal login is missing, so
 // the page can link to where the caller enters it.
@@ -63,9 +84,10 @@ func loginOf(conn *model.Connection, err error) error {
 type Item struct {
 	MailConn  int64
 	Mailbox   string
-	Paperless bool            // the mailbox has a Paperless to send to
-	ToDocs    int64           // that Paperless
-	Read      *assist.Invoice // nil until read
+	Paperless bool             // the mailbox has a Paperless to send to
+	ToDocs    int64            // that Paperless
+	Read      *assist.Invoice  // nil until read
+	Suggest   metrics.MailKind // what the model suggests it is; the user decides
 	sources.MailInvoice
 }
 
@@ -98,9 +120,12 @@ func mailboxes(d *sql.DB, who *access.Principal) (map[*model.Connection]*model.C
 	return out, err
 }
 
-// forwardedKey marks a mail sent to Paperless from Andon in its stored
-// read fields, so the billing list can leave it out.
-const forwardedKey = "forwarded"
+// Marks in a mail's stored read fields, so the billing list can leave
+// it out: sent to Paperless from Andon, or set aside as no invoice.
+const (
+	forwardedKey = repodata.MailForwarded
+	dismissedKey = repodata.MailDismissed
+)
 
 // isForwarded reports whether a mail's stored fields mark it as sent.
 func isForwarded(fields map[string]any) bool {
@@ -108,46 +133,63 @@ func isForwarded(fields map[string]any) bool {
 	return ok
 }
 
+// isDismissed reports whether the mail was set aside as no invoice.
+func isDismissed(fields map[string]any) bool {
+	_, ok := fields[dismissedKey]
+	return ok
+}
+
 // hasRead reports whether Claude read invoice fields from the mail
-// (fields beyond the forwarded mark).
+// (fields beyond the marks).
 func hasRead(fields map[string]any) bool {
 	for k := range fields {
-		if k != forwardedKey {
+		if !isMark(k) {
 			return true
 		}
 	}
 	return false
 }
 
+// isMark says whether field k is a mark, not a read invoice field.
+func isMark(k string) bool { return k == forwardedKey || k == dismissedKey }
+
+// readInto replaces the read fields in f with read; the marks stay. A
+// field the old read had and the new one lacks goes.
+func readInto(f, read map[string]any) {
+	maps.DeleteFunc(f, func(k string, _ any) bool { return !isMark(k) })
+	maps.Copy(f, read)
+}
+
 // List returns the invoice mails of every usable mailbox, without the
-// ones already sent to Paperless; sent counts those.
+// ones already sent to Paperless (sent counts those) or set aside, each
+// with the model's suggestion.
 func List(ctx context.Context, d *sql.DB, who *access.Principal) (items []Item, sent int, err error) {
 	boxes, err := mailboxes(d, who)
 	if err != nil {
 		return nil, 0, err
 	}
-	uid := who.UserID
 	var out []Item
 	for mail, paperless := range boxes {
-		res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceMail), nil, mail, model.UserHolder(uid), svcdata.Stored)
-		if err != nil {
+		data := lastRun(ctx, d, who, mail)
+		if data == nil {
 			continue
 		}
-		data, ok := res.Data.(*sources.MailDataset)
-		if !ok {
-			continue
-		}
-		reads, err := repodata.MailReads(d, mail.ID)
+		reads, err := marksOf(d, mail, who)
 		if err != nil {
 			return nil, 0, err
 		}
+		use := learn.Model(d, PurposeMail, mail, model.UserHolder(who.UserID))
 		for _, inv := range data.Invoices {
-			fields := reads[inv.UID]
+			fields := reads.of(inv)
 			if isForwarded(fields) {
 				sent++
 				continue
 			}
-			item := Item{MailConn: mail.ID, Mailbox: mail.Name, Paperless: paperless != nil, MailInvoice: inv}
+			if isDismissed(fields) {
+				continue
+			}
+			item := Item{MailConn: mail.ID, Mailbox: mail.Name, Paperless: paperless != nil, MailInvoice: inv,
+				Suggest: metrics.MailSuggest(use, inv)}
 			if paperless != nil {
 				item.ToDocs = paperless.ID
 			}
@@ -158,6 +200,132 @@ func List(ctx context.Context, d *sql.DB, who *access.Principal) (items []Item, 
 		}
 	}
 	return out, sent, nil
+}
+
+// lastRun is mail's dataset of the last background run; nil before one.
+func lastRun(ctx context.Context, d *sql.DB, who *access.Principal, mail *model.Connection) *sources.MailDataset {
+	res, err := svcdata.Get(ctx, d, sources.DataKey(enums.ServiceMail), nil, mail, model.UserHolder(who.UserID), svcdata.Stored)
+	if err != nil {
+		return nil
+	}
+	data, _ := res.Data.(*sources.MailDataset)
+	return data
+}
+
+// teach lets mail's model learn that inv is of kind k.
+func teach(d *sql.DB, who *access.Principal, mail *model.Connection, inv sources.MailInvoice, k metrics.MailKind) error {
+	return learn.Learn(d, PurposeMail, mail, model.UserHolder(who.UserID), func(m *bayes.Model) bool {
+		return metrics.MailLearn(m, inv, k)
+	})
+}
+
+// listed is mail uid as who's last run found it.
+func listed(ctx context.Context, d *sql.DB, who *access.Principal, mail *model.Connection, uid uint32) (sources.MailInvoice, error) {
+	data := lastRun(ctx, d, who, mail)
+	if data == nil {
+		return sources.MailInvoice{}, ErrNoMail
+	}
+	i := slices.IndexFunc(data.Invoices, func(inv sources.MailInvoice) bool { return inv.UID == uid })
+	if i < 0 {
+		return sources.MailInvoice{}, ErrNoMail
+	}
+	return data.Invoices[i], nil
+}
+
+// marks are a mailbox's stored reads as one holder sees them.
+type marks struct {
+	holder model.Holder
+	rows   []repodata.MailRead
+}
+
+// marksOf reads mail's marks for who: theirs, if the login is personal.
+func marksOf(q db.Queryer, mail *model.Connection, who *access.Principal) (marks, error) {
+	rows, err := repodata.MailReads(q, mail.ID)
+	return marks{holder: svcdata.HolderOf(mail, model.UserHolder(who.UserID)), rows: rows}, err
+}
+
+// of is a copy of inv's fields; nil if none.
+func (m marks) of(inv sources.MailInvoice) map[string]any {
+	return repodata.ReadOf(m.rows, m.holder, inv.UID, inv.Key())
+}
+
+// mark changes inv's stored fields for who, in one transaction.
+func mark(d *sql.DB, who *access.Principal, mail *model.Connection, inv sources.MailInvoice, change func(fields map[string]any)) error {
+	return db.WithTx(d, func(tx *sql.Tx) error {
+		m, err := marksOf(tx, mail, who)
+		if err != nil {
+			return err
+		}
+		fields := m.of(inv)
+		if fields == nil {
+			fields = map[string]any{}
+		}
+		change(fields)
+		return repodata.SaveMailRead(tx, mail.ID, repodata.MailRead{Holder: m.holder, UID: inv.UID, Mail: inv.Key(), Fields: fields})
+	})
+}
+
+// Dismiss sets mail uid aside as no invoice: the list leaves it out, and
+// the mailbox's model learns from it.
+func Dismiss(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID int64, uid uint32, ip string) error {
+	mail, inv, err := find(ctx, d, who, mailConnID, uid)
+	if err != nil {
+		return err
+	}
+	if err := teach(d, who, mail, inv, metrics.MailNoInvoice); err != nil {
+		return err
+	}
+	err = mark(d, who, mail, inv, func(f map[string]any) { f[dismissedKey] = time.Now().UTC().Format(time.RFC3339) })
+	if err != nil {
+		return err
+	}
+	return auditsvc.Log(d, &who.UserID, "mail.dismiss", fmt.Sprintf("%s#%d", mail.Name, uid), ip, nil)
+}
+
+// Restore undoes Dismiss: the mail is listed again, the model forgets
+// the decision. A mail not set aside is left as it is (its decision may
+// be a forward).
+func Restore(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID int64, uid uint32, ip string) error {
+	mail, inv, err := find(ctx, d, who, mailConnID, uid)
+	if err != nil {
+		return err
+	}
+	m, err := marksOf(d, mail, who)
+	if err != nil || !isDismissed(m.of(inv)) {
+		return err
+	}
+	err = learn.Learn(d, PurposeMail, mail, model.UserHolder(who.UserID), func(m *bayes.Model) bool { return metrics.MailForget(m, inv) })
+	if err != nil {
+		return err
+	}
+	if err := mark(d, who, mail, inv, func(f map[string]any) { delete(f, dismissedKey) }); err != nil {
+		return err
+	}
+	return auditsvc.Log(d, &who.UserID, "mail.restore", fmt.Sprintf("%s#%d", mail.Name, uid), ip, nil)
+}
+
+// find is mailbox id, if who may use it, and its mail uid.
+func find(ctx context.Context, d *sql.DB, who *access.Principal, id int64, uid uint32) (*model.Connection, sources.MailInvoice, error) {
+	mail, err := mailbox(d, who, id)
+	if err != nil {
+		return nil, sources.MailInvoice{}, err
+	}
+	inv, err := listed(ctx, d, who, mail, uid)
+	return mail, inv, err
+}
+
+// mailbox is the mail connection id, if who may use it.
+func mailbox(d *sql.DB, who *access.Principal, id int64) (*model.Connection, error) {
+	boxes, err := mailboxes(d, who)
+	if err != nil {
+		return nil, err
+	}
+	for m := range boxes {
+		if m.ID == id {
+			return m, nil
+		}
+	}
+	return nil, access.ErrDenied
 }
 
 // Forward sends the attachments of one mail to Paperless; returns how
@@ -191,17 +359,17 @@ func Forward(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID i
 	if sources.IsDemo(mail.URL) || sources.IsDemo(paperless.URL) {
 		return 0, ErrDemo
 	}
+	inv, err := listed(ctx, d, who, mail, uid)
+	if err != nil {
+		return 0, err
+	}
 	files, err := mailFiles(ctx, d, who, mail, uid)
 	if err != nil {
 		return 0, err
 	}
 	title := ""
-	fields := map[string]any{}
-	if reads, err := repodata.MailReads(d, mail.ID); err == nil && reads[uid] != nil {
-		fields = reads[uid]
-		if hasRead(fields) {
-			title = invoiceOf(fields).Title()
-		}
+	if m, err := marksOf(d, mail, who); err == nil && hasRead(m.of(inv)) {
+		title = invoiceOf(m.of(inv)).Title()
 	}
 	for _, f := range files {
 		if _, err := outbound.PaperlessUpload(ctx, outbound.Target{URL: paperless.URL, Token: token, VerifyTLS: paperless.VerifyTLS}, f.Name, title, f.Content); err != nil {
@@ -209,9 +377,13 @@ func Forward(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID i
 		}
 	}
 	svcdata.Forget(paperless.ID)
-	fields[forwardedKey] = time.Now().UTC().Format(time.RFC3339)
-	if err := db.WithTx(d, func(tx *sql.Tx) error { return repodata.SaveMailRead(tx, mail.ID, uid, fields) }); err != nil {
+	if err := mark(d, who, mail, inv, func(f map[string]any) { f[forwardedKey] = time.Now().UTC().Format(time.RFC3339) }); err != nil {
 		return 0, err
+	}
+
+	// Sent is done: a model that cannot learn only says so.
+	if err := teach(d, who, mail, inv, metrics.MailIsInvoice); err != nil {
+		slog.Warn("mailfwd: learn", "conn", mail.ID, "uid", uid, "err", err)
 	}
 	return len(files), auditsvc.Log(d, &who.UserID, "mail.to_paperless", fmt.Sprintf("%s#%d", mail.Name, uid), ip,
 		map[string]any{"files": len(files)})
@@ -250,6 +422,10 @@ func Read(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID int6
 	if mail == nil {
 		return assist.Invoice{}, access.ErrDenied
 	}
+	listedInv, err := listed(ctx, d, who, mail, uid)
+	if err != nil {
+		return assist.Invoice{}, err
+	}
 	files, err := mailFiles(ctx, d, who, mail, uid)
 	if err != nil {
 		return assist.Invoice{}, err
@@ -268,10 +444,24 @@ func Read(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID int6
 		return assist.Invoice{}, err
 	}
 
-	if err := db.WithTx(d, func(tx *sql.Tx) error { return repodata.SaveMailRead(tx, mail.ID, uid, inv) }); err != nil {
+	read, err := fieldsOf(inv)
+	if err != nil {
+		return assist.Invoice{}, err
+	}
+	if err := mark(d, who, mail, listedInv, func(f map[string]any) { readInto(f, read) }); err != nil {
 		return assist.Invoice{}, err
 	}
 	return inv, auditsvc.Log(d, &who.UserID, "mail.read", fmt.Sprintf("%s#%d", mail.Name, uid), ip, nil)
+}
+
+// fieldsOf is inv as stored fields.
+func fieldsOf(inv assist.Invoice) (map[string]any, error) {
+	out := map[string]any{}
+	raw, err := json.Marshal(inv)
+	if err == nil {
+		err = json.Unmarshal(raw, &out)
+	}
+	return out, err
 }
 
 // invoiceOf reads a stored read back; a read that does not decode

@@ -17,6 +17,12 @@
     {{with .Login}}<p class="error">{{t "mailfwd.no_login" "name" .Name}} <a href="/connections/{{.ID}}?tab=access">{{t "widget.setup_access_short"}}</a></p>{{end}}
     {{with .Created}}<p class="pill" data-state="applied">{{t "billing.created" "number" .}}</p>{{end}}
     {{with .Forwarded}}<p class="pill" data-state="applied">{{t "billing.forwarded" "count" .}}</p>{{end}}
+    {{with .Dismissed}}<form method="post" action="/billing/mail/restore" class="inline-form">
+      <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+      <input type="hidden" name="conn" value="{{$.DismissedConn}}"><input type="hidden" name="uid" value="{{.}}">
+      <p class="pill" data-state="applied">{{t "billing.mail_dismissed"}}</p>
+      <button type="submit" class="btn btn-quiet btn-sm">{{t "billing.mail_restore"}}</button>
+    </form>{{end}}
 
     {{/* What is waiting, each part a jump link. */}}
     {{with .Summary}}<nav class="billing-summary" aria-label="{{t "billing.summary"}}">
@@ -98,7 +104,14 @@
           <input type="hidden" name="conn" value="{{.MailConn}}"><input type="hidden" name="uid" value="{{.UID}}">
           <button type="submit" class="btn btn-outline btn-sm">{{t "billing.to_paperless"}}</button>
           {{if and $.Assist (not .Read)}}<button type="submit" class="btn btn-outline btn-sm" formaction="/billing/mail/read" title="{{t "assist.read_privacy"}}">{{t "assist.read"}}</button>{{end}}
-        </form>{{else if not .Paperless}}<small class="muted">{{t "billing.no_paperless"}}</small>{{end}}</td></tr>
+        </form>{{else if not .Paperless}}<small class="muted">{{t "billing.no_paperless"}}</small>{{end}}
+        <form method="post" action="/billing/mail/dismiss" class="inline-form">
+          <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+          <input type="hidden" name="conn" value="{{.MailConn}}"><input type="hidden" name="uid" value="{{.UID}}">
+          <button type="submit" class="btn btn-quiet btn-sm" title="{{t "billing.mail_dismiss_hint"}}">{{t "billing.mail_dismiss"}}</button>
+        </form>
+        {{/* The model only suggests, at the controls that decide; no field takes it. */}}
+        {{with .Suggest}}<p class="field-suggest" data-suggest-mail><span>{{t "learn.suggest"}}</span> {{t (print "billing.mail_kind_" .)}}</p>{{end}}</td></tr>
       {{end}}</tbody>
     </table></div>
     {{else}}<p class="muted">{{t "billing.no_mails"}}</p>{{end}}
