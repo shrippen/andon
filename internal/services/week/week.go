@@ -4,24 +4,28 @@
 //
 //	Dawarich ─visits──┐
 //	calendar ─events──┼─► gaps ─► project, activity, times proposed ─► review ─► Kimai
-//	Kimai ──entries───┘   (the customer's latest project and activity)
+//	Kimai ──entries───┘   (the customer's latest project and activity,
+//	                       else learned from titles: metrics.WeekGuesser)
 package week
 
 import (
 	"context"
 	"database/sql"
 	"errors"
+	"log/slog"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 
+	"andon/internal/bayes"
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/outbound"
 	"andon/internal/services/access"
 	"andon/internal/services/connections"
+	"andon/internal/services/learn"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/workbench"
 	"andon/internal/sources"
@@ -65,6 +69,19 @@ const (
 	prefKey    = "week"
 )
 
+// purposeTask is the model proposing a gap's project and activity.
+const purposeTask = "kimai_task"
+
+func init() {
+	learn.Register(learn.Purpose{Key: purposeTask, Service: enums.ServiceKimai, Teach: teach})
+}
+
+// teach learns a Kimai's entries (metrics.WeekLearn).
+func teach(m *bayes.Model, data any, _ *model.Connection) bool {
+	k, _ := data.(*sources.KimaiDataset)
+	return k != nil && metrics.WeekLearn(m, k)
+}
+
 type state struct {
 	Scope string `json:"scope,omitempty"`
 }
@@ -74,7 +91,8 @@ type Case struct {
 	metrics.WeekGap
 	Customer          string
 	Project, Activity int64 // proposed, 0 none
-	Checked           bool  // proposal complete: ticked
+	From              metrics.WeekFrom
+	Checked           bool // proposal complete: ticked
 }
 
 // Page is the bench for one Verbund and week.
@@ -115,15 +133,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, d
 		return p, err
 	}
 	p.Catalog, p.Sources = b.catalog, b.fed
-	names := metrics.KimaiCustomerNames(b.kimai)
-	proposals := metrics.WeekProposals(b.kimai)
-	for _, g := range b.gaps {
-		c := Case{WeekGap: g, Customer: names[g.CustomerID]}
-		prop := proposals[g.CustomerID]
-		c.Project, c.Activity = prop.ProjectID, activityID(b.catalog, prop)
-		c.Checked = c.Project > 0 && c.Activity > 0
-		p.Cases = append(p.Cases, c)
-	}
+	p.Cases = b.cases(learn.Model(d, purposeTask, b.conn, model.UserHolder(who.UserID)))
 	// Begin and end come from the calendar or the visit: drafted at
 	// others, they go.
 	open := workbench.Based(p.Cases, func(c Case) string { return c.Key },
@@ -132,6 +142,42 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, d
 		return p, err
 	}
 	return p, nil
+}
+
+// cases are the gaps with their proposals: the customer's latest
+// entry, else what l learned.
+func (b book) cases(l bayes.Use) []Case {
+	names := metrics.KimaiCustomerNames(b.kimai)
+	proposals := metrics.WeekProposals(b.kimai)
+	guess := metrics.WeekGuesserOf(b.kimai, l)
+	var out []Case
+	for _, g := range b.gaps {
+		c := Case{WeekGap: g, Customer: names[g.CustomerID]}
+		c.propose(b.catalog, proposals[g.CustomerID], metrics.WeekFromLatest)
+
+		// The latest entry leaves it open: what the model learned.
+		learned, ok := guess.Guess(g)
+		if !c.Checked && ok && activityID(b.catalog, learned) > 0 {
+			c.propose(b.catalog, learned, metrics.WeekFromLearned)
+		}
+		out = append(out, c)
+	}
+	return out
+}
+
+// propose takes p when the catalog offers its project; ticked with its
+// activity too.
+func (c *Case) propose(cat *sources.KimaiCatalog, p metrics.WeekProposal, from metrics.WeekFrom) {
+	if !offered(cat, p.ProjectID) {
+		return
+	}
+	c.Project, c.Activity, c.From = p.ProjectID, activityID(cat, p), from
+	c.Checked = c.Activity > 0
+}
+
+// offered says whether the catalog lists project id.
+func offered(cat *sources.KimaiCatalog, id int64) bool {
+	return cat != nil && slices.ContainsFunc(cat.Projects, func(p sources.KimaiPick) bool { return p.ID == id })
 }
 
 // activityID finds the proposed activity by name in the catalog: the
@@ -293,11 +339,32 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 	w := writer{book: b, to: outbound.Target{URL: b.conn.URL, Token: token, VerifyTLS: b.conn.VerifyTLS}}
 	out := workbench.Apply[Item](ctx, d, who, w, plan, "week", ip)
 	svcdata.Forget(b.conn.ID)
+	b.teachBooked(d, who, plan, out)
 	err = workbench.SaveState(d, who, prefKey, func(s *state) { s.Scope = b.scope.Key })
 	if err != nil {
 		return out, err
 	}
 	return out, workbench.ForgetWritten(d, who, "week", b.scope.Key, plan, out)
+}
+
+// teachBooked teaches the model the entries written: their title or place
+// as booked. A failure costs only the lesson, not the entries.
+func (b book) teachBooked(d *sql.DB, who *access.Principal, plan workbench.Plan[Item], out workbench.Result) {
+	written := workbench.Written(plan, out)
+	teach := func(m *bayes.Model) bool {
+		changed := false
+		for _, s := range plan.Steps {
+			if !slices.Contains(written, s.Case) {
+				continue
+			}
+			p := metrics.WeekProposal{ProjectID: s.Item.ProjectID, Activity: s.Item.Activity}
+			changed = metrics.WeekLearnGap(m, s.Item.Gap, p) || changed
+		}
+		return changed
+	}
+	if err := learn.Learn(d, purposeTask, b.conn, model.UserHolder(who.UserID), teach); err != nil {
+		slog.Warn("week: model not taught", "conn", b.conn.ID, "err", err)
+	}
 }
 
 type writer struct {

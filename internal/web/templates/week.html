@@ -37,7 +37,7 @@
             {{with $p.Catalog}}<select class="select" name="project_{{$k}}" aria-label="{{t "closeweek.project"}}"><option value="">{{t "closeweek.project"}}</option>
               {{range .Projects}}<option value="{{.ID}}"{{if eq .ID $c.Project}} selected{{end}}>{{.Customer}} · {{.Name}}</option>{{end}}</select>
             <select class="select" name="activity_{{$k}}" aria-label="{{t "closeweek.activity"}}"><option value="">{{t "closeweek.activity"}}</option>
-              {{range .Activities}}<option value="{{.ID}}"{{if eq .ID $c.Activity}} selected{{end}}>{{.Name}}</option>{{end}}</select>{{end}}
+              {{range .Activities}}<option value="{{.ID}}"{{if eq .ID $c.Activity}} selected{{end}}>{{.Name}}</option>{{end}}</select>{{if eq $c.From "learned"}}<span class="field-origin">{{t "closeweek.origin_learned"}}</span>{{end}}{{end}}
             <input class="input" type="datetime-local" name="begin_{{$k}}" value="{{.Start.Format "2006-01-02T15:04"}}" aria-label="{{t "closeweek.begin"}}">
             <input class="input" type="datetime-local" name="end_{{$k}}" value="{{.End.Format "2006-01-02T15:04"}}" aria-label="{{t "closeweek.end"}}">
             <input class="input" name="note_{{$k}}" value="{{.Title}}" aria-label="{{t "closeweek.note"}}">

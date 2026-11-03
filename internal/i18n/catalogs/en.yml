@@ -7645,7 +7645,7 @@ vendors:
   err_demo: 'The demo does not write to Invoice Ninja.'
 closeweek:
   title: 'Close the week'
-  lead: 'Work other services saw and Kimai lacks: visits at customers (Dawarich) and appointments naming a customer or project (calendar). Proposed are the project and activity you last booked for the customer; after the review Andon enters the times in Kimai.'
+  lead: 'Work other services saw and Kimai lacks: visits at customers (Dawarich) and appointments naming a customer or project (calendar). Proposed are the project and activity you last booked for the customer, else those learned from your entries for the words of the appointment or place; after the review Andon enters the times in Kimai.'
   weeks: Weeks
   from: 'Week of {day}'
   sources: 'Read from:'
@@ -7673,6 +7673,7 @@ closeweek:
   problem_times: 'Begin is not before end: skipped.'
   err_no_kimai: 'No Kimai connection you may use.'
   err_demo: 'The demo does not write to Kimai.'
+  origin_learned: 'learned'
 dunning:
   title: 'Reminders'
   facts: 'Open {balance}, due since {due} ({days} days)'
@@ -7969,6 +7970,7 @@ learn:
   col_features: 'Features'
   col_trained: 'Last learned'
   purpose_euer: 'EUER line'
+  purpose_kimai_task: 'Kimai project and activity'
   train: 'Train now'
   reset: 'Reset'
   reset_hint: 'Forgets everything learned. What came from a connection''s data is learned again at the next training; what came only from your decisions is lost.'

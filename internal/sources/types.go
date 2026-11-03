@@ -28,6 +28,7 @@ type KimaiSheet struct {
 	CustomerID int64
 	Activity   string
 	UserID     int64
+	Notes      string // Kimai's description
 }
 
 type KimaiProject struct {
