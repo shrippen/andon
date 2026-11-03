@@ -427,7 +427,7 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 	if err != nil {
 		return out, err
 	}
-	return out, workbench.Forget(d, who, benchID, written(plan, out))
+	return out, workbench.Forget(d, who, draftAt(b.scope.Key, ""), written(plan, out))
 }
 
 // written are the cases Apply wrote without a failure: their drafts go.

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"slices"
+	"strings"
 
 	"andon/internal/db"
 	"andon/internal/repos/users"
@@ -73,19 +74,24 @@ func KeepDraft(d *sql.DB, who *access.Principal, at Place, cases Draft) error {
 	})
 }
 
-// Forget removes written cases from every draft of the bench: a case
-// key names one transaction, whatever the period.
-func Forget(d *sql.DB, who *access.Principal, bench string, cases []string) error {
+// Forget removes written cases from the drafts of the bench whose key
+// starts like within's, e.g. "v4/": every period of the Verbund written
+// in. A case key is a service's own id: another Verbund's same key is
+// another case.
+func Forget(d *sql.DB, who *access.Principal, within Place, cases []string) error {
 	if len(cases) == 0 {
 		return nil
 	}
 	return db.WithTx(d, func(tx *sql.Tx) error {
-		drafts, err := users.Drafts(tx, who.UserID, bench)
+		drafts, err := users.Drafts(tx, who.UserID, within.Bench)
 		if err != nil {
 			return err
 		}
 		for key := range drafts {
-			at := Place{Bench: bench, Key: key}
+			if !strings.HasPrefix(key, within.Key) {
+				continue
+			}
+			at := Place{Bench: within.Bench, Key: key}
 			stored, err := readDraft(tx, who, at)
 			if err != nil {
 				return err
