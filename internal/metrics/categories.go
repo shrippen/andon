@@ -136,11 +136,11 @@ type EuerCase struct {
 
 // EuerCases are the expenses from since on with an empty EÜR field in
 // slot, newest first.
-func EuerCases(n *sources.NinjaDataset, slot int, since string) []EuerCase {
+func EuerCases(n *sources.NinjaDataset, slot int, since string, l EuerLearning) []EuerCase {
 	if n == nil || slot < 1 || slot > sources.NinjaSlots {
 		return nil
 	}
-	g := EuerGuesserOf(n, slot)
+	g := EuerGuesserOf(n, slot, l)
 	var out []EuerCase
 	for _, e := range n.Expenses {
 		if e.Date < since || e.Custom[slot-1] != "" {

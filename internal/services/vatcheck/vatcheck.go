@@ -33,6 +33,7 @@ import (
 	"andon/internal/services/access"
 	"andon/internal/services/assist"
 	"andon/internal/services/connections"
+	"andon/internal/services/learn"
 	"andon/internal/services/receipts"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/workbench"
@@ -220,7 +221,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 		p.Number, p.NumberOf = true, b.ninja.ExpenseFields[b.numberSlot-1].Label
 	}
 	parts := partsOf(p.Euer != "", p.Number, b.scanSlot > 0)
-	euer := metrics.EuerGuesserOf(b.ninja, b.cats.EuerSlot)
+	euer := metrics.EuerGuesserOf(b.ninja, b.cats.EuerSlot, learn.Euer(d, b.conn.ID))
 	pool := b.splitPool(ctx, d, who, p.Span)
 	guesses := b.state.guesses(b.conn.ID)
 	for _, c := range cases {

@@ -40,7 +40,7 @@ func TestViewerSeesOnlyWhatIsAllowed(t *testing.T) {
 	// Instance settings are not the user's: refused with the reason, in
 	// the app frame, in German.
 	denied := i18n.T("error.denied", enums.LocaleDE, nil)
-	for _, path := range []string{"/spaces/" + space + "/settings/page", "/spaces/" + space + "/connections", "/admin/settings"} {
+	for _, path := range []string{"/spaces/" + space + "/settings/page", "/spaces/" + space + "/connections", "/admin/settings", "/admin/learning"} {
 		status, body := browse(t, user, http.MethodGet, srv.URL+path, nil, nil)
 		if status != http.StatusForbidden || !strings.Contains(body, pageMarker) || !strings.Contains(body, denied) {
 			t.Errorf("%s: %d, want a framed 403 naming the reason:\n%s", path, status, body)

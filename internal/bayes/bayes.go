@@ -11,6 +11,7 @@
 package bayes
 
 import (
+	"encoding/json"
 	"math"
 	"slices"
 )
@@ -20,13 +21,22 @@ import (
 // few examples per line are the rule here.
 const smoothing = 0.1
 
-// Model holds what was learned.
+// Model holds what was learned: the examples by id, and the counts
+// built from them.
 type Model struct {
+	seen map[string]Example
+
 	examples map[string]int            // per label
 	counts   map[string]map[string]int // label → feature → times seen
 	totals   map[string]int            // label → features seen
 	known    map[string]bool           // every feature seen
 	n        int                       // examples
+}
+
+// Example is one learned case: its label and features.
+type Example struct {
+	Label    string   `json:"l"`
+	Features []string `json:"f"`
 }
 
 // Guess is a label with its probability given the features.
@@ -35,26 +45,105 @@ type Guess struct {
 	P     float64
 }
 
-// New is an empty model.
-func New() *Model {
-	return &Model{examples: map[string]int{}, counts: map[string]map[string]int{}, totals: map[string]int{}, known: map[string]bool{}}
+// Stats says how much a model knows.
+type Stats struct {
+	Examples, Labels, Features int
 }
 
-// Learn adds one example.
-func (m *Model) Learn(label string, features []string) {
+// New is an empty model.
+func New() *Model {
+	m := &Model{seen: map[string]Example{}}
+	m.recount()
+	return m
+}
+
+// Learn takes example id: new, or changed since (a corrected label
+// replaces the old one). An empty label is skipped. It says whether the
+// model changed.
+func (m *Model) Learn(id, label string, features []string) bool {
 	if label == "" {
+		return false
+	}
+	if old, ok := m.seen[id]; ok && old.Label == label && slices.Equal(old.Features, features) {
+		return false
+	}
+	if old, ok := m.seen[id]; ok {
+		m.count(old, -1)
+	}
+	e := Example{Label: label, Features: slices.Clone(features)}
+	m.seen[id] = e
+	m.count(e, 1)
+	return true
+}
+
+// Stats counts what the model holds.
+func (m *Model) Stats() Stats {
+	return Stats{Examples: m.n, Labels: len(m.examples), Features: len(m.known)}
+}
+
+// MarshalJSON stores the examples; the counts follow from them.
+func (m *Model) MarshalJSON() ([]byte, error) { return json.Marshal(m.seen) }
+
+// UnmarshalJSON reads stored examples.
+func (m *Model) UnmarshalJSON(b []byte) error {
+	seen := map[string]Example{}
+	if err := json.Unmarshal(b, &seen); err != nil {
+		return err
+	}
+	m.seen = seen
+	m.recount()
+	return nil
+}
+
+// recount builds the counts from the examples.
+func (m *Model) recount() {
+	m.examples, m.counts, m.totals, m.known, m.n = map[string]int{}, map[string]map[string]int{}, map[string]int{}, map[string]bool{}, 0
+	for _, e := range m.seen {
+		m.count(e, 1)
+	}
+}
+
+// count adds (by 1) or removes (by -1) one example's counts; a feature
+// or label no example holds any more is dropped.
+func (m *Model) count(e Example, by int) {
+	m.n += by
+	m.examples[e.Label] += by
+	if m.counts[e.Label] == nil {
+		m.counts[e.Label] = map[string]int{}
+	}
+	for _, f := range e.Features {
+		m.counts[e.Label][f] += by
+		m.totals[e.Label] += by
+		if m.counts[e.Label][f] == 0 {
+			delete(m.counts[e.Label], f)
+		}
+	}
+	if m.examples[e.Label] == 0 {
+		delete(m.examples, e.Label)
+		delete(m.counts, e.Label)
+		delete(m.totals, e.Label)
+	}
+	if by > 0 {
+		for _, f := range e.Features {
+			m.known[f] = true
+		}
 		return
 	}
-	m.n++
-	m.examples[label]++
-	if m.counts[label] == nil {
-		m.counts[label] = map[string]int{}
+	for _, f := range e.Features {
+		if !m.holds(f) {
+			delete(m.known, f)
+		}
 	}
-	for _, f := range features {
-		m.counts[label][f]++
-		m.totals[label]++
-		m.known[f] = true
+}
+
+// holds says whether any label still counts f.
+func (m *Model) holds(f string) bool {
+	for _, c := range m.counts {
+		if c[f] > 0 {
+			return true
+		}
 	}
+	return false
 }
 
 // Knows says whether f was seen in training.

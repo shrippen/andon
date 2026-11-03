@@ -1,0 +1,63 @@
+{{define "admin_learning"}}
+<!doctype html>
+<html lang="{{.Ctx.Locale}}" data-num="{{.Ctx.Numbers}}" data-own-lang>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{t "learn.title"}} · Andon</title>
+  {{template "style" .}}
+</head>
+<body>
+  {{template "header" .}}
+  <main>
+    <div class="settings">
+    {{template "settings_nav" .}}
+    <div class="settings-main">
+    <h1>{{t "learn.title"}}</h1>
+    <p class="small muted">{{t "learn.lead"}}</p>
+    {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
+
+    <h2>{{t "learn.settings"}}</h2>
+    <div class="card">
+      <form method="post" action="/admin/learning">
+        <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+        <label for="learn-mode">{{t "learn.mode"}}</label>
+        <select class="select" id="learn-mode" name="mode">
+          {{range .Modes}}<option value="{{.}}"{{if eq . $.S.Mode}} selected{{end}}>{{t (print "learn.mode_" .)}}</option>{{end}}
+        </select>
+        <label for="learn-min">{{t "learn.min_percent"}}</label>
+        <input class="input" id="learn-min" name="min_percent" type="number" min="50" max="99" inputmode="numeric" value="{{.S.MinPercent}}">
+        <p class="small muted">{{t "learn.min_percent_hint"}}</p>
+        <label for="learn-hours">{{t "learn.hours"}}</label>
+        <input class="input" id="learn-hours" name="hours" type="number" min="1" max="168" inputmode="numeric" value="{{.S.Hours}}">
+        <p class="small muted">{{t "learn.hours_hint"}}</p>
+        <button type="submit" class="btn btn-accent">{{t "action.save"}}</button>
+      </form>
+    </div>
+
+    <h2>{{t "learn.models"}}</h2>
+    <div class="card">
+      {{if .Rows}}<div class="table-wrap"><table class="table cards-sm">
+        <thead><tr><th>{{t "learn.col_conn"}}</th><th>{{t "learn.col_purpose"}}</th><th class="num">{{t "learn.col_examples"}}</th><th class="num">{{t "learn.col_labels"}}</th><th class="num">{{t "learn.col_features"}}</th><th>{{t "learn.col_trained"}}</th><th></th></tr></thead>
+        <tbody>{{range .Rows}}<tr>
+          <td data-card="title">{{.Conn}}</td><td>{{t (print "learn.purpose_" .Purpose)}}</td>
+          <td class="num">{{.Stats.Examples}}</td><td class="num">{{.Stats.Labels}}</td><td class="num">{{.Stats.Features}}</td>
+          <td>{{ago .TrainedAt}}</td>
+          <td><form method="post" action="/admin/learning/reset"><input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}">
+            <input type="hidden" name="purpose" value="{{.Purpose}}"><input type="hidden" name="conn" value="{{.ConnID}}">
+            <button type="submit" class="btn btn-quiet btn-sm" title="{{t "learn.reset_hint"}}">{{t "learn.reset"}}</button></form></td>
+        </tr>{{end}}</tbody>
+      </table></div>
+      {{else}}<p class="small muted">{{t "learn.none"}}</p>{{end}}
+      <form method="post" action="/admin/learning/train">
+        <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}">
+        <button type="submit" class="btn btn-accent">{{t "learn.train"}}</button>
+      </form>
+    </div>
+    </div>
+    </div>
+  </main>
+  {{template "foot" $}}
+</body>
+</html>
+{{end}}

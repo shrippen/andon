@@ -8,6 +8,7 @@
 //	hourly        housekeeping (sessions, cache, hints, audit)
 //	hourly        own backup, when the last copy is a day old
 //	daily         retry icons that failed to download
+//	every 6 h     train the learned models (setting, also at start)
 package scheduler
 
 import (

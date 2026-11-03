@@ -3,6 +3,7 @@ package metrics_test
 import (
 	"testing"
 
+	"andon/internal/bayes"
 	"andon/internal/metrics"
 	"andon/internal/sources"
 )
@@ -59,7 +60,7 @@ func TestEuerFromVendor(t *testing.T) {
 	if got := metrics.VendorEuer(n, 3); len(got) != 1 || got["v1"] != "GWG" {
 		t.Errorf("vendor lines: %v", got)
 	}
-	cases := metrics.EuerCases(n, 3, "2026-09-01")
+	cases := metrics.EuerCases(n, 3, "2026-09-01", metrics.EuerLearning{})
 	if len(cases) != 3 || cases[2].Expense.Key != "open1" || cases[2].Line != "GWG" || cases[0].Line != "" || cases[1].Line != "" {
 		t.Errorf("cases: %+v", cases)
 	}
@@ -78,7 +79,7 @@ func TestEuerGuesser(t *testing.T) {
 			{Key: "e4", VendorKey: "v3", Date: "2026-02-08", Amount: 4.40, Notes: "Suche", Custom: [4]string{"", "", "EDV"}},
 		},
 	}
-	g := metrics.EuerGuesserOf(n, 3)
+	g := metrics.EuerGuesserOf(n, 3, metrics.EuerLearning{Model: bayes.New(), MinP: metrics.EuerMinP})
 
 	if line, from := g.Guess(metrics.EuerInput{Vendor: "Netcup GmbH", Texts: []string{"Cloud Server"}, Amount: 9}); line != "EDV" || from != metrics.EuerFromLearned {
 		t.Errorf("new hoster: %q %q", line, from)
@@ -97,7 +98,7 @@ func TestEuerGuesser(t *testing.T) {
 	}
 
 	n.ExpenseFields[2] = sources.ExpenseField{Label: "EÜR", Options: []string{"EDV"}}
-	g = metrics.EuerGuesserOf(n, 3)
+	g = metrics.EuerGuesserOf(n, 3, metrics.EuerLearning{Model: bayes.New(), MinP: metrics.EuerMinP})
 	if line, _ := g.Guess(metrics.EuerInput{Texts: []string{"Carsharing"}}); line != "" {
 		t.Errorf("line outside the dropdown proposed: %q", line)
 	}

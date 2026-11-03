@@ -10,6 +10,7 @@ nav:
   menu: Menu
   boards: Boards
   pages: Pages
+  admin_learning: 'Learning'
   admin_ops: 'Operations'
   main: Main navigation
   setup: Setup
@@ -6285,6 +6286,10 @@ gallery:
   clean_go: Delete selected
   deleted: 'Deleted: {n}'
 audit_action:
+  learn:
+    settings: 'Learning settings changed'
+    train: 'Learned models trained'
+    reset: 'Learned model reset'
   vatcheck:
     payment: 'Transaction linked to its payment'
     skip: 'Transaction archived as private'
@@ -7943,3 +7948,31 @@ kept:
     document: Document
     schedule: Maintenance
     loan: Return
+
+learn:
+  title: 'Learning'
+  lead: 'Andon learns from your expenses which EUER line goes with which words (naive Bayes) and proposes it on the VAT check and the EUER mapping when the vendor has none yet. The model is stored: it learns new and changed expenses and keeps what it learned from deleted ones.'
+  settings: 'Settings'
+  mode: 'Learned proposals'
+  mode_on: 'on'
+  mode_off: 'off (only the vendor’s line)'
+  min_percent: 'Minimum confidence in %'
+  min_percent_hint: 'A learned proposal appears only from this probability on. Higher means rarer but more accurate.'
+  hours: 'Train every … hours'
+  hours_hint: 'In the background, from the data last fetched from Invoice Ninja. Pages also learn the current data, without storing it.'
+  models: 'Stored models'
+  none: 'No model stored yet. One appears with the first training once an Invoice Ninja connection has an EUER field.'
+  col_conn: 'Connection'
+  col_purpose: 'Learns'
+  col_examples: 'Examples'
+  col_labels: 'Lines'
+  col_features: 'Features'
+  col_trained: 'Last trained'
+  purpose_euer: 'EUER line'
+  train: 'Train now'
+  reset: 'Reset'
+  reset_hint: 'Forgets everything learned; the model then learns again from the data Invoice Ninja has now.'
+  saved: 'Saved.'
+  trained: 'Trained.'
+  was_reset: 'Reset.'
+  denied: 'Only admins change the learning model.'
