@@ -133,6 +133,7 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 3. Je Kunde muss ein Entwurf angeboten werden („Entwurf in Invoice Ninja“); ein offener Entwurf beim selben Kunden steht mit Nummer, Datum und Link davor. Der Hinweis „nicht abgerechnet“ führt zu `/billing#drafts`.
 4. „ZIP herunterladen“: CSVs prüfen (Lieferant gefüllt?, Zahlen wie auf den Seiten).
 5. „An Paperless“ bei einer Rechnungsmail.
+6. „Keine Rechnung“ bei einer Rechnungsmail: Sie verschwindet (Meldung „Mail ausgeblendet“ mit „Rückgängig“), der Zähler oben sinkt, auch in der Kachel „Rechnungsmails“, und nach dem nächsten Prüflauf ist ihr Hinweis „Rechnung per Mail nicht erfasst“ weg; „Rückgängig“ holt sie zurück. Bei einem persönlichen Postfach sieht ein zweiter Benutzer seine Mail mit derselben Nummer weiter. Kommt vom selben Absender eine weitere Mail, steht unter ihren Knöpfen „Vorschlag: keine Rechnung“ (bei einem Absender, dessen Mails an Paperless gingen, „Vorschlag: Rechnung“; erst, wenn das Modell beides kennt); sie bleibt an ihrem Platz, nichts ist vorgewählt. Eine Mail eines anderen Absenders mit ähnlichem Betreff bekommt keinen Vorschlag. Admin → Lernmodell führt das Modell als „Rechnungsmail“.
 
 **J-C7 Abos**
 1. Hinweis „Fehlt in Wallos“ → „In den Abos erledigen“ führt nach `/subs`.
