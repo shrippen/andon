@@ -372,7 +372,3 @@ func Reset(d *sql.DB, who *access.Principal, purpose string, connID int64, h mod
 		return audit.Log(tx, &who.UserID, "learn.reset", purpose, ip, map[string]any{"conn": connID, "holder": int64(h)})
 	})
 }
-
-// Pick is one suggested value for a form field: what the field takes
-// and what the user reads ("Vorschlag: Hosting, Software").
-type Pick struct{ Value, Label string }
