@@ -7402,6 +7402,10 @@ vatcheck:
   do_tax: '{name} {rate} %, Vorsteuer {tax}'
   apply: 'In Invoice Ninja schreiben ({n})'
   apply_skip: Archivieren
+  review_one: 'Nur diesen prüfen'
+  review_one_hint: 'Zeigt, was für diesen Umsatz geschrieben würde; die anderen warten.'
+  apply_one: 'Nur diesen schreiben'
+  apply_one_hint: 'Andere Änderungen bleiben als Zwischenstand.'
   back: Zurück
   applied: 'Erledigt: {done} gebucht, {skipped} als privat archiviert.'
   failed: 'Nicht gebucht: {n}.'

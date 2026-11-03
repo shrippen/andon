@@ -7,7 +7,8 @@ package web
 //	GET  /vat/scans    Paperless hits for a new expense's scan (htmx)
 //	GET  /vat/split    one debit's split, once chosen (htmx)
 //	POST /vat/review   the ticked steps, spelled out, to confirm
-//	POST /vat/apply    writes the confirmed steps
+//	                   (only=<case>, htmx: one case, below its desk)
+//	POST /vat/apply    writes the confirmed steps (only=<case>: that one)
 //	POST /vat/restore  brings a transaction archived as private back
 //	POST /vat/accounts names each bank account business or private
 //	POST /vat/guess    asks the language model about the open ones
@@ -137,9 +138,20 @@ func vatSteps(r *http.Request) []workbench.Step {
 }
 
 // handleVATReview shows what would be written; nothing is written yet.
+// A desk's "review this one" (htmx, only=<case>) gets its case alone,
+// below the desk.
 func (d Deps) handleVATReview(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	q := vatQueryOf(r)
 	plan, err := vatcheck.Review(r.Context(), d.DB, ctx.Who, q.Scope, vatSteps(r))
+	if r.FormValue(benchOnly) != "" && r.Header.Get("HX-Request") != "" {
+		values := map[string]any{"Partial": true, "Plan": plan}
+		if err != nil {
+			values["Error"] = vatError(err)
+		}
+		// 200: htmx swaps no 4xx.
+		_ = d.Page(w, ctx, "vat_one", http.StatusOK, values)
+		return
+	}
 	if err != nil {
 		http.Redirect(w, r, q.back("error", vatError(err)), http.StatusSeeOther)
 		return
