@@ -7402,6 +7402,10 @@ vatcheck:
   do_tax: '{name} {rate} %, Vorsteuer {tax}'
   apply: 'In Invoice Ninja schreiben ({n})'
   apply_skip: Archivieren
+  review_one: 'Nur diesen prüfen'
+  review_one_hint: 'Zeigt, was für diesen Umsatz geschrieben würde; die anderen warten.'
+  apply_one: 'Nur diesen schreiben'
+  apply_one_hint: 'Andere Änderungen bleiben als Zwischenstand.'
   back: Zurück
   applied: 'Erledigt: {done} gebucht, {skipped} als privat archiviert.'
   failed: 'Nicht gebucht: {n}.'
@@ -7511,6 +7515,11 @@ vatcheck:
   problem_split_skipped: 'Gebucht, aber Invoice Ninja hat nicht alle Ausgaben übernommen (eine gehört inzwischen zu einem anderen Umsatz). Den Umsatz in Invoice Ninja prüfen.'
 workbench:
   err_nothing: 'Nichts ausgewählt.'
+  err_draft_size: 'Der Zwischenstand ist zu groß zum Speichern.'
+  err_draft_shape: 'Der Zwischenstand passt nicht zur Werkbank.'
+  draft_note: 'Zwischenstand geladen: {n} Fälle mit deinen Änderungen.'
+  draft_drop: 'Verwerfen'
+  draft_dropped: 'Zwischenstand verworfen.'
   scope: 'Verbund'
   scope_open: 'Mehrere Verbünde passen. Andon zeigt den ersten; wähle, mit welchem du arbeitest.'
   scope_switch: 'Wechseln'

@@ -96,6 +96,17 @@ func favIDs(favs []BenchItem) []string {
 func (d Deps) RegisterBenchRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET "+benchesURL, d.authed(d.handleBenches))
 	mux.HandleFunc("POST "+benchesURL+"/{id}/fav", d.authed(d.handleBenchFav))
+	mux.HandleFunc("POST /bench/{id}/draft", d.authed(d.handleDraft))
+	mux.HandleFunc("POST /bench/{id}/draft/drop", d.authed(d.handleDraftDrop))
+}
+
+// benchURL is a bench's page, "" for an id not in the menu.
+func benchURL(id string) string {
+	i := slices.IndexFunc(benches, func(b bench) bool { return b.id == id })
+	if i < 0 {
+		return ""
+	}
+	return benches[i].url
 }
 
 // handleBenches is the overview; the header's menu data fills it.

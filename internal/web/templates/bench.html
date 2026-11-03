@@ -2,6 +2,10 @@
 
 {{/* One reviewed step sent back as the form sent it, so Apply writes
      what the review showed: pick, act_<case>, <field>_<case>. */}}
+{{/* The same for a form elsewhere on the page (form attribute), e.g. a
+     desk's own review inside the bench's form. Step, Form. */}}
+{{define "bench_step_in"}}{{$f := .Form}}{{$c := .Step.Case}}<input type="hidden" form="{{$f}}" name="pick" value="{{$c}}"><input type="hidden" form="{{$f}}" name="act_{{$c}}" value="{{.Step.Action}}">{{range $k, $v := .Step.Fields}}<input type="hidden" form="{{$f}}" name="{{$k}}_{{$c}}" value="{{$v}}">{{end}}{{end}}
+
 {{define "bench_step"}}<input type="hidden" name="pick" value="{{.Case}}"><input type="hidden" name="act_{{.Case}}" value="{{.Action}}">{{range $k, $v := .Fields}}<input type="hidden" name="{{$k}}_{{$.Case}}" value="{{$v}}">{{end}}{{end}}
 
 {{/* The Verbund a bench works in, when several fit (workbench.Scopes).
@@ -14,4 +18,13 @@
   <label class="small" for="bench-scope">{{t "workbench.scope"}}</label>
   <select class="select" id="bench-scope" name="scope">{{range .Scopes}}<option value="{{.Key}}"{{if eq .Key $.Picked}} selected{{end}}>{{.Name}}{{if .NeedsToken}} · {{t "workbench.needs_token"}}{{end}}</option>{{end}}</select>
   <button type="submit" class="btn btn-outline btn-sm">{{t "workbench.scope_switch"}}</button>
+</form>{{end}}{{end}}
+
+{{/* A bench's draft (workbench.Draft) put back on the page: how many
+     cases, and a button to discard it. Bench and Key name its place. */}}
+{{define "bench_draft"}}{{with .Draft}}
+<form method="post" action="/bench/{{$.Bench}}/draft/drop" class="inline-form" data-draft-note>
+  <input type="hidden" name="{{$.Field}}" value="{{$.Token}}"><input type="hidden" name="place" value="{{$.Key}}"><input type="hidden" name="back" value="referer">
+  <span class="small muted">{{t "workbench.draft_note" "n" (len .)}}</span>
+  <button type="submit" class="btn btn-quiet btn-sm">{{t "workbench.draft_drop"}}</button>
 </form>{{end}}{{end}}
