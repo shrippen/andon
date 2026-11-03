@@ -1,13 +1,13 @@
 package metrics
 
 // Learned categories for Sure's bookings: a merchant without a filed
-// booking to vote (Uncategorized) gets the category a naive Bayes model
-// learned from every filed booking.
+// booking to vote (Uncategorized) gets up to three categories a naive
+// Bayes model learned from every filed booking, as a suggestion only.
 //
 //	filed bookings ──► features ──► bayes.Model
 //	  words   w:<word> (merchant, name)    │
 //	  amount  a:<±log₂ €>                  ▼
-//	                       Best(case) ≥ MinP, known word → category
+//	           Suggest(case), known word → "Vorschlag: Technik, Software"
 //
 // The amount keeps its sign: an income and an expense of the same size
 // rarely share a category. The model is stored per Sure (services/learn).
@@ -21,13 +21,11 @@ import (
 	"andon/internal/sources"
 )
 
-// CatFrom says where a proposed category comes from.
-type CatFrom string
-
+// catPicks is the most categories suggested for a case; parentSep
+// joins a category to its parent.
 const (
-	CatFromNothing  CatFrom = ""
-	CatFromMerchant CatFrom = "merchant" // the merchant's filed bookings
-	CatFromLearned  CatFrom = "learned"  // the model
+	catPicks  = 3
+	parentSep = " › "
 )
 
 // minusSign marks an outgoing amount's feature: "a:-9".
@@ -63,10 +61,11 @@ func CatFiled(m *bayes.Model, txns []sources.BankTxn, category string) bool {
 	return changed
 }
 
-// catGuess is the learned category for c, if one of bank's categories.
-func catGuess(l bayes.Use, c CatCase, bank *sources.BankData) (string, bool) {
+// catSuggest are the learned categories for c, best first, those bank
+// still has, named as the select shows them ("Studio › Technik").
+func catSuggest(l bayes.Use, c CatCase, bank *sources.BankData) []Pick {
 	if len(c.Txns) == 0 {
-		return "", false
+		return nil
 	}
 
 	// Words of every booking; the newest's amount only weighs in.
@@ -75,12 +74,20 @@ func catGuess(l bayes.Use, c CatCase, bank *sources.BankData) (string, bool) {
 		texts = append(texts, t.Merchant, t.Name)
 	}
 	features := append(wordFeatures(texts), catAmount(c.Txns[0].Amount)...)
-	best, ok := l.Best(features, IsWordFeature)
-	if !ok {
-		return "", false
+	var out []Pick
+	for _, g := range l.Suggest(features, IsWordFeature, catPicks) {
+		i := slices.IndexFunc(bank.Categories, func(k sources.BankCategory) bool { return k.ID == g.Label })
+		if i < 0 {
+			continue
+		}
+		k := bank.Categories[i]
+		label := k.Name
+		if k.Parent != "" {
+			label = k.Parent + parentSep + label
+		}
+		out = append(out, Pick{Value: k.ID, Label: label})
 	}
-	known := slices.ContainsFunc(bank.Categories, func(k sources.BankCategory) bool { return k.ID == best.Label })
-	return best.Label, known
+	return out
 }
 
 // catFeatures are a booking's words and signed order of magnitude.

@@ -152,7 +152,7 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 **J-C8 Buchungen einordnen**
 1. `/subs` → „Buchungen ohne Kategorie einordnen“: Kabelwerk Studiobedarf mit Vorschlag „Technik“ angehakt, Bäckerei ohne Vorschlag.
 2. „Prüfen“ nennt Anzahl, Summe und Kategorie; „In Sure einordnen“ (Demo lehnt ab).
-3. Gelernt (echte Sure oder Wegwerf-Container): ein Händler ohne eingeordnete Buchung, dessen Wörter (Händler, Buchungstext) eingeordnete Buchungen anderer Händler tragen, hat einen Vorschlag mit „gelernt aus ähnlichen Buchungen“, nicht angehakt; ohne bekanntes Wort keiner. Nach dem Einordnen und „Jetzt trainieren“ steht unter Einstellungen → Instanz → „Lernmodell“ je Sure eine Zeile „Sure-Kategorie“; „aus“ nimmt die gelernten Vorschläge weg, die des Händlers bleiben.
+3. Gelernt (echte Sure oder Wegwerf-Container): ein Händler ohne eingeordnete Buchung, dessen Wörter (Händler, Buchungstext) eingeordnete Buchungen anderer Händler tragen, hat keine Kategorie gewählt und ist nicht angehakt; unter der Auswahl steht „Vorschlag: …“ mit bis zu drei Kategorien, ein Klick wählt sie in der Auswahl; ohne bekanntes Wort keine Zeile. Nach dem Einordnen und „Jetzt trainieren“ steht unter Einstellungen → Instanz → „Lernmodell“ je Sure eine Zeile „Sure-Kategorie“; „aus“ nimmt die Vorschlagszeile weg, die Kategorie des Händlers bleibt.
 
 **J-C14 Wiederherstellungsprobe**
 1. Backups-Kachel → Dialog: je System „Wiederherstellung testen, Probe: …“ mit „Getestet“ und „Fehlgeschlagen“.

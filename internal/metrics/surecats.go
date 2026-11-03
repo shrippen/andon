@@ -7,8 +7,8 @@ package metrics
 //	DKB AG  12× no category ─┐
 //	DKB AG   4× "Gebühren" ──┴─► propose "Gebühren" for the 12
 //
-// A merchant without filed bookings gets a learned category
-// (surecatguess.go), never ticked.
+// A merchant without filed bookings gets learned categories as a
+// suggestion (surecatguess.go), never chosen.
 
 import (
 	"slices"
@@ -26,11 +26,14 @@ type CatCase struct {
 	Total    float64           // their sum, signed
 
 	// The proposal: the category most of the merchant's filed bookings
-	// have, Votes of Of, else a learned one; "" none.
+	// have, Votes of Of; "" none.
 	CategoryID string
-	From       CatFrom
 	Votes, Of  int
 	Ticked     bool // every filed booking agrees
+
+	// Suggest are learned categories, best first, without votes only;
+	// the page offers them, nothing chooses them.
+	Suggest []Pick
 }
 
 // catPrefix is a case key's prefix.
@@ -86,10 +89,8 @@ func Uncategorized(bank *sources.BankData, l bayes.Use) []CatCase {
 			}
 		}
 		c.Ticked = c.Of > 0 && c.Votes == c.Of
-		if c.Of > 0 {
-			c.From = CatFromMerchant
-		} else if id, ok := catGuess(l, c, bank); ok {
-			c.CategoryID, c.From = id, CatFromLearned
+		if c.Of == 0 {
+			c.Suggest = catSuggest(l, c, bank)
 		}
 		out = append(out, c)
 	}

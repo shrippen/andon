@@ -68,6 +68,6 @@ func TestSubCasesLive(t *testing.T) {
 		if i == 10 {
 			break
 		}
-		t.Logf("uncategorized %-30s %3d bookings, proposed %q from %q (%d of %d), ticked %v", c.Merchant, len(c.Txns), c.CategoryID, c.From, c.Votes, c.Of, c.Ticked)
+		t.Logf("uncategorized %-30s %3d bookings, proposed %q (%d of %d), suggested %q, ticked %v", c.Merchant, len(c.Txns), c.CategoryID, c.Votes, c.Of, c.Suggest, c.Ticked)
 	}
 }

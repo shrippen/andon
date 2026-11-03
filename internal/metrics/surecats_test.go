@@ -25,7 +25,7 @@ func TestUncategorized(t *testing.T) {
 		t.Fatalf("cases: %+v", got)
 	}
 	dkb, bakery := got[0], got[1]
-	if dkb.Key != "m-dkb-ag" || len(dkb.Txns) != 2 || dkb.Txns[0].ID != "2" || dkb.CategoryID != "fees" || !dkb.Ticked || dkb.Total != -5 || dkb.From != CatFromMerchant {
+	if dkb.Key != "m-dkb-ag" || len(dkb.Txns) != 2 || dkb.Txns[0].ID != "2" || dkb.CategoryID != "fees" || !dkb.Ticked || dkb.Total != -5 || dkb.Suggest != nil {
 		t.Errorf("dkb: %+v", dkb)
 	}
 	if bakery.CategoryID != "food" || bakery.Votes != 1 || bakery.Of != 2 || bakery.Ticked {

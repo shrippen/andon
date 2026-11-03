@@ -3,8 +3,9 @@
 // (metrics.Uncategorized):
 //
 //	merchant's bookings without category ─► category proposed from its
-//	filed ones, else learned (learn.Model) ─► review ─► each booking
-//	filed in Sure (fresh data) ─► the model learns the filing
+//	filed ones; else learned ones only suggested (learn.Model) ─►
+//	review ─► each booking filed in Sure (fresh data) ─► the model
+//	learns the filing
 package categorize
 
 import (

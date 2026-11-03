@@ -1,15 +1,17 @@
 package metrics
 
 import (
+	"slices"
 	"testing"
 
 	"andon/internal/bayes"
 	"andon/internal/sources"
 )
 
-// A merchant without filed bookings gets the category learned from
-// similar ones, unticked; a merchant's own votes win; no known word, a
-// category Sure no longer has, or no model: no proposal.
+// A merchant without filed bookings gets the categories learned from
+// similar ones as a suggestion, never chosen nor ticked; a merchant's
+// own votes win; no known word, a category Sure no longer has, or no
+// model: no suggestion.
 func TestUncategorizedLearned(t *testing.T) {
 	cats := []sources.BankCategory{{ID: "tech", Name: "Technik"}, {ID: "food", Name: "Essen"}}
 	bank := &sources.BankData{Categories: cats, Transactions: []sources.BankTxn{
@@ -26,20 +28,20 @@ func TestUncategorizedLearned(t *testing.T) {
 	for _, c := range Uncategorized(bank, l) {
 		got[c.Merchant] = c
 	}
-	if c := got["Lichtwerk Studiobedarf"]; c.CategoryID != "tech" || c.From != CatFromLearned || c.Ticked {
+	if c := got["Lichtwerk Studiobedarf"]; c.CategoryID != "" || c.Ticked || len(c.Suggest) == 0 || c.Suggest[0] != (Pick{Value: "tech", Label: "Technik"}) {
 		t.Errorf("learned: %+v", c)
 	}
-	if c := got["Bäckerei Krume"]; c.CategoryID != "food" || c.From != CatFromMerchant || !c.Ticked {
+	if c := got["Bäckerei Krume"]; c.CategoryID != "food" || c.Suggest != nil || !c.Ticked {
 		t.Errorf("votes: %+v", c)
 	}
-	if c := got["Zollamt"]; c.CategoryID != "" || c.From != CatFromNothing {
+	if c := got["Zollamt"]; c.CategoryID != "" || c.Suggest != nil {
 		t.Errorf("unknown word: %+v", c)
 	}
 
 	// Sure dropped the category: not proposed.
 	bank.Categories = cats[1:]
 	for _, c := range Uncategorized(bank, l) {
-		if c.Merchant == "Lichtwerk Studiobedarf" && c.CategoryID != "" {
+		if c.Merchant == "Lichtwerk Studiobedarf" && slices.ContainsFunc(c.Suggest, func(p Pick) bool { return p.Value == "tech" }) {
 			t.Errorf("gone category proposed: %+v", c)
 		}
 	}
@@ -47,7 +49,7 @@ func TestUncategorizedLearned(t *testing.T) {
 
 	// Switched off: only votes.
 	for _, c := range Uncategorized(bank, bayes.Use{}) {
-		if c.From == CatFromLearned {
+		if c.Suggest != nil {
 			t.Errorf("off: %+v", c)
 		}
 	}

@@ -54,8 +54,9 @@ func TestCategorize(t *testing.T) {
 	}
 }
 
-// A merchant without filed bookings gets the category the stored model
-// learned, unticked; the job teaches the model Sure's filed bookings.
+// A merchant without filed bookings gets the categories the stored
+// model learned as a suggestion, nothing chosen nor ticked; the job
+// teaches the model Sure's filed bookings.
 func TestCategorizeLearned(t *testing.T) {
 	d := testkit.DB(t)
 	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
@@ -81,7 +82,7 @@ func TestCategorizeLearned(t *testing.T) {
 			continue
 		}
 		found = true
-		if c.CategoryID != "Hosting" || c.From != metrics.CatFromLearned || c.Ticked {
+		if c.CategoryID != "" || c.Ticked || len(c.Suggest) == 0 || c.Suggest[0] != (metrics.Pick{Value: "Hosting", Label: "Hosting"}) {
 			t.Errorf("learned case: %+v", c)
 		}
 	}
