@@ -31,3 +31,21 @@ func DropDraft(q db.Queryer, userID int64, bench, place string) error {
 	_, err := q.Exec("DELETE FROM bench_drafts WHERE user_id = ? AND bench = ? AND place = ?", userID, bench, place)
 	return err
 }
+
+// Drafts returns the cases (JSON) of a user's drafts of a bench, by place.
+func Drafts(q db.Queryer, userID int64, bench string) (map[string]string, error) {
+	rows, err := q.Query("SELECT place, cases FROM bench_drafts WHERE user_id = ? AND bench = ?", userID, bench)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]string{}
+	for rows.Next() {
+		var place, cases string
+		if err := rows.Scan(&place, &cases); err != nil {
+			return nil, err
+		}
+		out[place] = cases
+	}
+	return out, rows.Err()
+}

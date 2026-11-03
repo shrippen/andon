@@ -32,8 +32,9 @@ const draftBytes = 1 << 20
 // ErrDraftSize means a draft grew past draftBytes.
 var ErrDraftSize = errors.New("workbench.err_draft_size")
 
-// LoadDraft reads the draft at place with only the cases still open;
-// the ones closed meanwhile (written, archived) are dropped for good.
+// LoadDraft reads the draft at place with only the cases still open.
+// The others stay stored: a list may miss a case for a moment (its
+// service unreadable); Forget removes the written ones.
 func LoadDraft(d *sql.DB, who *access.Principal, at Place, open []string) (Draft, error) {
 	var stored Draft
 	err := db.WithRead(d, func(tx *sql.Tx) error {
@@ -51,15 +52,12 @@ func LoadDraft(d *sql.DB, who *access.Principal, at Place, open []string) (Draft
 			out[k] = v
 		}
 	}
-	if len(out) == len(stored) {
-		return out, nil
-	}
-	return out, KeepDraft(d, who, at, nil, func(k string) bool { return !slices.Contains(open, k) })
+	return out, nil
 }
 
 // KeepDraft stores the cases given over the stored ones; a case without
-// fields is removed, and so is every case drop names.
-func KeepDraft(d *sql.DB, who *access.Principal, at Place, cases Draft, drop func(string) bool) error {
+// fields is removed.
+func KeepDraft(d *sql.DB, who *access.Principal, at Place, cases Draft) error {
 	return db.WithTx(d, func(tx *sql.Tx) error {
 		stored, err := readDraft(tx, who, at)
 		if err != nil {
@@ -71,24 +69,54 @@ func KeepDraft(d *sql.DB, who *access.Principal, at Place, cases Draft, drop fun
 				delete(stored, k)
 			}
 		}
-		for k := range stored {
-			if drop != nil && drop(k) {
-				delete(stored, k)
-			}
-		}
-		if len(stored) == 0 {
-			return users.DropDraft(tx, who.UserID, at.Bench, at.Key)
-		}
+		return storeDraft(tx, who, at, stored)
+	})
+}
 
-		blob, err := json.Marshal(stored)
+// Forget removes written cases from every draft of the bench: a case
+// key names one transaction, whatever the period.
+func Forget(d *sql.DB, who *access.Principal, bench string, cases []string) error {
+	if len(cases) == 0 {
+		return nil
+	}
+	return db.WithTx(d, func(tx *sql.Tx) error {
+		drafts, err := users.Drafts(tx, who.UserID, bench)
 		if err != nil {
 			return err
 		}
-		if len(blob) > draftBytes {
-			return ErrDraftSize
+		for key := range drafts {
+			at := Place{Bench: bench, Key: key}
+			stored, err := readDraft(tx, who, at)
+			if err != nil {
+				return err
+			}
+			n := len(stored)
+			for _, k := range cases {
+				delete(stored, k)
+			}
+			if len(stored) == n {
+				continue
+			}
+			if err := storeDraft(tx, who, at, stored); err != nil {
+				return err
+			}
 		}
-		return users.SetDraft(tx, who.UserID, at.Bench, at.Key, string(blob))
+		return nil
 	})
+}
+
+func storeDraft(q db.Queryer, who *access.Principal, at Place, stored Draft) error {
+	if len(stored) == 0 {
+		return users.DropDraft(q, who.UserID, at.Bench, at.Key)
+	}
+	blob, err := json.Marshal(stored)
+	if err != nil {
+		return err
+	}
+	if len(blob) > draftBytes {
+		return ErrDraftSize
+	}
+	return users.SetDraft(q, who.UserID, at.Bench, at.Key, string(blob))
 }
 
 // DropDraft discards the draft at place.

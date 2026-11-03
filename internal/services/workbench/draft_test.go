@@ -20,7 +20,7 @@ func TestDraft(t *testing.T) {
 
 	keep := func(cases workbench.Draft) {
 		t.Helper()
-		if err := workbench.KeepDraft(d, who, at, cases, nil); err != nil {
+		if err := workbench.KeepDraft(d, who, at, cases); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -39,12 +39,20 @@ func TestDraft(t *testing.T) {
 		t.Fatalf("kept: %v", got)
 	}
 
-	// b written meanwhile: gone, also when it shows again.
+	// b missing from a load (its service unreadable): hidden, not lost.
 	if got := load("a"); len(got) != 1 {
-		t.Fatalf("closed case kept: %v", got)
+		t.Fatalf("missing case shown: %v", got)
 	}
-	if got := load("a", "b"); got["b"] != nil {
-		t.Fatalf("closed case back: %v", got)
+	if got := load("a", "b"); got["b"] == nil {
+		t.Fatalf("missing case lost: %v", got)
+	}
+
+	// b written: forgotten in every place of the bench.
+	if err := workbench.Forget(d, who, at.Bench, []string{"b"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := load("a", "b"); got["b"] != nil || got["a"] == nil {
+		t.Fatalf("after Forget: %v", got)
 	}
 
 	// A case without fields is removed.
@@ -75,12 +83,12 @@ func TestDraftSize(t *testing.T) {
 	d := testkit.DB(t)
 	who, _ := testkit.User(t, d, "owner@x.de", enums.RoleUser)
 	at := workbench.Place{Bench: "vat", Key: "x"}
-	if err := workbench.KeepDraft(d, who, at, workbench.Draft{"a": {"note_a": {"ok"}}}, nil); err != nil {
+	if err := workbench.KeepDraft(d, who, at, workbench.Draft{"a": {"note_a": {"ok"}}}); err != nil {
 		t.Fatal(err)
 	}
 
 	big := workbench.Draft{"b": {"note_b": {strings.Repeat("x", 2<<20)}}}
-	if err := workbench.KeepDraft(d, who, at, big, nil); !errors.Is(err, workbench.ErrDraftSize) {
+	if err := workbench.KeepDraft(d, who, at, big); !errors.Is(err, workbench.ErrDraftSize) {
 		t.Fatalf("err = %v, want ErrDraftSize", err)
 	}
 	got, _ := workbench.LoadDraft(d, who, at, []string{"a", "b"})
