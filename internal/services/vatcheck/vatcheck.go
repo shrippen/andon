@@ -103,7 +103,8 @@ type Page struct {
 // benchID is the check's id among the workbenches (its draft's bench).
 const benchID = "vat"
 
-// draftAt is the draft of a Verbund and period.
+// draftAt is the draft of a Verbund and period; span "" stands for
+// every period of the Verbund (workbench.Forget).
 func draftAt(scope, span string) workbench.Place {
 	return workbench.Place{Bench: benchID, Key: scope + "/" + span}
 }

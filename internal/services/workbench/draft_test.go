@@ -47,12 +47,29 @@ func TestDraft(t *testing.T) {
 		t.Fatalf("missing case lost: %v", got)
 	}
 
-	// b written: forgotten in every place of the bench.
-	if err := workbench.Forget(d, who, at.Bench, []string{"b"}); err != nil {
+	// b written in Verbund v4: forgotten in its periods, not in v5's,
+	// where the same key names another service's case.
+	q2v4 := workbench.Place{Bench: "vat", Key: "v4/2026-Q2"}
+	v5 := workbench.Place{Bench: "vat", Key: "v5/2026-Q3"}
+	for _, p := range []workbench.Place{q2v4, v5} {
+		if err := workbench.KeepDraft(d, who, p, workbench.Draft{"b": {"note_b": {"x"}}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := workbench.Forget(d, who, workbench.Place{Bench: "vat", Key: "v4/"}, []string{"b"}); err != nil {
 		t.Fatal(err)
 	}
 	if got := load("a", "b"); got["b"] != nil || got["a"] == nil {
 		t.Fatalf("after Forget: %v", got)
+	}
+	if got, _ := workbench.LoadDraft(d, who, q2v4, []string{"b"}); got["b"] != nil {
+		t.Fatalf("other period of the Verbund kept b: %v", got)
+	}
+	if got, _ := workbench.LoadDraft(d, who, v5, []string{"b"}); got["b"] == nil {
+		t.Fatalf("other Verbund lost b: %v", got)
+	}
+	if err := workbench.DropDraft(d, who, v5); err != nil {
+		t.Fatal(err)
 	}
 
 	// A case without fields is removed.
