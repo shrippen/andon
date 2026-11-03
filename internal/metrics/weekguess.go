@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 
@@ -17,14 +18,16 @@ import (
 //	booked gap    w:<word> title (appointment or  ─┼─► bayes.Model
 //	              place);  c:<customer>            │   label "<project>:<activity>"
 //	                                               ▼
-//	gap ──► features ──► Best ≥ MinP, a known word not of its names, its customer's project
+//	gap ──► features without its names ──► Best ≥ MinP, a known word, its customer's project
 //
-// The customer and the words of its name and its projects' names are
-// features, not evidence: every gap names one of them (that is how it
-// found its customer), so alone they would propose the customer's most
-// frequent pair ("Telefonat Fotohaus Elbe" → Dreh). Evidence is another
-// known word ("Schnitt", a place). The model is stored per Kimai
-// (services/learn).
+// A gap's words from its customer's name and its projects' names are
+// left out when guessing (c:<customer> stands for them): every gap
+// names one of them (that is how it found its customer), so they would
+// propose the customer's most frequent pair ("Telefonat Fotohaus Elbe"
+// → Dreh). Evidence is another known word ("Schnitt", a place). So a
+// Dawarich place named only like the customer ("Fotohaus Elbe") gets no
+// learned proposal, also after booking it. The model is stored per
+// Kimai (services/learn).
 
 // WeekFrom says where a gap's proposal comes from.
 type WeekFrom string
@@ -74,7 +77,7 @@ func WeekGuesserOf(k *sources.KimaiDataset, l bayes.Use) WeekGuesser {
 	return g
 }
 
-// name notes a name's words as customer's, no evidence for its gaps.
+// name notes a name's words as customer's, left out of its gaps' guess.
 func (w WeekGuesser) name(customer int64, name string) {
 	if w.named[customer] == nil {
 		w.named[customer] = map[string]bool{}
@@ -132,8 +135,9 @@ func WeekLearnGap(m *bayes.Model, g WeekGap, p WeekProposal) bool {
 // Guess is the learned project and activity for g; only a project of
 // g's customer counts: another's would leave the gap open.
 func (w WeekGuesser) Guess(g WeekGap) (WeekProposal, bool) {
-	evidence := func(f string) bool { return IsWordFeature(f) && !w.named[g.CustomerID][f] }
-	best, ok := w.learn.Best(g.features(), evidence)
+	// The customer's and its projects' names leave: c:<customer> says it.
+	features := slices.DeleteFunc(g.features(), func(f string) bool { return w.named[g.CustomerID][f] })
+	best, ok := w.learn.Best(features, IsWordFeature)
 	if !ok {
 		return WeekProposal{}, false
 	}

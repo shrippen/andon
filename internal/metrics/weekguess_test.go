@@ -24,11 +24,12 @@ func TestWeekGuess(t *testing.T) {
 			{ID: 3, CustomerID: 1, ProjectID: 11, Activity: "Schnitt", Notes: "Rohschnitt"},
 			{ID: 4, CustomerID: 1, ProjectID: 11, Activity: "Schnitt", Notes: "Feinschnitt Farbkorrektur"},
 			{ID: 5, CustomerID: 2, ProjectID: 20, Activity: "Ton", Notes: "Tonaufnahme"},
+			{ID: 9, CustomerID: 2, ProjectID: 20, Activity: "Ton", Notes: "Telefonat"},
 			{ID: 6, CustomerID: 2, ProjectID: 0, Activity: "Ton"}, // no project: not learned
 		},
 	}
 	m := bayes.New()
-	if !metrics.WeekLearn(m, kimai) || m.Stats().Examples != 7 || metrics.WeekLearn(m, kimai) {
+	if !metrics.WeekLearn(m, kimai) || m.Stats().Examples != 8 || metrics.WeekLearn(m, kimai) {
 		t.Fatalf("learn: %+v", m.Stats())
 	}
 	g := metrics.WeekGuesserOf(kimai, bayes.Use{Model: bayes.New(), MinP: 0.6})
@@ -39,11 +40,12 @@ func TestWeekGuess(t *testing.T) {
 	}{
 		{metrics.WeekGap{CustomerID: 1, Title: "Fotohaus Elbe: Farbkorrektur Imagefilm"}, metrics.WeekProposal{ProjectID: 11, Activity: "Schnitt"}},
 		{metrics.WeekGap{CustomerID: 1, Title: "Fotohaus Elbe Dreh"}, metrics.WeekProposal{ProjectID: 10, Activity: "Dreh"}},
-		{metrics.WeekGap{CustomerID: 1, Title: "Zahnarzt"}, metrics.WeekProposal{}},                      // no known word
-		{metrics.WeekGap{CustomerID: 3, Title: "Farbkorrektur"}, metrics.WeekProposal{}},                 // another customer's project
-		{metrics.WeekGap{CustomerID: 1, Title: "Studio Neustadt"}, metrics.WeekProposal{}},               // a place not booked yet
-		{metrics.WeekGap{CustomerID: 1, Title: "Telefonat Fotohaus Elbe"}, metrics.WeekProposal{}},       // only the customer's name known
-		{metrics.WeekGap{CustomerID: 1, Title: "Fotohaus Elbe Kampagne Herbst"}, metrics.WeekProposal{}}, // only a project's name known
+		{metrics.WeekGap{CustomerID: 1, Title: "Zahnarzt"}, metrics.WeekProposal{}},                         // no known word
+		{metrics.WeekGap{CustomerID: 3, Title: "Farbkorrektur"}, metrics.WeekProposal{}},                    // another customer's project
+		{metrics.WeekGap{CustomerID: 1, Title: "Studio Neustadt"}, metrics.WeekProposal{}},                  // a place not booked yet
+		{metrics.WeekGap{CustomerID: 1, Title: "Telefonat Fotohaus Elbe"}, metrics.WeekProposal{}},          // "Telefonat" known only from customer 2
+		{metrics.WeekGap{CustomerID: 1, Title: "Telefonat Fotohaus Elbe Kampagne"}, metrics.WeekProposal{}}, // and a project name
+		{metrics.WeekGap{CustomerID: 1, Title: "Fotohaus Elbe Kampagne Herbst"}, metrics.WeekProposal{}},    // only a project's name known
 	}
 	for i, c := range cases {
 		if got, _ := g.Guess(c.gap); got != c.want {

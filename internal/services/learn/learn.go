@@ -1,6 +1,7 @@
 // Package learn keeps the learned models: one per purpose, connection
 // and holder, stored, so a model does not start over at each page and
-// keeps what it learned from data that is gone.
+// keeps what it learned from data that is gone (except Kimai entries
+// Kimai no longer returns: kimai_task forgets them, metrics.WeekLearn).
 //
 //	job (every Hours) ─► each Purpose.Teach(dataset) ─┐
 //	user decides      ─► Learn(purpose, conn, teach) ─┼─► learned_models
