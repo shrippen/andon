@@ -72,7 +72,7 @@ func TestUnbilledOptions(t *testing.T) {
 func TestMailInvoiceOptions(t *testing.T) {
 	mail := &sources.MailDataset{Invoices: []sources.MailInvoice{{UID: 1, Amount: 10}, {UID: 2, Amount: 20}}}
 	v := viewOf(t, "mail_invoices", map[string]any{"only_open": true, "limit": 1.0},
-		map[string]any{"data": mail, widgets.ForwardedSlot: widgets.MailMarks{Sent: map[uint32]bool{1: true}}}, enums.ServiceMail, nil)
+		map[string]any{"data": mail, widgets.ForwardedSlot: map[uint32]bool{1: true}}, enums.ServiceMail, nil)
 	if v["Count"] != 1 || v["Sum"] != 20.0 {
 		t.Fatalf("forwarded not left out: %+v", v)
 	}

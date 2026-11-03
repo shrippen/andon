@@ -61,6 +61,20 @@ func MailReads(q db.Queryer, connID int64) ([]MailRead, error) {
 	return out, rows.Err()
 }
 
+// Marks in a mail's stored fields: sent to Paperless from Andon, set
+// aside as no invoice.
+const (
+	MailForwarded = "forwarded"
+	MailDismissed = "dismissed"
+)
+
+// Dismissed says whether holder h set mail (uid, key mail) aside as no
+// invoice.
+func Dismissed(rows []MailRead, h model.Holder, uid uint32, mail string) bool {
+	_, ok := ReadOf(rows, h, uid, mail)[MailDismissed]
+	return ok
+}
+
 // ReadOf is a copy of the fields of holder h's mail (uid, key mail):
 // its own row, else one from before keys, matched by UID alone as then;
 // nil if none.

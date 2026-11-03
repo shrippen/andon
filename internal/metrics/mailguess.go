@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"path"
+	"slices"
 	"strings"
 
 	"andon/internal/bayes"
@@ -35,6 +36,18 @@ const (
 	addrFeature   = "f:"
 	domainFeature = "d:"
 )
+
+// MailOpen is box without the mails dismissed holds set aside as no
+// invoice: rules, receipts and tiles then count invoices only. box itself
+// stays as it is (it is the cache's).
+func MailOpen(box *sources.MailDataset, dismissed func(sources.MailInvoice) bool) *sources.MailDataset {
+	if box == nil || !slices.ContainsFunc(box.Invoices, dismissed) {
+		return box
+	}
+	out := *box
+	out.Invoices = slices.DeleteFunc(slices.Clone(box.Invoices), dismissed)
+	return &out
+}
 
 // MailLearn teaches m that inv is of kind k; a mail decided again
 // replaces its earlier example. It says whether m changed.

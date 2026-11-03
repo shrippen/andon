@@ -123,8 +123,8 @@ func mailboxes(d *sql.DB, who *access.Principal) (map[*model.Connection]*model.C
 // Marks in a mail's stored read fields, so the billing list can leave
 // it out: sent to Paperless from Andon, or set aside as no invoice.
 const (
-	forwardedKey = "forwarded"
-	dismissedKey = "dismissed"
+	forwardedKey = repodata.MailForwarded
+	dismissedKey = repodata.MailDismissed
 )
 
 // isForwarded reports whether a mail's stored fields mark it as sent.
@@ -143,11 +143,21 @@ func isDismissed(fields map[string]any) bool {
 // (fields beyond the marks).
 func hasRead(fields map[string]any) bool {
 	for k := range fields {
-		if k != forwardedKey && k != dismissedKey {
+		if !isMark(k) {
 			return true
 		}
 	}
 	return false
+}
+
+// isMark says whether field k is a mark, not a read invoice field.
+func isMark(k string) bool { return k == forwardedKey || k == dismissedKey }
+
+// readInto replaces the read fields in f with read; the marks stay. A
+// field the old read had and the new one lacks goes.
+func readInto(f, read map[string]any) {
+	maps.DeleteFunc(f, func(k string, _ any) bool { return !isMark(k) })
+	maps.Copy(f, read)
 }
 
 // List returns the invoice mails of every usable mailbox, without the
@@ -449,7 +459,7 @@ func Read(ctx context.Context, d *sql.DB, who *access.Principal, mailConnID int6
 	if err != nil {
 		return assist.Invoice{}, err
 	}
-	if err := mark(d, who, mail, listedInv, func(f map[string]any) { maps.Copy(f, read) }); err != nil {
+	if err := mark(d, who, mail, listedInv, func(f map[string]any) { readInto(f, read) }); err != nil {
 		return assist.Invoice{}, err
 	}
 	return inv, auditsvc.Log(d, &who.UserID, "mail.read", fmt.Sprintf("%s#%d", mail.Name, uid), ip, nil)
