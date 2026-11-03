@@ -147,6 +147,7 @@ func (b book) splitOf(c *Case, pool []receipts.Candidate, euer metrics.EuerGuess
 		p := SplitPart{Scan: sc, Draft: metrics.DraftOf(b.ninja, docTxn(sc.Doc, sc.Amount)), Amount: sc.Amount, Day: sc.Doc.Day,
 			Note: strings.TrimSpace(sc.Doc.Title), Order: names(sc.Doc, orders)}
 		p.Draft.Euer, p.Draft.EuerFrom = euer.Guess(euerInput(p.Draft, docTxn(sc.Doc, sc.Amount)))
+		p.Draft.Suggest.Euer = euer.Suggest(euerInput(p.Draft, docTxn(sc.Doc, sc.Amount)))
 		if b.numberSlot > 0 {
 			p.Number = sc.Number
 		}

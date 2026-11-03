@@ -7473,7 +7473,6 @@ vatcheck:
   origin_sure: 'Sure'
   origin_model: 'Claude'
   origin_vendor: 'wie bisher'
-  origin_learned: 'gelernt'
   origin_scan: 'Beleg'
   origin_booking: 'Umsatz'
   number: 'Rechnungsnr.'
@@ -7618,7 +7617,6 @@ euer:
   expense: Ausgabe
   line: 'EÜR-Zeile'
   from_vendor: 'wie zuletzt bei diesem Lieferanten'
-  from_learned: 'gelernt aus ähnlichen Ausgaben'
   no_vendor: 'Lieferant ohne frühere Zeile'
   review: 'Prüfen'
   empty: 'Alle Ausgaben aus {year} haben ihre EÜR-Zeile.'
@@ -7961,7 +7959,7 @@ kept:
 
 learn:
   title: 'Lernmodell'
-  lead: 'Andon lernt aus deinen Daten und Entscheidungen (naiver Bayes) und schlägt dort vor, wo keine feste Regel greift: etwa die EÜR-Zeile einer Ausgabe. Jedes Modell gilt für eine Verbindung (bei persönlichem Login für jeden Inhaber) und wird gespeichert: es lernt Neues dazu und behält, was es aus gelöschten Daten gelernt hat; Kimai-Einträge, die Kimai nicht mehr liefert (gelöscht oder außerhalb des abgerufenen Zeitraums), vergisst es. Ein Vorschlag erscheint erst, wenn das Modell mindestens zwei Klassen kennt.'
+  lead: 'Andon lernt aus deinen Daten und Entscheidungen (naiver Bayes) und schlägt dort vor, wo keine feste Regel greift: etwa die EÜR-Zeile einer Ausgabe. Jedes Modell gilt für eine Verbindung (bei persönlichem Login für jeden Inhaber) und wird gespeichert: es lernt Neues dazu und behält, was es aus gelöschten Daten gelernt hat; Kimai-Einträge, die Kimai nicht mehr liefert (gelöscht oder außerhalb des abgerufenen Zeitraums), vergisst es. Ein Vorschlag erscheint erst, wenn das Modell mindestens zwei Klassen kennt. Es schlägt nur vor (Zeile „Vorschlag:“ unter dem Feld), ausgefüllt wird nichts.'
   suggest: 'Vorschlag:'
   settings: 'Einstellungen'
   mode: 'Gelernte Vorschläge'
@@ -7980,6 +7978,10 @@ learn:
   col_features: 'Merkmale'
   col_trained: 'Zuletzt dazugelernt'
   purpose_euer: 'EÜR-Zeile'
+  purpose_tax: 'Steuersatz neuer Lieferanten'
+  purpose_category: 'Kategorie neuer Lieferanten'
+  purpose_private: 'Privat oder geschäftlich'
+  purpose_vendor: 'Lieferant aus dem Umsatz'
   purpose_kimai_task: 'Kimai-Projekt und -Tätigkeit'
   purpose_ride_class: 'Fahrt: beruflich oder privat'
   purpose_sure_category: 'Sure-Kategorie'

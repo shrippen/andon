@@ -34,6 +34,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/bayes"
 	"andon/internal/sources"
 )
 
@@ -71,6 +72,40 @@ type ExpenseDraft struct {
 	EuerFrom              EuerFrom
 	Bill                  bool // the vendor's last expense was billed to a client
 	From                  DraftFrom
+	Suggest               DraftSuggest
+}
+
+// DraftSuggest is what the learned models suggest under the fields a
+// fixed rule left empty; they never fill one.
+type DraftSuggest struct {
+	Vendor   []Pick // by name, the vendor field is text
+	Category []Pick // category keys
+	Tax      []Pick // rates ("19") or "none"
+	Euer     []Pick // EÜR lines
+}
+
+// DropFilled drops the suggestions of fields filled after the draft
+// (Sure's mapping, Claude's reading): a suggestion stands only under an
+// empty field. The vendor field always holds text, so only a known
+// vendor ends its line.
+func (d *ExpenseDraft) DropFilled() {
+	if d.VendorKey != "" {
+		d.Suggest.Vendor = nil
+	}
+	if d.CategoryKey != "" {
+		d.Suggest.Category = nil
+	}
+	if d.TaxKnown {
+		d.Suggest.Tax = nil
+	}
+	if d.Euer != "" {
+		d.Suggest.Euer = nil
+	}
+}
+
+// None says whether nothing is suggested.
+func (s DraftSuggest) None() bool {
+	return s.Vendor == nil && s.Category == nil && s.Tax == nil && s.Euer == nil
 }
 
 // BankCase is one open transaction with what it could be.
@@ -85,6 +120,7 @@ type BankCase struct {
 	Action   BankAction
 	Private  bool      // paid from an account with private bookings (private, mixed)
 	Mixed    bool      // on a mixed account
+	Suggest  []Pick    // a private account's debit: create or skip, as the model learned it
 	Transfer *Transfer // money moved to or from another own account
 }
 
@@ -109,6 +145,7 @@ type VATInputs struct {
 	Start, End time.Time
 	Method     string // ist, soll
 	Today      time.Time
+	Learned    BankLearning
 }
 
 const (
@@ -134,7 +171,7 @@ func BankCases(in VATInputs) []BankCase {
 		c := BankCase{Txn: t, Sure: sureTwin(in.Sure, t, usedSure), Private: private || (mixed && t.Debit), Mixed: mixed}
 		if t.Debit {
 			c.Expenses = expenseFits(in.Ninja, t, taken)
-			c.Draft = draftOf(in.Ninja, t, c.Sure)
+			c.Draft = draftOf(in.Ninja, t, c.Sure, in.Learned)
 			c.Action = ActionCreate
 			if len(c.Expenses) > 0 {
 				c.Action = ActionLink
@@ -157,7 +194,28 @@ func BankCases(in VATInputs) []BankCase {
 		out = append(out, c)
 	}
 	pairTransfers(in, out)
+	suggestPrivate(out, in.Learned.Private)
 	return out
+}
+
+// suggestPrivate lets the model suggest for a private or mixed
+// account's debit that no expense fits and that is no transfer: booked
+// before as business → a new expense; set aside as private → archive.
+// After the transfers: a transfer's side gets nothing. The action stays.
+func suggestPrivate(cases []BankCase, u bayes.Use) {
+	for i := range cases {
+		c := &cases[i]
+		if !c.Private || !c.Txn.Debit || c.Transfer != nil || len(c.Expenses) > 0 {
+			continue
+		}
+		for _, label := range suggest(u, c.Txn, c.Sure) {
+			act := ActionCreate
+			if label == labelPrivate {
+				act = ActionSkip
+			}
+			c.Suggest = append(c.Suggest, Pick{Value: string(act), Text: "vatcheck.act_" + string(act)})
+		}
+	}
 }
 
 // pairable: nothing to book for c, so it may be a transfer's side.
@@ -484,12 +542,20 @@ func sureTwin(sure *sources.BankData, t sources.NinjaBankTxn, used map[string]bo
 
 // DraftOf is the new expense for a booking, or for a scan dressed as
 // one (vatcheck: receipts without an expense), without Sure.
-func DraftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn) ExpenseDraft { return draftOf(n, t, nil) }
+func DraftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn) ExpenseDraft {
+	return draftOf(n, t, nil, BankLearning{})
+}
+
+// DraftWith is DraftOf with the learned models.
+func DraftWith(n *sources.NinjaDataset, t sources.NinjaBankTxn, l BankLearning) ExpenseDraft {
+	return draftOf(n, t, nil, l)
+}
 
 // draftOf fills a new expense: a known vendor (its first word is a word
 // of the booking: "Mietwagen Nord" is not "Nordhost") brings its last
-// category and tax; otherwise Sure's merchant and category help.
-func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.BankTxn) ExpenseDraft {
+// category and tax; otherwise Sure's merchant and category help. The
+// learned models only suggest for what stays empty.
+func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.BankTxn, l BankLearning) ExpenseDraft {
 	var d ExpenseDraft
 	text := t.Payer + " " + t.Description
 	if sure != nil {
@@ -513,15 +579,49 @@ func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.Bank
 			d.Vendor, d.From = sure.Merchant, FromSure
 		}
 	}
-	if sure == nil || sure.Category == "" {
-		return d
-	}
-	for _, c := range n.Categories {
-		if strings.EqualFold(c.Name, sure.Category) {
-			d.Category, d.CategoryKey, d.From = c.Name, c.Key, FromSure
+	if sure != nil && sure.Category != "" {
+		for _, c := range n.Categories {
+			if strings.EqualFold(c.Name, sure.Category) {
+				d.Category, d.CategoryKey, d.From = c.Name, c.Key, FromSure
+			}
 		}
 	}
+	suggestDraft(&d, n, t, sure, l)
 	return d
+}
+
+// suggestDraft adds the models' suggestions for the fields the draft
+// left empty: vendor, category, tax. Values no longer set up are left out.
+func suggestDraft(d *ExpenseDraft, n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.BankTxn, l BankLearning) {
+	if d.VendorKey == "" {
+		for _, key := range suggest(l.Vendor, t, sure) {
+			if i := slices.IndexFunc(n.Vendors, func(v sources.NinjaVendor) bool { return v.Key == key }); i >= 0 {
+				d.Suggest.Vendor = append(d.Suggest.Vendor, Pick{Value: n.Vendors[i].Name, Label: n.Vendors[i].Name})
+			}
+		}
+	}
+	if d.CategoryKey == "" {
+		for _, key := range suggest(l.Category, t, sure) {
+			if name := categoryName(n, key); name != "" {
+				d.Suggest.Category = append(d.Suggest.Category, Pick{Value: key, Label: name})
+			}
+		}
+	}
+	if d.TaxKnown {
+		return
+	}
+	for _, rate := range suggest(l.Tax, t, sure) {
+		if rate == noTaxLabel {
+			d.Suggest.Tax = append(d.Suggest.Tax, Pick{Value: noTaxLabel, Text: "vatcheck.no_tax"})
+			continue
+		}
+		r, err := strconv.ParseFloat(rate, 64)
+		i := slices.IndexFunc(n.TaxRates, func(x sources.NinjaTaxRate) bool { return x.Rate == r })
+		if err != nil || i < 0 {
+			continue // a rate no longer set up
+		}
+		d.Suggest.Tax = append(d.Suggest.Tax, Pick{Value: rate, Label: n.TaxRates[i].Name + " " + strconv.FormatFloat(r, 'f', -1, 64) + " %"})
+	}
 }
 
 // lastExpense is the vendor's newest expense.

@@ -219,6 +219,7 @@
     <b>{{if $c.Txn.Debit}}−{{end}}{{money $c.Txn.Amount $p.Currency}}</b></header>
   <input type="hidden" name="act_{{$k}}" value="{{$act}}" data-act data-draft-keep>
   <div class="seg" role="group" aria-label="{{t "vatcheck.proposal"}}">{{range $c.Acts}}<button type="button" data-set-act="{{.}}" aria-pressed="{{eq . $act}}" title="{{t (print "vatcheck.act_" . "_hint")}}">{{t (print "vatcheck.act_" .)}}</button>{{end}}</div>
+  {{with $c.Suggest}}<p class="field-suggest"><span>{{t "learn.suggest"}}</span> {{range $i, $s := .}}{{if $i}}, {{end}}<button type="button" class="field-suggest-pick" data-set-act="{{$s.Value}}">{{t $s.Text}}</button>{{end}}</p>{{end}}
   {{with $c.Transfer}}<p class="small">{{t "vatcheck.transfer" "account" .Account "day" (day .Date)}}</p>{{end}}
   {{with $c.Guess}}<p class="small{{if .Private}} late{{end}}">{{if .Private}}{{t "vatcheck.guess_private"}} {{end}}{{.Why}}</p>{{end}}
 
@@ -246,17 +247,17 @@
     </div>
     <div class="bench-col">
       <div class="h-label">{{t "vatcheck.expense_title"}}</div>
-      <label class="field"><span class="field-label">{{t "vatcheck.vendor"}}{{if $d.VendorKey}}<span class="field-origin">{{t "vatcheck.origin_known"}}</span>{{else if $d.Vendor}}<span class="field-origin">{{t "vatcheck.origin_new"}}</span>{{end}}</span>
-        <input class="input" name="vendor_{{$k}}" value="{{$d.Vendor}}" list="vat-vendors" data-part="vendor"></label>
+      <div class="field"><label class="field-label" for="vendor-{{$k}}">{{t "vatcheck.vendor"}}{{if $d.VendorKey}}<span class="field-origin">{{t "vatcheck.origin_known"}}</span>{{else if $d.Vendor}}<span class="field-origin">{{t "vatcheck.origin_new"}}</span>{{end}}</label>
+        <input class="input" id="vendor-{{$k}}" name="vendor_{{$k}}" value="{{$d.Vendor}}" list="vat-vendors" data-part="vendor">{{template "suggest" dict "For" (print "vendor-" $k) "Picks" $d.Suggest.Vendor}}</div>
       <div class="bench-pair">
-        <label class="field"><span class="field-label">{{t "vatcheck.category"}}{{if $d.CategoryKey}}{{with $d.From}}<span class="field-origin">{{t (print "vatcheck.origin_" .)}}</span>{{end}}{{end}}</span>
-          <select class="select" name="cat_{{$k}}" data-part="category"><option value="">{{t "vatcheck.no_category"}}</option>{{range $p.Ledger.Categories}}<option value="{{.Key}}"{{if eq .Key $d.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>
-        {{if $p.Euer}}<label class="field"><span class="field-label">{{$p.Euer}}{{if $d.Euer}}<span class="field-origin">{{t (print "vatcheck.origin_" $d.EuerFrom)}}</span>{{end}}</span>
-          <select class="select" name="euer_{{$k}}" data-part="euer"><option value="">{{t "vatcheck.no_euer" "field" $p.Euer}}</option>{{range $p.EuerLines}}<option value="{{.}}"{{if eq . $d.Euer}} selected{{end}}>{{.}}</option>{{end}}</select></label>{{end}}
+        <div class="field"><label class="field-label" for="cat-{{$k}}">{{t "vatcheck.category"}}{{if $d.CategoryKey}}{{with $d.From}}<span class="field-origin">{{t (print "vatcheck.origin_" .)}}</span>{{end}}{{end}}</label>
+          <select class="select" id="cat-{{$k}}" name="cat_{{$k}}" data-part="category"><option value="">{{t "vatcheck.no_category"}}</option>{{range $p.Ledger.Categories}}<option value="{{.Key}}"{{if eq .Key $d.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select>{{template "suggest" dict "For" (print "cat-" $k) "Picks" $d.Suggest.Category}}</div>
+        {{if $p.Euer}}<div class="field"><label class="field-label" for="euer-{{$k}}">{{$p.Euer}}{{if $d.Euer}}<span class="field-origin">{{t (print "vatcheck.origin_" $d.EuerFrom)}}</span>{{end}}</label>
+          <select class="select" id="euer-{{$k}}" name="euer_{{$k}}" data-part="euer"><option value="">{{t "vatcheck.no_euer" "field" $p.Euer}}</option>{{range $p.EuerLines}}<option value="{{.}}"{{if eq . $d.Euer}} selected{{end}}>{{.}}</option>{{end}}</select>{{template "suggest" dict "For" (print "euer-" $k) "Picks" $d.Suggest.Euer}}</div>{{end}}
       </div>
       <div class="bench-pair">
-        <label class="field"><span class="field-label">{{t "vatcheck.tax"}}{{if $d.TaxKnown}}{{with $d.From}}<span class="field-origin">{{t (print "vatcheck.origin_" .)}}</span>{{end}}{{end}}</span>
-          <select class="select" name="tax_{{$k}}" data-part="tax">{{if not $d.TaxKnown}}<option value="" selected>{{t "vatcheck.tax_pick"}}</option>{{end}}<option value="none">{{t "vatcheck.no_tax"}}</option>{{range $p.Ledger.TaxRates}}<option value="{{.Rate}}"{{if and $d.TaxKnown (eq .Rate $d.TaxRate)}} selected{{end}}>{{.Name}} {{num .Rate 0}} %</option>{{end}}</select></label>
+        <div class="field"><label class="field-label" for="tax-{{$k}}">{{t "vatcheck.tax"}}{{if $d.TaxKnown}}{{with $d.From}}<span class="field-origin">{{t (print "vatcheck.origin_" .)}}</span>{{end}}{{end}}</label>
+          <select class="select" id="tax-{{$k}}" name="tax_{{$k}}" data-part="tax">{{if not $d.TaxKnown}}<option value="" selected>{{t "vatcheck.tax_pick"}}</option>{{end}}<option value="none">{{t "vatcheck.no_tax"}}</option>{{range $p.Ledger.TaxRates}}<option value="{{.Rate}}"{{if and $d.TaxKnown (eq .Rate $d.TaxRate)}} selected{{end}}>{{.Name}} {{num .Rate 0}} %</option>{{end}}</select>{{template "suggest" dict "For" (print "tax-" $k) "Picks" $d.Suggest.Tax}}</div>
         {{if $p.Number}}<label class="field"><span class="field-label">{{or $p.NumberOf (t "vatcheck.number")}}{{if $c.Number}}<span class="field-origin">{{t "vatcheck.origin_scan"}}</span>{{end}}</span>
           <input class="input" name="num_{{$k}}" value="{{$c.Number}}" data-part="number"></label>{{end}}
       </div>
@@ -322,8 +323,8 @@
         <div class="bench-pair">
           <label class="field"><span class="field-label">{{t "vatcheck.category"}}</span>
             <select class="select" name="{{$f}}cat_{{$k}}"><option value="">{{t "vatcheck.no_category"}}</option>{{range $p.Ledger.Categories}}<option value="{{.Key}}"{{if eq .Key $d.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>
-          {{if $p.Euer}}<label class="field"><span class="field-label">{{$p.Euer}}</span>
-            <select class="select" name="{{$f}}euer_{{$k}}"><option value="">{{t "vatcheck.no_euer" "field" $p.Euer}}</option>{{range $p.EuerLines}}<option value="{{.}}"{{if eq . $d.Euer}} selected{{end}}>{{.}}</option>{{end}}</select></label>{{end}}
+          {{if $p.Euer}}<div class="field"><label class="field-label" for="{{$f}}euer-{{$k}}">{{$p.Euer}}</label>
+            <select class="select" id="{{$f}}euer-{{$k}}" name="{{$f}}euer_{{$k}}"><option value="">{{t "vatcheck.no_euer" "field" $p.Euer}}</option>{{range $p.EuerLines}}<option value="{{.}}"{{if eq . $d.Euer}} selected{{end}}>{{.}}</option>{{end}}</select>{{template "suggest" dict "For" (print $f "euer-" $k) "Picks" $d.Suggest.Euer}}</div>{{end}}
         </div>
         <div class="bench-pair">
           <label class="field"><span class="field-label">{{t "vatcheck.tax"}}</span>
@@ -349,8 +350,8 @@
       <div class="h-label">{{if eq (len $c.Expenses) 1}}{{t "vatcheck.fill_title" "number" (index $c.Expenses 0).Number}}{{else}}{{t "vatcheck.fill_picked"}}{{end}}</div>
       {{if $c.Offers "category"}}<label class="field" data-gap="category"{{if not ($c.Gap "category")}} hidden{{end}}><span class="field-label">{{t "vatcheck.category"}}{{if $d.CategoryKey}}{{with $d.From}}<span class="field-origin">{{t (print "vatcheck.origin_" .)}}</span>{{end}}{{end}}</span>
         <select class="select" name="xcat_{{$k}}" data-part="category"><option value="">{{t "vatcheck.no_category"}}</option>{{range $p.Ledger.Categories}}<option value="{{.Key}}"{{if eq .Key $d.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>{{end}}
-      {{if and $p.Euer ($c.Offers "euer")}}<label class="field" data-gap="euer"{{if not ($c.Gap "euer")}} hidden{{end}}><span class="field-label">{{$p.Euer}}{{if $d.Euer}}<span class="field-origin">{{t (print "vatcheck.origin_" $d.EuerFrom)}}</span>{{end}}</span>
-        <select class="select" name="xeuer_{{$k}}" data-part="euer"><option value="">{{t "vatcheck.no_euer" "field" $p.Euer}}</option>{{range $p.EuerLines}}<option value="{{.}}"{{if eq . $d.Euer}} selected{{end}}>{{.}}</option>{{end}}</select></label>{{end}}
+      {{if and $p.Euer ($c.Offers "euer")}}<div class="field" data-gap="euer"{{if not ($c.Gap "euer")}} hidden{{end}}><label class="field-label" for="xeuer-{{$k}}">{{$p.Euer}}{{if $d.Euer}}<span class="field-origin">{{t (print "vatcheck.origin_" $d.EuerFrom)}}</span>{{end}}</label>
+        <select class="select" id="xeuer-{{$k}}" name="xeuer_{{$k}}" data-part="euer"><option value="">{{t "vatcheck.no_euer" "field" $p.Euer}}</option>{{range $p.EuerLines}}<option value="{{.}}"{{if eq . $d.Euer}} selected{{end}}>{{.}}</option>{{end}}</select>{{template "suggest" dict "For" (print "xeuer-" $k) "Picks" $d.Suggest.Euer}}</div>{{end}}
       {{if and $p.Number ($c.Offers "number")}}<label class="field" data-gap="number"{{if not ($c.Gap "number")}} hidden{{end}}><span class="field-label">{{or $p.NumberOf (t "vatcheck.number")}}{{if $c.Number}}<span class="field-origin">{{t "vatcheck.origin_scan"}}</span>{{end}}</span>
         <input class="input" name="xnum_{{$k}}" value="{{$c.Number}}" data-part="number"></label>{{end}}
       {{if $c.Offers "note"}}<label class="field" data-gap="note"{{if not ($c.Gap "note")}} hidden{{end}}><span class="field-label">{{t "vatcheck.note"}}{{if $c.Note}}<span class="field-origin">{{t "vatcheck.origin_booking"}}</span>{{end}}</span>

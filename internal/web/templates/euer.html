@@ -41,11 +41,11 @@
           <td><label class="check"><input type="checkbox" name="pick" value="{{$e.Key}}" aria-label="{{$e.Number}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
             <input type="hidden" name="act_{{$e.Key}}" value="set"></td>
           <td data-card="title"><b>{{or $e.Number $e.Key}}</b> · {{day $e.Date}} · {{money $e.Amount}}<br><small class="muted">{{$e.Notes}}</small></td>
-          <td>{{$line := .Line}}{{if $p.Dropdown}}<select class="select" name="line_{{$e.Key}}" aria-label="{{t "euer.line"}}">
+          <td>{{$line := .Line}}{{if $p.Dropdown}}<select class="select" id="line-{{$e.Key}}" name="line_{{$e.Key}}" aria-label="{{t "euer.line"}}">
               <option value="">–</option>
               {{range $p.Lines}}<option value="{{.}}"{{if eq . $line}} selected{{end}}>{{.}}</option>{{end}}</select>
-            {{else}}<input class="input" name="line_{{$e.Key}}" list="euer-lines" value="{{$line}}" aria-label="{{t "euer.line"}}">{{end}}
-            {{if $line}}<small class="muted">{{t (print "euer.from_" .From)}}</small>{{else}}<small class="muted">{{t "euer.no_vendor"}}</small>{{end}}</td>
+            {{else}}<input class="input" id="line-{{$e.Key}}" name="line_{{$e.Key}}" list="euer-lines" value="{{$line}}" aria-label="{{t "euer.line"}}">{{end}}
+            {{if $line}}<small class="muted">{{t (print "euer.from_" .From)}}</small>{{else if .Picks}}{{template "suggest" dict "For" (print "line-" $e.Key) "Picks" .Picks}}{{else}}<small class="muted">{{t "euer.no_vendor"}}</small>{{end}}</td>
         </tr>{{end}}</tbody>
       </table></div>
       <p><button type="submit" class="btn btn-accent">{{t "euer.review"}}</button></p>

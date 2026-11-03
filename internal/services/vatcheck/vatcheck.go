@@ -173,6 +173,7 @@ type book struct {
 	// scanSlot the scan's, 0 without Paperless paired.
 	numberSlot, scanSlot int
 	num                  enums.Notation // how the user types amounts
+	learned              metrics.BankLearning
 }
 
 // Open builds the page for Verbund scope ("": the last or only one) and
@@ -234,6 +235,8 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 			b.apply(&cs)
 		}
 		cs.Draft.Euer, cs.Draft.EuerFrom = euer.Guess(euerInput(cs.Draft, cs.Txn))
+		cs.Draft.Suggest.Euer = euer.Suggest(euerInput(cs.Draft, cs.Txn))
+		cs.Draft.DropFilled()
 		if cs.Txn.Debit {
 			cs.Note = noteOf(cs.Txn)
 		}
@@ -414,7 +417,7 @@ func inSpan(day string, s metrics.VATSpan) bool {
 }
 
 func (b book) inputs(s metrics.VATSpan, method string, today time.Time) metrics.VATInputs {
-	return metrics.VATInputs{Ninja: b.ninja, Sure: b.bank, Start: s.Start, End: s.End, Method: method, Today: today}
+	return metrics.VATInputs{Ninja: b.ninja, Sure: b.bank, Start: s.Start, End: s.End, Method: method, Today: today, Learned: b.learned}
 }
 
 // accounts lists Invoice Ninja's bank accounts, then Sure's.
@@ -495,6 +498,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 		return b, scopes, ErrNoBank
 	}
 	b.cats.EuerSlot = b.cats.EuerOf(b.ninja.ExpenseFields)
+	b.learned = bankLearning(d, who, b.conn, b.ninja)
 	if b.bankConn != nil {
 		if res, err := fetch(ctx, d, who, b.bankConn, fresh); err == nil {
 			b.bank, _ = res.Data.(*sources.BankData)
@@ -607,6 +611,7 @@ func (b book) gapCases(ctx context.Context, d *sql.DB, who *access.Principal, s 
 		cs := Case{BankCase: metrics.BankCase{Txn: txn, Expenses: []sources.NinjaExpense{e}, Action: ActionFill,
 			Draft: metrics.ExpenseDraft{Vendor: vendor, VendorKey: e.VendorKey}}, parts: parts}
 		cs.Draft.Euer, cs.Draft.EuerFrom = euer.GuessExpense(e)
+		cs.Draft.Suggest.Euer = euer.SuggestExpense(e)
 		b.gapped(&cs)
 		b.propose(ctx, d, who, &cs)
 		out = append(out, cs)
@@ -661,6 +666,7 @@ func (b book) docCases(ctx context.Context, d *sql.DB, who *access.Principal, s 
 		cs := Case{BankCase: metrics.BankCase{Txn: txn, Action: ActionReceipt, Draft: metrics.DraftOf(b.ninja, txn)},
 			Scans: []receipts.Candidate{sc}, Note: strings.TrimSpace(sc.Doc.Title), parts: parts}
 		cs.Draft.Euer, cs.Draft.EuerFrom = euer.Guess(euerInput(cs.Draft, txn))
+		cs.Draft.Suggest.Euer = euer.Suggest(euerInput(cs.Draft, txn))
 		if b.numberSlot > 0 {
 			cs.Number = sc.Number
 		}
