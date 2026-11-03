@@ -10,6 +10,8 @@
 //
 // Afterwards a private ride between two business rides of the same day
 // becomes business (reason chain): customer A → bakery → customer B.
+// For the rest rides a learned model may suggest a class (ridelearn.go);
+// a suggestion changes nothing until the user sets the class by hand.
 package metrics
 
 import (

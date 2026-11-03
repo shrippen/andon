@@ -7982,6 +7982,7 @@ learn:
   purpose_category: 'Kategorie neuer Lieferanten'
   purpose_private: 'Privat oder geschäftlich'
   purpose_vendor: 'Lieferant aus dem Umsatz'
+  purpose_ride_class: 'Fahrt: beruflich oder privat'
   purpose_sure_category: 'Sure-Kategorie'
   purpose_mail: 'Rechnungsmail'
   train: 'Jetzt trainieren'

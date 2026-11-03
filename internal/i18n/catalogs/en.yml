@@ -7981,6 +7981,7 @@ learn:
   purpose_category: 'Category of new vendors'
   purpose_private: 'Private or business'
   purpose_vendor: 'Vendor from the booking'
+  purpose_ride_class: 'Ride: business or private'
   purpose_sure_category: 'Sure category'
   purpose_mail: 'Invoice mail'
   train: 'Train now'
