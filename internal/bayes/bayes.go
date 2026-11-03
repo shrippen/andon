@@ -241,6 +241,10 @@ func compareStr(a, b string) int {
 	return 0
 }
 
+// otherShare: a label after the best is suggested from this share of
+// MinP on ("EDV, GWG" when GWG is likely too).
+const otherShare = 3
+
 // minLabels is how many labels a model needs before it proposes: with
 // one, nothing is told apart.
 const minLabels = 2
@@ -267,4 +271,22 @@ func (u Use) Best(features []string, evidence func(string) bool) (Guess, bool) {
 		return Guess{}, false
 	}
 	return u.Model.Best(features, u.MinP)
+}
+
+// Suggest is what a page offers under a field ("Vorschlag: EDV, GWG"):
+// the best label if it reaches MinP, then others from MinP/otherShare
+// on, at most max, best first. Nothing is filled in: the user picks.
+func (u Use) Suggest(features []string, evidence func(string) bool, max int) []Guess {
+	best, ok := u.Best(features, evidence)
+	if !ok {
+		return nil
+	}
+	out := []Guess{best}
+	for _, g := range u.Model.Rank(features)[1:] {
+		if len(out) >= max || g.P < u.MinP/otherShare {
+			break
+		}
+		out = append(out, g)
+	}
+	return out[:min(len(out), max)]
 }

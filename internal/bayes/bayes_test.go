@@ -2,6 +2,7 @@ package bayes
 
 import (
 	"encoding/json"
+	"slices"
 	"testing"
 )
 
@@ -95,5 +96,42 @@ func TestPrune(t *testing.T) {
 	}
 	if m.Prune(func(string) bool { return false }) {
 		t.Fatal("nothing pruned, changed")
+	}
+}
+
+// Suggest lists the likely labels, best first: the best must reach
+// MinP, the others a third of it; at most max; nothing without evidence
+// or with one label. Here: EDV 0.50, GWG 0.33, Reise 0.17.
+func TestSuggest(t *testing.T) {
+	m := New()
+	for i, l := range []string{"EDV", "EDV", "EDV", "GWG", "GWG", "Reise"} {
+		m.Learn(string(rune('a'+i)), l, []string{"server"})
+	}
+	m.Learn("z", "Reise", []string{"bahn"})
+	evidence := func(string) bool { return true }
+	labels := func(gs []Guess) (out []string) {
+		for _, g := range gs {
+			out = append(out, g.Label)
+		}
+		return out
+	}
+
+	cases := []struct {
+		minP float64
+		max  int
+		want []string
+	}{
+		{0.4, 3, []string{"EDV", "GWG", "Reise"}}, // others from 0.13
+		{0.4, 2, []string{"EDV", "GWG"}},
+		{0.6, 3, nil}, // the best is below MinP
+	}
+	for _, c := range cases {
+		got := labels(Use{Model: m, MinP: c.minP}.Suggest([]string{"server"}, evidence, c.max))
+		if !slices.Equal(got, c.want) {
+			t.Errorf("MinP %.2f max %d: %v, want %v", c.minP, c.max, got, c.want)
+		}
+	}
+	if got := (Use{Model: m, MinP: 0.4}).Suggest([]string{"unbekannt"}, evidence, 3); got != nil {
+		t.Fatalf("no evidence: %+v", got)
 	}
 }
