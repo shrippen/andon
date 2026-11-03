@@ -10,7 +10,7 @@ its entry in `#changes` on the landing page (`docs/index.html`).
 Andon now does the paperwork with you instead of only pointing at it. Workbenches take the open cases of a service, propose what to write, show every step before anything leaves Andon, and write only what you confirmed, checked again against fresh data. The largest is the VAT check on Invoice Ninja's bank feed, up to the ELSTER figures.
 
 #### New
-- Workbenches, in their own menu with an overview and favourites: VAT check, receipt hunt, EÜR lines, close the week in Kimai, reminders on Invoice Ninja's schedule, subscriptions, Sure categories, vendor clean-up, updates as pull requests, inventory of the devices on the network, complete purchases and release feeds. Each one works inside a bundle and shows what it would write before it writes.
+- Workbenches, in their own menu with an overview and favourites: VAT check, receipt hunt, EÜR lines, close the week in Kimai, subscriptions, updates as pull requests, inventory of the devices on the network and complete purchases; more on the pages they belong to: reminders on Invoice Ninja's schedule, Sure categories, vendor clean-up and release feeds. Each one works inside a bundle and shows what it would write before it writes.
 - VAT check: the period's bank transactions from Invoice Ninja (with Sure beside it) are linked to expenses, invoices and payments, or become new expenses with scan, EÜR line and invoice number; a debit can be split over several receipts, receipts without an expense become one. Period cards show what is open and due; the ELSTER figures and the recapitulative statement (ZM) are ready to copy.
 - Work in progress stays: every change on a workbench is kept as a draft, so closing the page loses nothing. A draft gives way when its proposal changes (another reminder stage, another tag, another amount).
 - "Review this one" on the VAT check writes a single transaction while the others wait.
@@ -32,13 +32,11 @@ Andon now does the paperwork with you instead of only pointing at it. Workbenche
 #### Fixed
 - The edit mode broke after reloading a board.
 - Snipe-IT costs in German format were misread.
-- A typo in a rule threshold ("18.40" in German) saved a rule that fired on every value; it is now refused.
+- A rule threshold Andon could not read ("abc", or "1.234,56") saved a rule "> 0" that fired on every value; it is now refused.
 - Status checks asked DNS twice when many ran at once.
 
 #### Note
-- The Claude plan integration is gone: it read an undocumented claude.ai endpoint, and Anthropic suspended the account it read. Migration 0025 deletes such connections; AI costs come from the providers' admin APIs.
-- The EÜR line of an expense comes from its vendor's last expense, not from the category: one category belongs to several lines. The connection option "euer_map" is no longer read.
-- Rules of a category are named after it: snipe.* becomes inventory.*, sure.* and firefly.* become bank.*. Migration 0026 moves hints and rule settings along.
+- Rules a category shares are named after it: four Snipe-IT rules (warranty, GWG, missing expense, replacement) become inventory.*, six Sure and Firefly III rules (missed recurring, low balance, uncategorised, unusual expense, unused subscription, negative spendable) become bank.*. Migration 0026 moves hints and rule settings along.
 - The image is published only on ghcr.io/shrippen/andon, signed. Migrations 0025 to 0027 run at start.
 - Workbenches write to your services. They were tested against throwaway containers of the services, not yet over months of real bookkeeping: read each review before you confirm.
 
@@ -53,7 +51,7 @@ Andon now does the paperwork with you instead of only pointing at it. Workbenche
 Andon erledigt den Papierkram jetzt mit dir, statt nur darauf zu zeigen. Werkbänke nehmen die offenen Fälle eines Dienstes, schlagen vor, was zu schreiben ist, zeigen jeden Schritt, bevor etwas Andon verlässt, und schreiben nur, was du bestätigt hast, noch einmal gegen frische Daten geprüft. Die größte ist der USt-Abgleich auf Invoice Ninjas Bankumsätzen, bis zu den ELSTER-Kennzahlen.
 
 #### Neu
-- Werkbänke, in einem eigenen Menü mit Übersicht und Favoriten: USt-Abgleich, Belegjagd, EÜR-Zeilen, Woche in Kimai schließen, Mahnlauf nach Invoice Ninjas Mahnplan, Abos, Sure-Kategorien, Lieferanten aufräumen, Updates als Pull Requests, Inventur der Geräte im Netz, Anschaffungen vervollständigen und Release-Feeds. Jede arbeitet in einem Verbund und zeigt, was sie schreiben würde, bevor sie schreibt.
+- Werkbänke, in einem eigenen Menü mit Übersicht und Favoriten: USt-Abgleich, Belegjagd, EÜR-Zeilen, Woche in Kimai schließen, Abos, Updates als Pull Requests, Inventur der Geräte im Netz und Anschaffungen vervollständigen; weitere auf den Seiten, zu denen sie gehören: Mahnlauf nach Invoice Ninjas Mahnplan, Sure-Kategorien, Lieferanten aufräumen und Release-Feeds. Jede arbeitet in einem Verbund und zeigt, was sie schreiben würde, bevor sie schreibt.
 - USt-Abgleich: Die Bankumsätze des Zeitraums aus Invoice Ninja (mit Sure daneben) werden mit Ausgaben, Rechnungen und Zahlungen verknüpft oder zu neuen Ausgaben mit Beleg, EÜR-Zeile und Rechnungsnummer; eine Abbuchung lässt sich auf mehrere Belege aufteilen, Belege ohne Ausgabe werden zu einer. Zeitraum-Karten zeigen, was offen und fällig ist; ELSTER-Kennzahlen und Zusammenfassende Meldung stehen zum Kopieren bereit.
 - Zwischenstand bleibt: Jede Änderung in einer Werkbank wird gesichert, das Schließen der Seite verliert nichts. Ändert sich der Vorschlag (andere Mahnstufe, anderer Tag, anderer Betrag), gilt wieder der neue.
 - „Nur diesen prüfen“ im USt-Abgleich schreibt einen einzelnen Umsatz, die anderen warten.
@@ -75,13 +73,11 @@ Andon erledigt den Papierkram jetzt mit dir, statt nur darauf zu zeigen. Werkbä
 #### Behoben
 - Der Bearbeitungsmodus brach nach dem Neuladen eines Boards ab.
 - Snipe-IT-Kosten im deutschen Format wurden falsch gelesen.
-- Ein Tippfehler in der Schwelle einer Regel („18.40“ auf Deutsch) speicherte eine Regel, die bei jedem Wert anschlug; er wird jetzt abgelehnt.
+- Eine Schwelle, die Andon nicht lesen konnte („abc“ oder „1.234,56“), speicherte eine Regel „> 0“, die bei jedem Wert anschlug; sie wird jetzt abgelehnt.
 - Statusprüfungen fragten DNS doppelt, wenn viele gleichzeitig liefen.
 
 #### Hinweis
-- Die Claude-Abo-Integration ist entfernt: Sie las einen undokumentierten Endpunkt von claude.ai, und Anthropic hat das gelesene Konto gesperrt. Migration 0025 löscht solche Verbindungen; KI-Kosten kommen aus den Admin-APIs der Anbieter.
-- Die EÜR-Zeile einer Ausgabe kommt von der letzten Ausgabe ihres Lieferanten, nicht von der Kategorie: Eine Kategorie gehört zu mehreren Zeilen. Die Verbindungsoption „euer_map“ wird nicht mehr gelesen.
-- Regeln einer Kategorie heißen nach ihr: aus snipe.* wird inventory.*, aus sure.* und firefly.* wird bank.*. Migration 0026 zieht Hinweise und Regeleinstellungen mit.
+- Regeln, die eine Kategorie teilt, heißen nach ihr: vier Snipe-IT-Regeln (Garantie, GWG, fehlende Ausgabe, Ersatz) werden zu inventory.*, sechs Sure- und Firefly-III-Regeln (verpasste Abbuchung, niedriger Kontostand, ohne Kategorie, ungewöhnliche Ausgabe, ungenutztes Abo, negatives Verfügbares) zu bank.*. Migration 0026 zieht Hinweise und Regeleinstellungen mit.
 - Das Image erscheint nur noch auf ghcr.io/shrippen/andon, signiert. Die Migrationen 0025 bis 0027 laufen beim Start.
 - Werkbänke schreiben in deine Dienste. Getestet wurden sie gegen Wegwerf-Container der Dienste, noch nicht über Monate echter Buchhaltung: Lies jede Prüfung, bevor du bestätigst.
 
