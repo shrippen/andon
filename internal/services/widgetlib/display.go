@@ -471,11 +471,16 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		if err != nil {
 			return nil, err
 		}
-		sent := map[uint32]bool{}
-		for uid, fields := range reads {
-			_, sent[uid] = fields[mailForwardedKey]
+		// The viewer's marks: a personal mailbox is each holder's own.
+		h := svcdata.HolderOf(conn, model.UserHolder(who.UserID))
+		marks := widgets.MailMarks{Sent: map[uint32]bool{}, Dismissed: map[uint32]bool{}}
+		box, _ := frag.Slots["data"].Data.(*sources.MailDataset)
+		for _, inv := range mailsOf(box) {
+			fields := data.ReadOf(reads, h, inv.UID, inv.Key())
+			_, marks.Sent[inv.UID] = fields[mailForwardedKey]
+			_, marks.Dismissed[inv.UID] = fields[mailDismissedKey]
 		}
-		frag.Slots[widgets.ForwardedSlot] = Slot{Data: sent}
+		frag.Slots[widgets.ForwardedSlot] = Slot{Data: marks}
 	}
 	if kind.Extra == widgets.ExtraCloseTicks {
 		u, err := users.Get(d, who.UserID)
@@ -850,8 +855,20 @@ func Demo(ctx context.Context, d *sql.DB, who *access.Principal, spaceID int64, 
 	return load(ctx, d, who, w, svcdata.Cached, originDemo, loadTile)
 }
 
-// mailForwardedKey marks a mail sent to Paperless (see mailfwd).
-const mailForwardedKey = "forwarded"
+// Marks of a mail sent to Paperless or set aside as no invoice (see
+// mailfwd).
+const (
+	mailForwardedKey = "forwarded"
+	mailDismissedKey = "dismissed"
+)
+
+// mailsOf are box's mails; none without a run.
+func mailsOf(box *sources.MailDataset) []sources.MailInvoice {
+	if box == nil {
+		return nil
+	}
+	return box.Invoices
+}
 
 // timelineMax caps what the recent-timeline tile loads.
 const timelineMax = 50

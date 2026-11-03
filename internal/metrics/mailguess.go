@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"path"
-	"strconv"
 	"strings"
 
 	"andon/internal/bayes"
@@ -18,8 +17,9 @@ import (
 //	  w:nordhost w:ihre …         words    Guess ≥ MinP → "no invoice"
 //
 // The keyword filter of the source still picks the candidates; the model
-// only ranks and marks them, it never hides one. Every feature is
-// evidence: none is as weak as an EÜR guess's amount.
+// only ranks and marks them, it never hides one. Only the sender is
+// evidence: words ("ihre", "your") are shared by invoices and others
+// alike, they only weigh in.
 
 // MailKind is what the user decided a mail is: the model's label.
 type MailKind string
@@ -42,20 +42,26 @@ func MailLearn(m *bayes.Model, inv sources.MailInvoice, k MailKind) bool {
 	return m.Learn(mailID(inv), string(k), mailFeatures(inv))
 }
 
+// MailForget takes back what m learned from inv (a decision undone).
+func MailForget(m *bayes.Model, inv sources.MailInvoice) bool {
+	return m.Forget(mailID(inv))
+}
+
 // MailUnlikely says whether u is sure enough that inv is no invoice.
 func MailUnlikely(u bayes.Use, inv sources.MailInvoice) bool {
-	best, ok := u.Best(mailFeatures(inv), anyFeature)
+	best, ok := u.Best(mailFeatures(inv), isSenderFeature)
 	return ok && best.Label == string(MailNoInvoice)
 }
 
-// anyFeature: each of a mail's features is evidence.
-func anyFeature(string) bool { return true }
-
-// mailID names inv's example: its UID with the sender, so a mailbox
-// that renumbers its mails does not mix two of them.
-func mailID(inv sources.MailInvoice) string {
-	return strconv.FormatUint(uint64(inv.UID), 10) + " " + strings.ToLower(inv.Addr)
+// isSenderFeature says whether f is the sender's address or domain: the
+// evidence of a guess.
+func isSenderFeature(f string) bool {
+	return strings.HasPrefix(f, addrFeature) || strings.HasPrefix(f, domainFeature)
 }
+
+// mailID names inv's example: the mail's key, so a mailbox that
+// renumbers its mails does not mix two of them.
+func mailID(inv sources.MailInvoice) string { return inv.Key() }
 
 // mailFeatures are inv's sender address and domain, and the words of
 // its sender name, subject and attachment names (without extension:

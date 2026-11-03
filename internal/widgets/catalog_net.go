@@ -355,9 +355,15 @@ func paperlessInboxView(cfg PaperlessConfig, data *sources.PaperlessDataset, ctx
 
 // ── mail_invoices ──
 
-// ForwardedSlot carries the UIDs of mails already sent to Paperless
-// (map[uint32]bool) for the mail invoices tile.
+// ForwardedSlot carries the viewer's marks of the mailbox's mails
+// (MailMarks) for the mail invoices tile.
 const ForwardedSlot = "forwarded"
+
+// MailMarks are the UIDs of mails sent to Paperless, and of those set
+// aside as no invoice (left out everywhere).
+type MailMarks struct {
+	Sent, Dismissed map[uint32]bool
+}
 
 // MailConfig is the "mail_invoices" widget's config.
 type MailConfig struct {
@@ -378,11 +384,11 @@ func mailInvoicesView(cfg MailConfig, results map[string]any, _ ViewCtx) map[str
 	if !ok {
 		return map[string]any{}
 	}
-	sent, _ := results[ForwardedSlot].(map[uint32]bool)
+	marks, _ := results[ForwardedSlot].(MailMarks)
 	var list []sources.MailInvoice
 	sum := 0.0
 	for _, inv := range data.Invoices {
-		if cfg.OnlyOpen && sent[inv.UID] {
+		if marks.Dismissed[inv.UID] || (cfg.OnlyOpen && marks.Sent[inv.UID]) {
 			continue
 		}
 		sum += inv.Amount

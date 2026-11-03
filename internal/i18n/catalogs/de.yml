@@ -4261,6 +4261,7 @@ billing:
   mail_dismissed: 'Mail ausgeblendet. Ähnliche Mails stehen künftig unten.'
   mail_unlikely: wahrscheinlich keine Rechnung
   mail_learned: gelernt
+  mail_restore: Rückgängig
   lead: Unabgerechnete Kimai-Zeiten als Rechnungsentwurf in Invoice Ninja anlegen, und das Jahrespaket für die Steuer.
   drafts: Rechnungsentwürfe
   since: 'Arbeit seit {day}'
@@ -6342,6 +6343,7 @@ audit_action:
     read: 'Mail gelesen'
     to_paperless: 'Mail an Paperless übergeben'
     dismiss: 'Mail als keine Rechnung ausgeblendet'
+    restore: 'Ausgeblendete Mail zurückgeholt'
   notify:
     channel_added: 'Benachrichtigungskanal angelegt'
   oidc:

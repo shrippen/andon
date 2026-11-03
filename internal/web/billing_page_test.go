@@ -189,7 +189,7 @@ func TestBillingExportKeepsChoice(t *testing.T) {
 }
 
 // TestMailDismiss: "Not an invoice" hides a listed mail after a
-// redirect and says so; the other mail stays.
+// redirect and says so, with an undo; the other mail stays.
 func TestMailDismiss(t *testing.T) {
 	srv, client, code := newTestServer(t)
 	setupAdmin(t, srv, client, code)
@@ -211,7 +211,17 @@ func TestMailDismiss(t *testing.T) {
 		t.Fatalf("dismiss answered %d, want a redirect", resp.StatusCode)
 	}
 	page := string(mustGet(t, srv, client, loc))
-	if strings.Contains(page, `id="mail-2"`) || !strings.Contains(page, `id="mail-1"`) || !strings.Contains(page, "Mail ausgeblendet.") {
+	if strings.Contains(page, `id="mail-2"`) || !strings.Contains(page, `id="mail-1"`) || !strings.Contains(page, "Mail ausgeblendet.") ||
+		!strings.Contains(page, `action="/billing/mail/restore"`) {
 		t.Fatalf("after dismissing, page at %s:\n%s", loc, page)
+	}
+
+	// Undo brings it back.
+	resp = postForm(t, client, srv.URL+"/billing/mail/restore", url.Values{"csrf": {csrf}, "conn": {mail}, "uid": {"2"}})
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("restore answered %d, want a redirect", resp.StatusCode)
+	}
+	if page := string(mustGet(t, srv, client, resp.Header.Get("Location"))); !strings.Contains(page, `id="mail-2"`) {
+		t.Fatalf("after undo, mail 2 missing:\n%s", page)
 	}
 }

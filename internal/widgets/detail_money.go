@@ -5,6 +5,7 @@ package widgets
 
 import (
 	"cmp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -375,8 +376,9 @@ func mailInvoicesDetail(cfg MailConfig, results map[string]any, ctx ViewCtx) Det
 	if !ok {
 		return DetailView{Body: &DetailBody{Blocks: hintsBlock(results)}}
 	}
-	sent, _ := results[ForwardedSlot].(map[uint32]bool)
-	mails := append([]sources.MailInvoice(nil), data.Invoices...)
+	marks, _ := results[ForwardedSlot].(MailMarks)
+	sent := marks.Sent
+	mails := slices.DeleteFunc(slices.Clone(data.Invoices), func(m sources.MailInvoice) bool { return marks.Dismissed[m.UID] })
 	sort.Slice(mails, func(a, b int) bool { return mails[a].Date.After(mails[b].Date) })
 	list := &ObjList{Label: T("detail.mail.invoices")}
 	open := 0

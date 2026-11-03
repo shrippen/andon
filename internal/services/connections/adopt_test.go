@@ -80,7 +80,7 @@ func TestAdopt(t *testing.T) {
 		if err := data.AddHookEvent(tx, &model.HookEvent{ConnectionID: old, Event: "e", Subject: "s", At: day}); err != nil {
 			return err
 		}
-		if err := data.SaveMailRead(tx, old, 7, map[string]any{"a": 1}); err != nil {
+		if err := data.SaveMailRead(tx, old, data.MailRead{UID: 7, Fields: map[string]any{"a": 1}}); err != nil {
 			return err
 		}
 		return misc.AddShare(tx, &model.Share{ResourceKind: enums.ResourceConnection, ResourceID: old,

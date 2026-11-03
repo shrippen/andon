@@ -219,6 +219,7 @@ func (d Deps) RegisterBillingRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /billing/mail", d.authed(d.handleMailForward))
 	mux.HandleFunc("POST /billing/mail/read", d.authed(d.handleMailRead))
 	mux.HandleFunc("POST /billing/mail/dismiss", d.authed(d.handleMailDismiss))
+	mux.HandleFunc("POST /billing/mail/restore", d.authed(d.handleMailRestore))
 	mux.HandleFunc("POST /billing/payment", d.authed(d.handlePaymentBook))
 	d.registerReceiptRoutes(mux)
 	d.registerVATRoutes(mux)
@@ -295,7 +296,7 @@ func (d Deps) billingPage(w http.ResponseWriter, r *http.Request, ctx Ctx, statu
 func (d Deps) handleBillingPage(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	query := r.URL.Query()
 	values := map[string]any{"Created": query.Get("created"), "Forwarded": query.Get("forwarded"), "Error": query.Get("error"),
-		"Dismissed": query.Has("dismissed")}
+		"Dismissed": query.Get("dismissed"), "DismissedConn": query.Get("conn")}
 
 	// A mail action lacked a personal login: name its connection.
 	if id, err := strconv.ParseInt(query.Get("login"), 10, 64); err == nil {
@@ -369,7 +370,18 @@ func (d Deps) handleMailDismiss(w http.ResponseWriter, r *http.Request, ctx Ctx)
 		mailFailed(w, r, err, uid)
 		return
 	}
-	http.Redirect(w, r, "/billing?dismissed#mails", http.StatusSeeOther)
+	http.Redirect(w, r, "/billing?dismissed="+strconv.FormatUint(uid, 10)+"&conn="+strconv.FormatInt(conn, 10)+"#mails", http.StatusSeeOther)
+}
+
+// handleMailRestore undoes a dismiss: the mail is listed again.
+func (d Deps) handleMailRestore(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	conn := formID(r, "conn")
+	uid, _ := strconv.ParseUint(r.FormValue("uid"), 10, 32)
+	if err := mailfwd.Restore(r.Context(), d.DB, ctx.Who, conn, uint32(uid), d.clientIP(r)); err != nil {
+		mailFailed(w, r, err, uid)
+		return
+	}
+	http.Redirect(w, r, "/billing#mail-"+strconv.FormatUint(uid, 10), http.StatusSeeOther)
 }
 
 // mailFailed answers a failed mail action with a redirect, so reloading
