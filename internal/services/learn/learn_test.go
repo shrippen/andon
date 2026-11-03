@@ -204,3 +204,24 @@ func TestLearnDecision(t *testing.T) {
 		t.Fatalf("off learned: %d", n)
 	}
 }
+
+// A run that learns nothing new keeps the model and its time: the page
+// says when it last learned something.
+func TestTrainNothingNew(t *testing.T) {
+	d := testkit.DB(t)
+	admin, space := testkit.User(t, d, "admin@x.de", enums.RoleAdmin)
+	testkit.Conn(t, d, admin, space, enums.ServiceInvoiceNinja, "demo://invoiceninja")
+	ctx := context.Background()
+	first := time.Date(2026, 11, 1, 8, 0, 0, 0, time.UTC)
+
+	if err := learn.Train(ctx, d, first); err != nil {
+		t.Fatal(err)
+	}
+	if err := learn.Train(ctx, d, first.Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	rows, err := learn.Overview(d, admin)
+	if err != nil || len(rows) != 1 || !rows[0].TrainedAt.Equal(first) {
+		t.Fatalf("time moved without learning: %+v %v", rows, err)
+	}
+}
