@@ -4256,6 +4256,11 @@ billing:
   forwarded_singular: '{count} Datei an Paperless übergeben.'
   no_paperless: Keine Paperless-Verbindung im Bereich
   no_mails: Keine erkannten Rechnungsmails (Stand des letzten Prüflaufs).
+  mail_dismiss: Keine Rechnung
+  mail_dismiss_hint: 'Blendet die Mail aus; Andon lernt daraus, welche Mails keine Rechnungen sind.'
+  mail_dismissed: 'Mail ausgeblendet. Ähnliche Mails stehen künftig unten.'
+  mail_unlikely: wahrscheinlich keine Rechnung
+  mail_learned: gelernt
   lead: Unabgerechnete Kimai-Zeiten als Rechnungsentwurf in Invoice Ninja anlegen, und das Jahrespaket für die Steuer.
   drafts: Rechnungsentwürfe
   since: 'Arbeit seit {day}'
@@ -4277,6 +4282,7 @@ mailfwd:
   no_files: Die Mail hat keine PDF- oder Bilddatei.
   no_login: 'Für {name} fehlt dein persönlicher Zugang.'
   demo: 'Demo-Verbindungen nehmen keine Änderungen an.'
+  no_mail: 'Die Mail ist nicht mehr im Postfach (Stand des letzten Prüflaufs).'
 palette:
   open: Suchen
   title: Befehlspalette
@@ -6335,6 +6341,7 @@ audit_action:
   mail:
     read: 'Mail gelesen'
     to_paperless: 'Mail an Paperless übergeben'
+    dismiss: 'Mail als keine Rechnung ausgeblendet'
   notify:
     channel_added: 'Benachrichtigungskanal angelegt'
   oidc:
@@ -7970,6 +7977,7 @@ learn:
   col_features: 'Merkmale'
   col_trained: 'Zuletzt dazugelernt'
   purpose_euer: 'EÜR-Zeile'
+  purpose_mail: 'Rechnungsmail'
   train: 'Jetzt trainieren'
   reset: 'Zurücksetzen'
   reset_hint: 'Vergisst alles Gelernte. Was aus den Daten einer Verbindung stammt, lernt das Modell beim nächsten Training neu; was nur aus deinen Entscheidungen stammt, ist verloren.'

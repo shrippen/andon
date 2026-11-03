@@ -187,3 +187,31 @@ func TestBillingExportKeepsChoice(t *testing.T) {
 		t.Fatalf("year %s not kept:\n%s", last, body)
 	}
 }
+
+// TestMailDismiss: "Not an invoice" hides a listed mail after a
+// redirect and says so; the other mail stays.
+func TestMailDismiss(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	csrf := csrfToken(t, srv, client)
+	space := instanceSpace(t, srv, client)
+
+	resp := postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrf}, "service": {"mail"}, "space_id": {space},
+		"name": {"Postfach"}, "url": {"demo://mail"}, "mode": {"shared"}, "secret": {"demo:demo"}, "tls": {"verify"}})
+	mail := regexp.MustCompile(`/connections/(\d+)`).FindStringSubmatch(resp.Header.Get("Location"))[1]
+	runAnalysis(t, srv)
+	if page := string(mustGet(t, srv, client, "/billing")); !strings.Contains(page, `id="mail-2"`) || !strings.Contains(page, `action="/billing/mail/dismiss"`) {
+		t.Fatalf("mail 2 or its dismiss form missing:\n%s", page)
+	}
+
+	resp = postForm(t, client, srv.URL+"/billing/mail/dismiss", url.Values{"csrf": {csrf}, "conn": {mail}, "uid": {"2"}})
+	loc := resp.Header.Get("Location")
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("dismiss answered %d, want a redirect", resp.StatusCode)
+	}
+	page := string(mustGet(t, srv, client, loc))
+	if strings.Contains(page, `id="mail-2"`) || !strings.Contains(page, `id="mail-1"`) || !strings.Contains(page, "Mail ausgeblendet.") {
+		t.Fatalf("after dismissing, page at %s:\n%s", loc, page)
+	}
+}
