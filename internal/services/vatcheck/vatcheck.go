@@ -391,8 +391,7 @@ func (b book) apply(c *Case) {
 		return
 	}
 	if c.Draft.VendorFrom == metrics.FromLearned && g.Vendor != "" {
-		// Claude's vendor, asked for, beats the learned one and its history.
-		c.Draft = metrics.ExpenseDraft{Euer: c.Draft.Euer, EuerFrom: c.Draft.EuerFrom}
+		claudeVendor(&c.Draft, g.Vendor)
 	}
 	if c.Draft.VendorKey == "" && g.Vendor != "" {
 		c.Draft.Vendor = g.Vendor
@@ -413,6 +412,21 @@ func (b book) apply(c *Case) {
 		c.Draft.TaxRate, c.Draft.TaxKnown = g.TaxRate, true
 	}
 	c.Draft.From = metrics.FromModel
+}
+
+// claudeVendor lets Claude's vendor, asked for, decide over a learned
+// one: the same vendor confirms it with its history; another replaces
+// it and the history, keeping a category Sure's mapping set.
+func claudeVendor(d *metrics.ExpenseDraft, vendor string) {
+	if equalFold(d.Vendor, vendor) {
+		d.VendorFrom = metrics.FromNothing
+		return
+	}
+	keep := metrics.ExpenseDraft{Euer: d.Euer, EuerFrom: d.EuerFrom}
+	if d.From == metrics.FromSure {
+		keep.Category, keep.CategoryKey, keep.From = d.Category, d.CategoryKey, d.From
+	}
+	*d = keep
 }
 
 func inSpan(day string, s metrics.VATSpan) bool {
