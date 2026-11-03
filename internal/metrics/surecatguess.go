@@ -35,19 +35,17 @@ const minusSign = "-"
 
 // CatLearn teaches m bank's filed bookings: new ones, and ones whose
 // category changed; a booking whose category was taken back is
-// forgotten, one gone from bank stays learned. It says whether m changed.
+// forgotten, as is one marked a transfer since; one gone from bank
+// stays learned. It says whether m changed.
 func CatLearn(m *bayes.Model, bank *sources.BankData) bool {
 	if bank == nil {
 		return false
 	}
 	changed := false
 	for _, t := range bank.Transactions {
-		if t.Transfer {
-			continue
-		}
-
-		// A category taken back was wrong: do not propose it again.
-		if t.CategoryID == "" {
+		// A category taken back was wrong, a transfer needs none: do not
+		// propose it again.
+		if t.Transfer || t.CategoryID == "" {
 			changed = m.Forget(t.ID) || changed
 			continue
 		}

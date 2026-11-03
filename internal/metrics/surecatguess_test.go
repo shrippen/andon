@@ -78,3 +78,18 @@ func TestCatLearn(t *testing.T) {
 		t.Errorf("filed: %+v", m.Stats())
 	}
 }
+
+// A learned booking Sure later marks as a transfer is forgotten:
+// transfers need no category, so the model must not propose one.
+func TestCatLearnTransfer(t *testing.T) {
+	bank := &sources.BankData{Transactions: []sources.BankTxn{
+		{ID: "1", Merchant: "Tagesgeld", Amount: -500, CategoryID: "savings"},
+	}}
+	m := bayes.New()
+	CatLearn(m, bank)
+
+	bank.Transactions[0].Transfer = true
+	if !CatLearn(m, bank) || m.Stats().Examples != 0 {
+		t.Errorf("transfer still learned: %+v", m.Stats())
+	}
+}
