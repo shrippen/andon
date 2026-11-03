@@ -4256,6 +4256,12 @@ billing:
   forwarded_singular: '{count} Datei an Paperless übergeben.'
   no_paperless: Keine Paperless-Verbindung im Bereich
   no_mails: Keine erkannten Rechnungsmails (Stand des letzten Prüflaufs).
+  mail_dismiss: Keine Rechnung
+  mail_dismiss_hint: 'Blendet die Mail aus; Andon lernt daraus, welche Mails keine Rechnungen sind.'
+  mail_dismissed: 'Mail ausgeblendet. Bei Mails desselben Absenders schlägt Andon künftig „keine Rechnung“ vor.'
+  mail_kind_invoice: Rechnung
+  mail_kind_other: keine Rechnung
+  mail_restore: Rückgängig
   lead: Unabgerechnete Kimai-Zeiten als Rechnungsentwurf in Invoice Ninja anlegen, und das Jahrespaket für die Steuer.
   drafts: Rechnungsentwürfe
   since: 'Arbeit seit {day}'
@@ -4277,6 +4283,7 @@ mailfwd:
   no_files: Die Mail hat keine PDF- oder Bilddatei.
   no_login: 'Für {name} fehlt dein persönlicher Zugang.'
   demo: 'Demo-Verbindungen nehmen keine Änderungen an.'
+  no_mail: 'Die Mail ist nicht mehr im Postfach (Stand des letzten Prüflaufs).'
 palette:
   open: Suchen
   title: Befehlspalette
@@ -6335,6 +6342,8 @@ audit_action:
   mail:
     read: 'Mail gelesen'
     to_paperless: 'Mail an Paperless übergeben'
+    dismiss: 'Mail als keine Rechnung ausgeblendet'
+    restore: 'Ausgeblendete Mail zurückgeholt'
   notify:
     channel_added: 'Benachrichtigungskanal angelegt'
   oidc:
@@ -7952,7 +7961,7 @@ kept:
 
 learn:
   title: 'Lernmodell'
-  lead: 'Andon lernt aus deinen Daten und Entscheidungen (naiver Bayes) und schlägt dort vor, wo keine feste Regel greift: etwa die EÜR-Zeile einer Ausgabe. Jedes Modell gilt für eine Verbindung (bei persönlichem Login für jeden Inhaber) und wird gespeichert: es lernt Neues dazu und behält, was es aus gelöschten Daten gelernt hat. Ein Vorschlag erscheint erst, wenn das Modell mindestens zwei Klassen kennt. Es schlägt nur vor (Zeile „Vorschlag:“ unter dem Feld), ausgefüllt wird nichts.'
+  lead: 'Andon lernt aus deinen Daten und Entscheidungen (naiver Bayes) und schlägt dort vor, wo keine feste Regel greift: etwa die EÜR-Zeile einer Ausgabe. Jedes Modell gilt für eine Verbindung (bei persönlichem Login für jeden Inhaber) und wird gespeichert: es lernt Neues dazu und behält, was es aus gelöschten Daten gelernt hat. Ein Vorschlag erscheint erst, wenn das Modell mindestens zwei Klassen kennt.'
   suggest: 'Vorschlag:'
   settings: 'Einstellungen'
   mode: 'Gelernte Vorschläge'
@@ -7972,6 +7981,7 @@ learn:
   col_trained: 'Zuletzt dazugelernt'
   purpose_euer: 'EÜR-Zeile'
   purpose_sure_category: 'Sure-Kategorie'
+  purpose_mail: 'Rechnungsmail'
   train: 'Jetzt trainieren'
   reset: 'Zurücksetzen'
   reset_hint: 'Vergisst alles Gelernte. Was aus den Daten einer Verbindung stammt, lernt das Modell beim nächsten Training neu; was nur aus deinen Entscheidungen stammt, ist verloren.'

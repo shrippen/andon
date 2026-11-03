@@ -99,6 +99,15 @@
   --h-l:      48px;
   --h-xs:     24px;      /* dense parts below the control heights: chips, pills, stickers, inline buttons (touch: --h-s) */
   --h-mark:   20px;      /* counters and markers: .count, hint counts, the help "?" */
+  --line-border: 1px;    /* borders and grid lines */
+  --line-mark:   2px;    /* lines that mark: today, the picked day, the now line, underlines */
+  --line-edge:   3px;    /* the colour edge of an entry (a calendar's or project's colour) */
+  --level-wash:   6%;    /* tint levels of a data colour, for color-mix(): a tray */
+  --level-fill:   12%;   /* free time, a draft */
+  --level-strong: 22%;   /* a planned block */
+  --level-edge:   40%;   /* the border of such an area */
+  --level-done:   .6;    /* opacity of something done */
+  --level-dim:    .5;    /* opacity of something out of range or minor */
   --title-s:  1.1rem;    /* titles of cards, rows, tiles and bars (Rajdhani, uppercase) */
   --title-m:  1.4rem;    /* titles of blocks, sheets, dialogs and the login card */
   --title-l:  clamp(1.8rem, 4.2vw, 2.5rem); /* the title of an app page */

@@ -4255,6 +4255,12 @@ billing:
   forwarded_singular: '{count} file handed to Paperless.'
   no_paperless: No Paperless connection in this space
   no_mails: No invoice mails found (as of the last check).
+  mail_dismiss: Not an invoice
+  mail_dismiss_hint: 'Hides the mail; Andon learns from it which mails are no invoices.'
+  mail_dismissed: 'Mail hidden. For mails from the same sender Andon will suggest "not an invoice".'
+  mail_kind_invoice: invoice
+  mail_kind_other: not an invoice
+  mail_restore: Undo
   lead: Turn unbilled Kimai time into Invoice Ninja drafts, and download the tax year package.
   drafts: Invoice drafts
   since: 'Work since {day}'
@@ -4276,6 +4282,7 @@ mailfwd:
   no_files: The mail has no PDF or image file.
   no_login: 'Your own login for {name} is missing.'
   demo: 'Demo connections take no changes.'
+  no_mail: 'The mail is no longer in the mailbox (as of the last check).'
 palette:
   open: Search
   title: Command palette
@@ -6334,6 +6341,8 @@ audit_action:
   mail:
     read: 'Mail read'
     to_paperless: 'Mail sent to Paperless'
+    dismiss: 'Mail hidden as not an invoice'
+    restore: 'Hidden mail brought back'
   notify:
     channel_added: 'Notification channel added'
   oidc:
@@ -7951,7 +7960,7 @@ kept:
 
 learn:
   title: 'Learning'
-  lead: 'Andon learns from your data and decisions (naive Bayes) and proposes where no fixed rule applies: for example an expense''s EUER line. Each model belongs to one connection (with a personal login, to each holder) and is stored: it learns what is new and keeps what it learned from deleted data. A proposal appears only once the model knows at least two classes. It only suggests (a "Suggestion:" line under the field); nothing is filled in.'
+  lead: 'Andon learns from your data and decisions (naive Bayes) and proposes where no fixed rule applies: for example an expense''s EUER line. Each model belongs to one connection (with a personal login, to each holder) and is stored: it learns what is new and keeps what it learned from deleted data. A proposal appears only once the model knows at least two classes.'
   suggest: 'Suggestion:'
   settings: 'Settings'
   mode: 'Learned proposals'
@@ -7971,6 +7980,7 @@ learn:
   col_trained: 'Last learned'
   purpose_euer: 'EUER line'
   purpose_sure_category: 'Sure category'
+  purpose_mail: 'Invoice mail'
   train: 'Train now'
   reset: 'Reset'
   reset_hint: 'Forgets everything learned. What came from a connection''s data is learned again at the next training; what came only from your decisions is lost.'

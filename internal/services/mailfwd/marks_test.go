@@ -14,3 +14,12 @@ func TestForwardedMark(t *testing.T) {
 		t.Fatal("read fields or unsent mail misjudged")
 	}
 }
+
+// A new read replaces the old one; a field it lacks goes, the marks stay.
+func TestReadReplaces(t *testing.T) {
+	f := map[string]any{"vendor": "Alt", "number": "R1", dismissedKey: "x", forwardedKey: "y"}
+	readInto(f, map[string]any{"vendor": "Neu"})
+	if f["vendor"] != "Neu" || f["number"] != nil || f[dismissedKey] != "x" || f[forwardedKey] != "y" {
+		t.Fatalf("after a new read: %v", f)
+	}
+}
