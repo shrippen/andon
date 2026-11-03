@@ -7979,6 +7979,7 @@ learn:
   col_features: 'Features'
   col_trained: 'Last learned'
   purpose_euer: 'EUER line'
+  purpose_ride_class: 'Ride: business or private'
   purpose_sure_category: 'Sure category'
   purpose_mail: 'Invoice mail'
   train: 'Train now'

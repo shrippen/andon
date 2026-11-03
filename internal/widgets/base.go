@@ -75,6 +75,9 @@ const (
 	// ExtraIPWatch keeps the viewer's last public IP and hands it to the
 	// view as results["ip_seen"] (IPSeen).
 	ExtraIPWatch Extra = "ip_watch"
+	// ExtraRideModel hands the ride classes learned for the tile's
+	// Dawarich to the view as results["ride_model"] (bayes.Use).
+	ExtraRideModel Extra = "ride_model"
 )
 
 // Category groups widget types for the library UI.

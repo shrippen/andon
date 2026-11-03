@@ -1,13 +1,16 @@
 package widgets_test
 
 import (
+	"strconv"
 	"strings"
 
 	"andon/internal/i18n"
 	"testing"
 	"time"
 
+	"andon/internal/bayes"
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/sources"
 	"andon/internal/widgets"
 )
@@ -140,4 +143,48 @@ func TestTravelAmountFormula(t *testing.T) {
 	if !strings.Contains(got, "20 km × 0,30 €/km") {
 		t.Fatalf("formula: %q", got)
 	}
+}
+
+// TestTravelLearned: the ride model of the slot only suggests: the
+// tile's figures, the ride's light and the class field stay as without
+// it; the field gets a suggestion line.
+func TestTravelLearned(t *testing.T) {
+	results := travelData()
+	geo := results["data"].(*sources.DawarichDataset)
+	all := metrics.Rides(geo)
+	m := bayes.New()
+	metrics.TeachRides(m, geo, nil, map[string]any{metrics.OptionRides: map[string]any{
+		strconv.FormatInt(all[2].Start.Unix(), 10): "business", strconv.FormatInt(all[0].Start.Unix(), 10): "private"}})
+	results[widgets.RideModelSlot] = bayes.Use{Model: m, MinP: 0.6}
+
+	v := viewOf(t, "travel", map[string]any{}, results, enums.ServiceDawarich, nil)
+	if v["BusinessKM"] != 20.0 || v["PrivateKM"] != 8.0 || v["TripAmount"] != 6.0 {
+		t.Fatalf("a suggestion counts nowhere: %+v", v)
+	}
+
+	kind, _ := widgets.Get("travel")
+	cfg, _ := widgets.Decode("travel", map[string]any{})
+	body, _ := kind.Detail(cfg, results, ctxFor(enums.ServiceDawarich, nil)).Body.(*widgets.DetailBody)
+	if body == nil || body.List == nil || body.List.Items[0].State != "off" || body.List.State != "off" {
+		t.Fatalf("light as without the model: %+v", body)
+	}
+	field := classField(t, body)
+	if field.Value != string(metrics.ClassAuto) {
+		t.Fatalf("nothing preselected: %q", field.Value)
+	}
+	if len(field.Suggest) == 0 || field.Suggest[0] != (metrics.Pick{Value: "business", Text: "ride.class.business"}) {
+		t.Fatalf("suggested under the field: %+v", field.Suggest)
+	}
+}
+
+// classField is the ride class field of the travel dialog.
+func classField(t *testing.T, body *widgets.DetailBody) widgets.FormField {
+	t.Helper()
+	for _, b := range body.Blocks {
+		if f, ok := b.Data.(widgets.Form); ok && f.Do == "ride_class" {
+			return f.Fields[0]
+		}
+	}
+	t.Fatal("no class form")
+	return widgets.FormField{}
 }
