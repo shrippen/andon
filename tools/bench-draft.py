@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Works on /vat, reloads the page and checks that the draft put every
 change back: a typed vendor, a taken case, a split with a part and a
-scan found by a search. Discards the draft at the end.
+scan found by a search. Then writes one case alone ("Nur diesen
+prüfen"): its review shows below the desk, goes stale on a change, and
+the write (refused by the demo) leaves the other changes in the draft.
+Discards the draft at the end.
 
 Usage: start the demo (./start.sh demo, default http://localhost:8080), then
   <shrippen.github.io>/demo/tools/.venv/bin/python tools/bench-draft.py [base-url]
@@ -73,6 +76,55 @@ def seen(page):
     }
 
 
+def one(page):
+    """Writes CREATE alone; returns what went wrong."""
+    review = f'[data-desk="{CREATE}"] [hx-post="/vat/review"]'
+    box = f"#one-{CREATE}"
+    page.click(f'.bench-entry[data-case="{CREATE}"]')
+    page.click(review)
+    page.wait_for_selector(box + " .card")
+    page.fill(f'[name="vendor_{CREATE}"]', VENDOR + " AG")
+    wrong = []
+    if page.inner_html(box).strip():
+        wrong.append("one: review kept after a change")
+
+    # Another desk's review leaves only that one on the page.
+    page.click(review)
+    page.wait_for_selector(box + " .card")
+    page.click(f'.bench-entry[data-case="{SCAN}"]')
+    page.click(f'[data-desk="{SCAN}"] [hx-post="/vat/review"]')
+    page.wait_for_selector(f"#one-{SCAN} .card")
+    if page.inner_html(box).strip():
+        wrong.append("one: another desk's review kept")
+
+    page.click(f'.bench-entry[data-case="{CREATE}"]')
+    page.click(review)
+    page.wait_for_selector(box + " .card")
+
+    # Enter in a field (no change, so the review stays) must not write
+    # the reviewed case: the bench's own default button goes.
+    page.focus(f'[name="note_{CREATE}"]')
+    with page.expect_navigation():
+        page.keyboard.press("Enter")
+    page.wait_for_load_state("networkidle")
+    if "err_demo" in page.url:
+        wrong.append("one: Enter wrote the reviewed case")
+        return wrong
+    page.goto(page.url if "/vat?" in page.url else page.url.split("/vat")[0] + "/vat")
+    page.wait_for_load_state("networkidle")
+
+    page.click(f'.bench-entry[data-case="{CREATE}"]')
+    page.click(review)
+    page.wait_for_selector(box + " .card")
+    page.click(box + ' button[form="vat-one"]')
+    page.wait_for_url("**error=vatcheck.err_demo**")
+    page.wait_for_load_state("networkidle")
+    wait(page, f'[data-desk="{SPLIT}"] [data-split]')
+    if page.input_value(f'[data-desk="{SPLIT}"] input[data-act]') != "split":
+        wrong.append("one: the other cases' draft lost")
+    return wrong
+
+
 def main():
     base = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8080"
     errors = []
@@ -92,6 +144,7 @@ def main():
         page.reload()
         page.wait_for_load_state("networkidle")
         got = seen(page)
+        wrong = one(page)
 
         page.click("[data-draft-note] button")
         page.wait_for_url("**note=**")
@@ -100,10 +153,13 @@ def main():
     lost = {k: (got[k], v) for k, v in want.items() if got[k] != v}
     for k, (g, w) in lost.items():
         print(f"{k}: {g} (want {w})")
+    for w in wrong:
+        print(w)
     for e in errors:
         print("error:", e)
-    print("ok" if not lost and not errors else "")
-    sys.exit(1 if lost or errors else 0)
+    bad = lost or wrong or errors
+    print("" if bad else "ok")
+    sys.exit(1 if bad else 0)
 
 
 if __name__ == "__main__":

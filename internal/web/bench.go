@@ -5,6 +5,8 @@ package web
 //
 //	pick=Kx9  act_Kx9=create  vendor_Kx9=Nordhost  tax_Kx9=19
 //
+// only=Kx9 takes that row alone (a desk's "review this one").
+//
 // The review page sends the same back (template bench_step), so Apply
 // writes exactly what the user saw.
 //
@@ -27,11 +29,13 @@ import (
 )
 
 // benchPick names the ticked rows; benchAct prefixes a row's action;
-// benchScope carries the Verbund a bench works in (workbench.Scope).
+// benchScope carries the Verbund a bench works in (workbench.Scope);
+// benchOnly names one row to review and write alone.
 const (
 	benchPick  = "pick"
 	benchAct   = "act_"
 	benchScope = "scope"
+	benchOnly  = "only"
 )
 
 // Form fields of a draft's posts.
@@ -49,10 +53,16 @@ const draftPlaceMax = 128
 var errDraftShape = errors.New("workbench.err_draft_shape")
 
 // benchSteps reads the ticked rows with the given fields; a row without
-// an action is left out.
+// an action is left out. only=<case> reads that row alone, ticked or
+// not: one case written while the rest waits.
 func benchSteps(form url.Values, fields []string) []workbench.Step {
+	picks := form[benchPick]
+	if k := form.Get(benchOnly); k != "" {
+		picks = []string{k}
+	}
+
 	var out []workbench.Step
-	for _, k := range form[benchPick] {
+	for _, k := range picks {
 		s := workbench.Step{Case: k, Action: form.Get(benchAct + k), Fields: map[string]string{}}
 		if s.Action == "" {
 			continue

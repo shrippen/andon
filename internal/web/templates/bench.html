@@ -2,6 +2,10 @@
 
 {{/* One reviewed step sent back as the form sent it, so Apply writes
      what the review showed: pick, act_<case>, <field>_<case>. */}}
+{{/* The same for a form elsewhere on the page (form attribute), e.g. a
+     desk's own review inside the bench's form. Step, Form. */}}
+{{define "bench_step_in"}}{{$f := .Form}}{{$c := .Step.Case}}<input type="hidden" form="{{$f}}" name="pick" value="{{$c}}"><input type="hidden" form="{{$f}}" name="act_{{$c}}" value="{{.Step.Action}}">{{range $k, $v := .Step.Fields}}<input type="hidden" form="{{$f}}" name="{{$k}}_{{$c}}" value="{{$v}}">{{end}}{{end}}
+
 {{define "bench_step"}}<input type="hidden" name="pick" value="{{.Case}}"><input type="hidden" name="act_{{.Case}}" value="{{.Action}}">{{range $k, $v := .Fields}}<input type="hidden" name="{{$k}}_{{$.Case}}" value="{{$v}}">{{end}}{{end}}
 
 {{/* The Verbund a bench works in, when several fit (workbench.Scopes).

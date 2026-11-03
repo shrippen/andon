@@ -7401,6 +7401,10 @@ vatcheck:
   do_tax: '{name} {rate} %, input VAT {tax}'
   apply: 'Write to Invoice Ninja ({n})'
   apply_skip: Archive
+  review_one: 'Review this one'
+  review_one_hint: 'Shows what this transaction would write; the others wait.'
+  apply_one: 'Write this one'
+  apply_one_hint: 'Other changes stay as a draft.'
   back: Back
   applied: 'Done: {done} booked, {skipped} archived as private.'
   failed: 'Not booked: {n}.'

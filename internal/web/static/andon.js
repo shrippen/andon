@@ -2834,8 +2834,35 @@
     benchCount(form, split.closest("[data-desk]"));
   });
 
+  // benchStale drops a desk's own review: it showed other fields.
+  function benchStale(desk) {
+    var one = desk.querySelector("[data-one]");
+    if (one) {
+      one.textContent = "";
+    }
+  }
+
+  // New hits of a search (htmx) change what the desk would write too;
+  // a desk's new review leaves the only one on the page.
+  d.addEventListener("htmx:afterSwap", function (e) {
+    var desk = e.target.closest && e.target.closest("[data-desk]");
+    if (!desk) {
+      return;
+    }
+    if (!e.target.closest("[data-one]")) {
+      benchStale(desk);
+      return;
+    }
+    [].forEach.call(d.querySelectorAll("[data-desk]"), function (other) {
+      if (other !== desk) {
+        benchStale(other);
+      }
+    });
+  });
+
   // benchSetAct shows the action's block; the parts count again.
   function benchSetAct(form, desk, act) {
+    benchStale(desk);
     desk.querySelector("input[data-act]").value = act;
     [].forEach.call(desk.querySelectorAll("[data-set-act]"), function (b) {
       b.setAttribute("aria-pressed", String(b.getAttribute("data-set-act") === act));
@@ -2958,6 +2985,7 @@
     if (!desk) {
       return;
     }
+    benchStale(desk);
     if (e.type === "change" && e.target.matches("select[name^=exp_]")) {
       benchGaps(desk, e.target);
     }
