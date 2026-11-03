@@ -10,7 +10,8 @@
 //
 // Afterwards a private ride between two business rides of the same day
 // becomes business (reason chain): customer A → bakery → customer B.
-// TravelOf then lets a learned model class the rest rides (ridelearn.go).
+// TravelOf then lets a learned model propose a class for the rest rides
+// (ridelearn.go); a proposal counts nowhere until set by hand.
 package metrics
 
 import (
@@ -104,6 +105,9 @@ type ClassedRide struct {
 	CustomerID  int64
 	Unconfirmed bool
 	Trip        int64
+	// Proposed is the class learned for a rest ride, ClassAuto if none;
+	// the ride keeps Class until it is set by hand.
+	Proposed RideClass
 }
 
 // Day is the ride's local day.

@@ -37,9 +37,10 @@ func siteLabel(s *metrics.Site) string {
 	return s.Name
 }
 
-// rideState is a ride's light: unconfirmed business rides are yellow.
+// rideState is a ride's light: unconfirmed business rides and learned
+// proposals are yellow.
 func rideState(r metrics.ClassedRide) string {
-	if r.Unconfirmed {
+	if r.Unconfirmed || r.Proposed != metrics.ClassAuto {
 		return "warn"
 	}
 	return classState[r.Class]
@@ -114,6 +115,9 @@ func rideList(rides []metrics.ClassedRide, names map[int64]string, results map[s
 	list.Sel = pickIndex(results, keys)
 	r := pickedRide(rides, results)
 	list.Title, list.Sub = Day(r.Day()), TxtA("ride.reason."+string(r.Reason))
+	if r.Proposed != metrics.ClassAuto {
+		list.Sub = TxtA("ride.proposed." + string(r.Proposed))
+	}
 	list.State, list.StateText = rideState(r), T("ride.class."+string(r.Class))
 
 	customer := "–"
@@ -143,13 +147,14 @@ func rideList(rides []metrics.ClassedRide, names map[int64]string, results map[s
 }
 
 // classForm sets the ride's class by hand, or hands it back to the
-// rules (services/sites.SetClass).
+// rules (services/sites.SetClass); a learned proposal is preselected,
+// so saving confirms it.
 func classForm(r metrics.ClassedRide) Block {
 	options := []FormOption{{Value: string(metrics.ClassAuto), Label: Txt("detail.travel.class_auto")}}
 	for _, c := range metrics.RideClasses {
 		options = append(options, FormOption{Value: string(c), Label: Txt("ride.class." + string(c))})
 	}
-	value := string(metrics.ClassAuto)
+	value := string(r.Proposed)
 	if r.Reason == metrics.ReasonManual {
 		value = string(r.Class)
 	}

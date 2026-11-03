@@ -25,11 +25,13 @@ import (
 	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/repos/content"
+	linkrepo "andon/internal/repos/links"
 	"andon/internal/repos/misc"
 	"andon/internal/repos/users"
 	"andon/internal/services/access"
 	"andon/internal/services/audit"
 	"andon/internal/services/svcdata"
+	"andon/internal/services/verbund"
 	"andon/internal/sources"
 )
 
@@ -132,7 +134,16 @@ type Purpose struct {
 	// model changed; nil for a purpose that learns only from what the user
 	// decides (Learn).
 	Teach func(m *bayes.Model, data any, conn *model.Connection) bool
+
+	// Peer, if set, is a service whose cached dataset Teach reads too: the
+	// one the Verbund pairs with the connection (the Kimai of a Dawarich).
+	// Teach then gets Peered as data.
+	Peer enums.ServiceType
 }
+
+// Peered is a connection's dataset with its partner's (Purpose.Peer);
+// Peer is nil without one.
+type Peered struct{ Data, Peer any }
 
 var purposes = map[string]Purpose{}
 
@@ -205,9 +216,13 @@ func Train(ctx context.Context, d *sql.DB, now time.Time) error {
 	}
 	var conns []*model.Connection
 	var holders map[int64][]model.Holder
+	var links []linkrepo.Link
 	err = db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
 		if conns, err = content.AllConnections(tx); err != nil {
+			return err
+		}
+		if links, err = linkrepo.All(tx); err != nil {
 			return err
 		}
 		holders, err = content.CredentialHolders(tx)
@@ -224,8 +239,9 @@ func Train(ctx context.Context, d *sql.DB, now time.Time) error {
 			if p.Teach == nil || string(p.Service) != c.Service {
 				continue
 			}
+			peer := peerOf(c, conns, links, p.Peer)
 			for _, h := range keep {
-				errs = append(errs, trainOne(ctx, d, p, c, h, now))
+				errs = append(errs, trainOne(ctx, d, p, c, peer, h, now))
 			}
 		}
 		errs = append(errs, db.WithTx(d, func(tx *sql.Tx) error { return misc.PruneLearned(tx, c.ID, keep) }))
@@ -242,7 +258,7 @@ func holdersOf(c *model.Connection, holders []model.Holder) []model.Holder {
 	return holders
 }
 
-func trainOne(ctx context.Context, d *sql.DB, p Purpose, c *model.Connection, h model.Holder, now time.Time) error {
+func trainOne(ctx context.Context, d *sql.DB, p Purpose, c, peer *model.Connection, h model.Holder, now time.Time) error {
 	res, err := svcdata.Get(ctx, d, sources.DataKey(p.Service), nil, c, h, svcdata.Cached)
 	if err != nil {
 		return err
@@ -250,7 +266,46 @@ func trainOne(ctx context.Context, d *sql.DB, p Purpose, c *model.Connection, h 
 	if res.Data == nil || res.Error != "" {
 		return nil // not fetched yet or failing: the analysis reports it
 	}
-	return update(d, p.Key, c.ID, h, now, func(m *bayes.Model) bool { return p.Teach(m, res.Data, c) })
+	data := res.Data
+	if p.Peer != "" {
+		data = Peered{Data: res.Data, Peer: peerData(ctx, d, p.Peer, peer, h)}
+	}
+	return update(d, p.Key, c.ID, h, now, func(m *bayes.Model) bool { return p.Teach(m, data, c) })
+}
+
+// peerOf is c's partner of service in its space, as the analysis pairs
+// them (verbund.Groups: no user, only this space); nil if none or
+// ambiguous.
+func peerOf(c *model.Connection, conns []*model.Connection, links []linkrepo.Link, service enums.ServiceType) *model.Connection {
+	if service == "" {
+		return nil
+	}
+	var here []*model.Connection
+	for _, o := range conns {
+		if o.SpaceID == c.SpaceID {
+			here = append(here, o)
+		}
+	}
+	groups, _ := verbund.Groups(here, links)
+	for _, g := range groups {
+		if own := g.Conns[c.Service]; own != nil && own.ID == c.ID {
+			return g.Conns[string(service)]
+		}
+	}
+	return nil
+}
+
+// peerData is the partner's cached dataset, nil without one or when it
+// fails: Teach then learns what the connection alone holds.
+func peerData(ctx context.Context, d *sql.DB, service enums.ServiceType, peer *model.Connection, h model.Holder) any {
+	if peer == nil {
+		return nil
+	}
+	res, err := svcdata.Get(ctx, d, sources.DataKey(service), nil, peer, svcdata.HolderOf(peer, h), svcdata.Cached)
+	if err != nil || res.Error != "" {
+		return nil
+	}
+	return res.Data
 }
 
 // update reads, teaches and writes one model in one write transaction:

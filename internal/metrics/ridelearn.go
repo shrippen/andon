@@ -1,18 +1,20 @@
 package metrics
 
 // Learned ride classes: where the rules fall through to the rest rule,
-// the class a naive Bayes model learned from the rides set by hand.
+// the class a naive Bayes model learned from the rides set by hand
+// (Andon's option or a mileage trip in the Kimai plugin).
 //
 //	rides set by hand ──► features ──► bayes.Model (services/learn, per Dawarich)
 //	  from:<place>  to:<place>             │
 //	  day:<weekday> hour:<3-hour block>    ▼
-//	  km:<log₂ km>              rest ride ──► Best ≥ MinP ──► class, reason learned
+//	  km:<log₂ km>              rest ride ──► Best ≥ MinP ──► Proposed
 //
 // A place is the Dawarich area or place a ride starts or ends at, else
 // its grid cell (about 1 km): "to:area:12", "to:c:5240,1306". Without a
 // known place nothing is proposed: time and distance alone are no
-// evidence. Manual classes and every rule win; the chain rule runs again
-// afterwards, so a learned business ride bridges like any other.
+// evidence. A proposal is only that: the ride keeps the rest rule's
+// class, so no sum, amount or allowance counts it until the user sets
+// the class by hand.
 
 import (
 	"math"
@@ -24,9 +26,6 @@ import (
 	"andon/internal/bayes"
 	"andon/internal/sources"
 )
-
-// ReasonLearned: the model learned the class from rides set by hand.
-const ReasonLearned RideReason = "learned"
 
 // Feature prefixes of a ride.
 const (
@@ -49,22 +48,26 @@ func isPlaceFeature(f string) bool {
 	return strings.HasPrefix(f, fromFeature) || strings.HasPrefix(f, toFeature)
 }
 
-// TeachRides teaches m the classes set by hand (OptionRides) of geo's
-// rides; a ride gone from geo stays learned. It says whether m changed.
-// The plugin's trips are not read here: SetClass teaches those.
-func TeachRides(m *bayes.Model, geo *sources.DawarichDataset, options map[string]any) bool {
+// TeachRides teaches m the classes set by hand of geo's rides: in the
+// option (OptionRides) and, with kimai, the plugin's mileage trips; a
+// ride gone from geo stays learned. It says whether m changed.
+func TeachRides(m *bayes.Model, geo *sources.DawarichDataset, kimai *sources.KimaiDataset, options map[string]any) bool {
 	if geo == nil {
 		return false
 	}
 	changed := false
-	for _, r := range TravelOf(geo, nil, options, TravelSettingsOf(nil), time.Time{}).Rides {
-		if r.Reason != ReasonManual {
+	for _, r := range TravelOf(geo, kimai, options, TravelSettingsOf(nil), time.Time{}).Rides {
+		if !byUser(r) {
 			continue
 		}
 		changed = LearnRide(m, r, r.Class) || changed
 	}
 	return changed
 }
+
+// byUser says whether a person chose r's class: by hand in Andon, or as
+// a trip in the mileage plugin.
+func byUser(r ClassedRide) bool { return r.Reason == ReasonManual || r.Reason == ReasonPlugin }
 
 // LearnRide teaches m that r is class; ClassAuto forgets r (handed back
 // to the rules). It says whether m changed.
@@ -76,14 +79,15 @@ func LearnRide(m *bayes.Model, r ClassedRide, class RideClass) bool {
 	return m.Learn(id, string(class), rideFeatures(r))
 }
 
-// learned gives the rides the rules left to the rest rule the class u
-// learned; u learns the rides set by hand here first, in memory.
-func learned(rides []ClassedRide, u bayes.Use) {
+// propose gives the rides the rules left to the rest rule the class u
+// learned, where it differs from theirs; u learns the rides set by hand
+// here first, in memory.
+func propose(rides []ClassedRide, u bayes.Use) {
 	if !u.On() {
 		return
 	}
 	for _, r := range rides {
-		if r.Reason == ReasonManual {
+		if byUser(r) {
 			LearnRide(u.Model, r, r.Class)
 		}
 	}
@@ -94,12 +98,11 @@ func learned(rides []ClassedRide, u bayes.Use) {
 			continue
 		}
 		g, ok := u.Best(rideFeatures(*r), isPlaceFeature)
-		if !ok || !slices.Contains(RideClasses, RideClass(g.Label)) {
+		if !ok || RideClass(g.Label) == r.Class || !slices.Contains(RideClasses, RideClass(g.Label)) {
 			continue
 		}
-		r.Class, r.Reason = RideClass(g.Label), ReasonLearned
+		r.Proposed = RideClass(g.Label)
 	}
-	chain(rides)
 }
 
 // rideFeatures are r's start, end, weekday, time of day and distance.

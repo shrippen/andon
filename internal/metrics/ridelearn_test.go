@@ -1,8 +1,10 @@
 package metrics_test
 
 import (
+	"cmp"
 	"strconv"
 	"testing"
+	"time"
 
 	"andon/internal/bayes"
 	"andon/internal/metrics"
@@ -24,22 +26,36 @@ func byHand(rides []metrics.Ride, set map[int]metrics.RideClass) map[string]any 
 // learnedTravel classifies geo's rides with a model taught options.
 func learnedTravel(geo *sources.DawarichDataset, kimai *sources.KimaiDataset, taught, options map[string]any) []metrics.ClassedRide {
 	m := bayes.New()
-	metrics.TeachRides(m, geo, taught)
+	metrics.TeachRides(m, geo, nil, taught)
 	set := metrics.TravelSettingsOf(nil)
 	set.Learned = bayes.Use{Model: m, MinP: learnedMinP}
 	return metrics.TravelOf(geo, kimai, options, set, at("23:00")).Rides
 }
 
+// proposals are the rides' learned classes, "-" for none.
+func proposals(rides []metrics.ClassedRide) []string {
+	out := make([]string, len(rides))
+	for i, r := range rides {
+		out[i] = cmp.Or(string(r.Proposed), "-")
+	}
+	return out
+}
+
 // Home → office set business, home → lake private: the same rides are
-// proposed so, the walk ending at the office too; rides without a known
-// start or end stay with the rest rule.
-func TestLearnedClassesRestRides(t *testing.T) {
+// proposed so (private is the rest rule's class already), the walk
+// ending at the office too; rides without a known start or end get
+// nothing. A proposal counts in no sum.
+func TestLearnedProposesForRest(t *testing.T) {
 	geo, _ := testData()
 	taught := byHand(metrics.Rides(geo), map[int]metrics.RideClass{0: metrics.ClassBusiness, 4: metrics.ClassPrivate})
 
 	rides := learnedTravel(geo, nil, taught, nil)
 
-	sameList(t, classes(rides), []string{"business/learned", "business/learned", "private/rest", "private/rest", "private/learned", "private/rest"})
+	sameList(t, classes(rides), []string{"private/rest", "private/rest", "private/rest", "private/rest", "private/rest", "private/rest"})
+	sameList(t, proposals(rides), []string{"business", "business", "-", "-", "-", "-"})
+	if sum := metrics.ByClass(rides)[metrics.ClassBusiness]; sum.Rides != 0 {
+		t.Fatalf("a proposal counts nowhere: %+v", sum)
+	}
 }
 
 // A class set by hand and every rule win over the model.
@@ -52,32 +68,26 @@ func TestLearnedOnlyForRest(t *testing.T) {
 
 	rides := learnedTravel(geo, kimai, taught, byHand(all, map[int]metrics.RideClass{4: metrics.ClassPrivate}))
 
-	// walk: rest → learned; customer rides: rule; lake: by hand.
-	sameList(t, classes(rides), []string{"business/learned", "business/learned", "business/customer", "business/customer", "private/manual", "business/learned"})
+	// walk and rest: proposed; customer rides: rule; lake: by hand.
+	sameList(t, classes(rides), []string{"private/rest", "private/rest", "business/customer", "business/customer", "private/manual", "private/rest"})
+	sameList(t, proposals(rides), []string{"business", "business", "-", "-", "-", "business"})
 }
 
-// A learned business ride bridges like any other: the ride between two
-// learned customer rides becomes business by the chain rule.
-func TestLearnedKeepsChain(t *testing.T) {
-	geo, _ := testData()
-	geo.Tracks[0].Segments = []sources.DawarichSegment{
-		seg(home, customer, "08:00", "08:40", metrics.ModeDriving, 30),
-		seg(customer, customer, "08:40", "12:00", metrics.ModeStationary, 0),
-		seg(customer, lake, "12:00", "12:30", metrics.ModeDriving, 20),
-		seg(lake, lake, "12:30", "13:00", metrics.ModeStationary, 0),
-		seg(lake, customer, "13:00", "13:30", metrics.ModeDriving, 20),
+// The plugin's mileage trips are classes set by hand too.
+func TestTeachRidesPluginTrips(t *testing.T) {
+	geo, kimai := testData()
+	kimai.MileageTrips = []sources.KimaiMileageTrip{{ID: 9, Departure: at("18:00").Format(time.RFC3339), Arrival: at("18:40").Format(time.RFC3339), Purpose: "business"}}
+	m := bayes.New()
+
+	if !metrics.TeachRides(m, geo, kimai, nil) || m.Stats().Examples != 1 {
+		t.Fatalf("plugin trip learned: %+v", m.Stats())
 	}
-	geo.Tracks[0].Segments[2].FromLat, geo.Tracks[0].Segments[2].FromLon = office[0]+0.05, office[1] // leaves from nowhere known
-	taught := byHand(metrics.Rides(geo), map[int]metrics.RideClass{0: metrics.ClassBusiness})
-
-	// No Kimai: the customer is no site, only its cell is known.
-	rides := learnedTravel(geo, nil, taught, nil)
-
-	sameList(t, classes(rides), []string{"business/learned", "business/chain", "business/learned"})
+	if metrics.TeachRides(m, geo, nil, nil) {
+		t.Fatal("without Kimai the trip stays learned, unchanged")
+	}
 }
 
-// Handed back to the rules, a ride is forgotten; a model without a
-// known place proposes nothing.
+// Handed back to the rules, a ride is forgotten.
 func TestLearnRideForgets(t *testing.T) {
 	geo, _ := testData()
 	m := bayes.New()
@@ -92,7 +102,7 @@ func TestLearnRideForgets(t *testing.T) {
 	if !metrics.LearnRide(m, ride, metrics.ClassAuto) || m.Stats().Examples != 0 {
 		t.Fatalf("forgotten: %+v", m.Stats())
 	}
-	if metrics.TeachRides(m, nil, nil) {
+	if metrics.TeachRides(m, nil, nil, nil) {
 		t.Fatal("no data, nothing learned")
 	}
 }

@@ -6814,7 +6814,10 @@ ride:
     chain: zwischen zwei beruflichen Fahrten
     rest: keine berufliche Spur
     manual: von Hand eingeordnet
-    learned: gelernt aus deinen Einordnungen
+  proposed:
+    business: 'Vorschlag: beruflich (gelernt aus deinen Einordnungen)'
+    commute: 'Vorschlag: Arbeitsweg (gelernt aus deinen Einordnungen)'
+    private: 'Vorschlag: privat (gelernt aus deinen Einordnungen)'
   mode:
     driving: Auto
     walking: zu Fuß

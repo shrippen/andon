@@ -6813,7 +6813,10 @@ ride:
     chain: between two business rides
     rest: no business trace
     manual: set by hand
-    learned: learned from rides you set
+  proposed:
+    business: 'Proposal: business (learned from rides you set)'
+    commute: 'Proposal: commute (learned from rides you set)'
+    private: 'Proposal: private (learned from rides you set)'
   mode:
     driving: car
     walking: walking

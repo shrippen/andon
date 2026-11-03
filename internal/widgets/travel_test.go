@@ -145,18 +145,30 @@ func TestTravelAmountFormula(t *testing.T) {
 	}
 }
 
-// TestTravelLearned: the ride model of the slot classes the ride no rule
-// decides; here the lake ride, taught business.
+// TestTravelLearned: the ride model of the slot proposes a class for
+// the ride no rule decides (the lake ride, taught business); the tile's
+// figures leave it out, the dialog marks it and preselects it.
 func TestTravelLearned(t *testing.T) {
 	results := travelData()
 	geo := results["data"].(*sources.DawarichDataset)
-	lake := metrics.Rides(geo)[2]
+	all := metrics.Rides(geo)
 	m := bayes.New()
-	metrics.TeachRides(m, geo, map[string]any{metrics.OptionRides: map[string]any{strconv.FormatInt(lake.Start.Unix(), 10): "business"}})
+	metrics.TeachRides(m, geo, nil, map[string]any{metrics.OptionRides: map[string]any{
+		strconv.FormatInt(all[2].Start.Unix(), 10): "business", strconv.FormatInt(all[0].Start.Unix(), 10): "private"}})
 	results[widgets.RideModelSlot] = bayes.Use{Model: m, MinP: 0.6}
 
 	v := viewOf(t, "travel", map[string]any{}, results, enums.ServiceDawarich, nil)
-	if v["BusinessKM"] != 28.0 || v["PrivateKM"] != 0.0 {
-		t.Fatalf("learned business: %+v", v)
+	if v["BusinessKM"] != 20.0 || v["PrivateKM"] != 8.0 || v["TripAmount"] != 6.0 {
+		t.Fatalf("a proposal counts nowhere: %+v", v)
+	}
+
+	kind, _ := widgets.Get("travel")
+	cfg, _ := widgets.Decode("travel", map[string]any{})
+	body, _ := kind.Detail(cfg, results, ctxFor(enums.ServiceDawarich, nil)).Body.(*widgets.DetailBody)
+	if body == nil || body.List == nil || body.List.Items[0].State != "warn" || body.List.State != "warn" {
+		t.Fatalf("proposal marked: %+v", body)
+	}
+	if sub, _ := body.List.Sub.(map[string]any); sub["$t"] != "ride.proposed.business" {
+		t.Fatalf("proposal named: %+v", body.List.Sub)
 	}
 }

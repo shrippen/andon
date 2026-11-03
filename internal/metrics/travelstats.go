@@ -82,7 +82,7 @@ func TravelOf(geo *sources.DawarichDataset, kimai *sources.KimaiDataset, options
 		rides, t.Estimated = EstimatedRides(geo, book), true
 	}
 	t.Rides = Classify(rides, book, kimai, set.Base, ParseOverrides(options), now)
-	learned(t.Rides, set.Learned)
+	propose(t.Rides, set.Learned)
 	return t
 }
 

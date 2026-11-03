@@ -182,7 +182,7 @@ func rideExamples(t *testing.T, d *sql.DB, who *access.Principal, conn int64) in
 	if err != nil {
 		t.Fatal(err)
 	}
-	return sites.Learned(d, c, model.UserHolder(who.UserID)).Model.Stats().Examples
+	return sites.Learned(d, c, who).Model.Stats().Examples
 }
 
 // A class set by hand teaches the ride model, also when the plugin keeps
@@ -231,5 +231,37 @@ func TestTrainLearnsStoredClasses(t *testing.T) {
 	}
 	if n := rideExamples(t, d, who, conn); n != 1 {
 		t.Fatalf("stored class learned: %d", n)
+	}
+}
+
+// A class the plugin keeps (a mileage trip) is learned by the job too:
+// after a reset it comes back from Kimai.
+func TestTrainLearnsPluginClasses(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "a@b.c", enums.RoleAdmin)
+	rec := &recorder{}
+	end := rideStart.Add(30 * time.Minute)
+	trip := `[{"id": 7, "departure": "` + rideStart.Format(time.RFC3339) + `", "arrival": "` + end.Format(time.RFC3339) + `", "purpose": "private"}]`
+	geo, kimai := fakeDawarich(rec, oneRide()), fakeKimai(rec, pluginWrites, trip)
+	defer geo.Close()
+	defer kimai.Close()
+	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, geo.URL)
+	testkit.Conn(t, d, who, space, enums.ServiceKimai, kimai.URL)
+	ctx := context.Background()
+
+	if err := learn.Train(ctx, d, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if n := rideExamples(t, d, who, conn); n != 1 {
+		t.Fatalf("plugin class learned: %d", n)
+	}
+	if err := learn.Reset(d, who, sites.PurposeRides, conn, model.NoHolder, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := learn.Train(ctx, d, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if n := rideExamples(t, d, who, conn); n != 1 {
+		t.Fatalf("learned again after reset: %d", n)
 	}
 }

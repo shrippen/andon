@@ -514,7 +514,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		}
 	}
 	if kind.Extra == widgets.ExtraRideModel && conn != nil && from == originStored {
-		frag.Slots[widgets.RideModelSlot] = Slot{Data: sites.Learned(d, conn, holderAt(who, here, conn))}
+		frag.Slots[widgets.RideModelSlot] = Slot{Data: sites.Learned(d, conn, who)}
 	}
 	if kind.Extra == widgets.ExtraHistory {
 		h, err := history.Load(d, widget.SpaceID, 0, time.Now().UTC())
