@@ -168,9 +168,11 @@ func Train(ctx context.Context, d *sql.DB, now time.Time) error {
 		if c.Service != string(enums.ServiceInvoiceNinja) {
 			continue
 		}
-		for _, h := range holdersOf(c, holders[c.ID]) {
+		keep := holdersOf(c, holders[c.ID])
+		for _, h := range keep {
 			errs = append(errs, trainOne(ctx, d, c, h, now))
 		}
+		errs = append(errs, db.WithTx(d, func(tx *sql.Tx) error { return misc.PruneLearned(tx, c.ID, keep) }))
 	}
 	return errors.Join(errs...)
 }

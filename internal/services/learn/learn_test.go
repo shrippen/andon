@@ -2,6 +2,7 @@ package learn_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"andon/internal/model"
 	"andon/internal/repos/content"
 	"andon/internal/services/access"
+	"andon/internal/services/admin"
 	"andon/internal/services/connections"
 	"andon/internal/services/learn"
 	"andon/internal/testkit"
@@ -113,3 +115,56 @@ func TestPersonalPerHolder(t *testing.T) {
 		t.Fatal("resetting the admin's model reset the user's")
 	}
 }
+
+// A deleted user's model goes with the user: a new user given the same
+// id reads none of it; a login taken back drops its model at training.
+func TestHolderGone(t *testing.T) {
+	d := testkit.DB(t)
+	admin, _ := testkit.User(t, d, "admin@x.de", enums.RoleAdmin)
+	conn := testkit.Conn(t, d, admin, testkit.Instance(t, d), enums.ServiceInvoiceNinja, "demo://invoiceninja")
+	if _, err := d.Exec("UPDATE connections SET credential_mode = 'personal' WHERE id = ?", conn); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	c, err := content.Connection(d, conn)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	gone, _ := testkit.User(t, d, "gone@x.de", enums.RoleUser)
+	if err := connections.Activate(d, gone, conn, model.UserHolder(gone.UserID), "token"); err != nil {
+		t.Fatal(err)
+	}
+	if err := learn.Train(ctx, d, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if err := deleteUser(d, admin, gone.UserID); err != nil {
+		t.Fatal(err)
+	}
+	next, _ := testkit.User(t, d, "next@x.de", enums.RoleUser)
+	if next.UserID != gone.UserID {
+		t.Skipf("id not reused (%d, %d)", next.UserID, gone.UserID)
+	}
+	if l := learn.Euer(d, c, model.UserHolder(next.UserID)); l.Model.Stats().Examples != 0 {
+		t.Fatalf("new user inherits %d examples", l.Model.Stats().Examples)
+	}
+
+	// A login taken back: its model goes at the next training.
+	if err := connections.Activate(d, next, conn, model.UserHolder(next.UserID), "token"); err != nil {
+		t.Fatal(err)
+	}
+	if err := learn.Train(ctx, d, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if err := connections.Deactivate(d, next, conn, model.UserHolder(next.UserID)); err != nil {
+		t.Fatal(err)
+	}
+	if err := learn.Train(ctx, d, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if rows, _ := learn.Overview(d, admin); len(rows) != 0 {
+		t.Fatalf("models without login: %+v", rows)
+	}
+}
+
+func deleteUser(d *sql.DB, who *access.Principal, id int64) error { return admin.Delete(d, who, id, "") }
