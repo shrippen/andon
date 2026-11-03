@@ -19,11 +19,12 @@
     {{if $p.Scopes}}
     {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/feeds" "Keep" (dict)}}
     {{if $p.Cases}}
-    <form method="post" action="/feeds/review" class="card" id="cases">
+    {{template "bench_draft" dict "Draft" $p.Draft "Bench" "feeds" "Key" $p.DraftKey "Field" $.CSRFField "Token" $.Ctx.CSRF}}
+    <form method="post" action="/feeds/review" data-draft="/bench/feeds/draft" data-draft-place="{{$p.DraftKey}}" data-draft-cases="{{json $p.Draft}}" class="card" id="cases">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}">
       <div class="table-wrap"><table class="table cards-sm">
         <thead><tr><th></th><th>{{t "feeds.project"}}</th><th>{{t "feeds.change"}}</th></tr></thead>
-        <tbody>{{range $p.Cases}}{{$k := .Key}}<tr>
+        <tbody>{{range $p.Cases}}{{$k := .Key}}<tr data-draft-case="{{$k}}">
           <td><label class="check"><input type="checkbox" name="pick" value="{{$k}}" aria-label="{{or .Repo .Title}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
             <input type="hidden" name="act_{{$k}}" value="{{if eq (print .Action) "add"}}subscribe{{else}}unsubscribe{{end}}"></td>
           <td data-card="title"><b>{{or .Title .Repo}}</b><br><small class="muted">{{t (print "feeds.why_" .Action)}}{{with .Images}} · {{range $i, $m := .}}{{if $i}}, {{end}}{{$m}}{{end}}{{end}}</small></td>

@@ -2,6 +2,7 @@ package workbench_test
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -26,7 +27,7 @@ func TestDraft(t *testing.T) {
 	}
 	load := func(open ...string) workbench.Draft {
 		t.Helper()
-		got, err := workbench.LoadDraft(d, who, at, open)
+		got, err := workbench.LoadDraft(d, who, at, keys(open...))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -62,10 +63,10 @@ func TestDraft(t *testing.T) {
 	if got := load("a", "b"); got["b"] != nil || got["a"] == nil {
 		t.Fatalf("after Forget: %v", got)
 	}
-	if got, _ := workbench.LoadDraft(d, who, q2v4, []string{"b"}); got["b"] != nil {
+	if got, _ := workbench.LoadDraft(d, who, q2v4, keys("b")); got["b"] != nil {
 		t.Fatalf("other period of the Verbund kept b: %v", got)
 	}
-	if got, _ := workbench.LoadDraft(d, who, v5, []string{"b"}); got["b"] == nil {
+	if got, _ := workbench.LoadDraft(d, who, v5, keys("b")); got["b"] == nil {
 		t.Fatalf("other Verbund lost b: %v", got)
 	}
 	if err := workbench.DropDraft(d, who, v5); err != nil {
@@ -79,11 +80,11 @@ func TestDraft(t *testing.T) {
 	}
 
 	keep(workbench.Draft{"a": {"vendor_a": {"Nordhost"}}})
-	if got, err := workbench.LoadDraft(d, other, at, []string{"a"}); err != nil || len(got) != 0 {
+	if got, err := workbench.LoadDraft(d, other, at, keys("a")); err != nil || len(got) != 0 {
 		t.Fatalf("other user sees the draft: %v %v", got, err)
 	}
 	q2 := workbench.Place{Bench: "vat", Key: "v4/2026-Q2"}
-	if got, err := workbench.LoadDraft(d, who, q2, []string{"a"}); err != nil || len(got) != 0 {
+	if got, err := workbench.LoadDraft(d, who, q2, keys("a")); err != nil || len(got) != 0 {
 		t.Fatalf("other period sees the draft: %v %v", got, err)
 	}
 
@@ -108,8 +109,49 @@ func TestDraftSize(t *testing.T) {
 	if err := workbench.KeepDraft(d, who, at, big); !errors.Is(err, workbench.ErrDraftSize) {
 		t.Fatalf("err = %v, want ErrDraftSize", err)
 	}
-	got, _ := workbench.LoadDraft(d, who, at, []string{"a", "b"})
+	got, _ := workbench.LoadDraft(d, who, at, keys("a", "b"))
 	if len(got) != 1 || got["a"] == nil {
 		t.Fatalf("stored draft lost: %v", got)
+	}
+}
+
+// TestWritten: only a step written without a failure leaves the draft;
+// one refused before or by the service stays.
+func TestWritten(t *testing.T) {
+	plan := workbench.Plan[int]{Steps: []workbench.Planned[int]{
+		{Step: workbench.Step{Case: "ok"}},
+		{Step: workbench.Step{Case: "problem"}, Problem: "x.problem"},
+		{Step: workbench.Step{Case: "refused"}},
+	}}
+	res := workbench.Result{Done: 1, Failed: []workbench.Failure{{Case: "problem"}, {Case: "refused"}}}
+	if got := workbench.Written(plan, res); !slices.Equal(got, []string{"ok"}) {
+		t.Fatalf("written = %v, want [ok]", got)
+	}
+}
+
+// keys are open cases without a basis.
+func keys(ks ...string) workbench.Open {
+	out := workbench.Open{}
+	for _, k := range ks {
+		out[k] = ""
+	}
+	return out
+}
+
+// TestDraftBasis: a case drafted on another basis (a reminder's earlier
+// stage) is not shown, nor one drafted without; the same basis is.
+func TestDraftBasis(t *testing.T) {
+	d := testkit.DB(t)
+	who, _ := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	at := workbench.Place{Bench: "dunning", Key: "v1/"}
+	if err := workbench.KeepDraft(d, who, at, workbench.Draft{"a": {"body_a": {"x"}, "basis_a": {"1"}}, "b": {"body_b": {"y"}}}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := workbench.LoadDraft(d, who, at, workbench.Open{"a": "2", "b": "2"})
+	if err != nil || len(got) != 0 {
+		t.Fatalf("other basis shown: %v %v", got, err)
+	}
+	if got, _ := workbench.LoadDraft(d, who, at, workbench.Open{"a": "1"}); got["a"] == nil {
+		t.Fatalf("same basis hidden: %v", got)
 	}
 }

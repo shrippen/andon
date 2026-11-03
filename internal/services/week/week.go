@@ -87,6 +87,7 @@ type Page struct {
 	Cases   []Case
 	Catalog *sources.KimaiCatalog
 	Sources []enums.ServiceType // what fed the gaps
+	workbench.Drafted
 }
 
 type book struct {
@@ -122,6 +123,13 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, d
 		c.Project, c.Activity = prop.ProjectID, activityID(b.catalog, prop)
 		c.Checked = c.Project > 0 && c.Activity > 0
 		p.Cases = append(p.Cases, c)
+	}
+	// Begin and end come from the calendar or the visit: drafted at
+	// others, they go.
+	open := workbench.Based(p.Cases, func(c Case) string { return c.Key },
+		func(c Case) string { return c.Start.Format(time.RFC3339) + " " + c.End.Format(time.RFC3339) })
+	if p.Drafted, err = workbench.OpenDraft(d, who, workbench.PlaceOf("week", p.Scope, ""), open); err != nil {
+		return p, err
 	}
 	return p, nil
 }
@@ -286,7 +294,10 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 	out := workbench.Apply[Item](ctx, d, who, w, plan, "week", ip)
 	svcdata.Forget(b.conn.ID)
 	err = workbench.SaveState(d, who, prefKey, func(s *state) { s.Scope = b.scope.Key })
-	return out, err
+	if err != nil {
+		return out, err
+	}
+	return out, workbench.ForgetWritten(d, who, "week", b.scope.Key, plan, out)
 }
 
 type writer struct {

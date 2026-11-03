@@ -3042,6 +3042,7 @@
   // Hidden fields are the server's, except data-draft-keep (the action).
   // Last in the file: a page's own "andon-draft" listeners come first.
   var DRAFT_WAIT_MS = 800;
+  var DRAFT_BASIS = "basis_"; // workbench.BasisField
 
   function draftFields(box) {
     return [].filter.call(box.querySelectorAll("input[name], select[name], textarea[name]"), function (el) {
@@ -3054,9 +3055,14 @@
   }
 
   // draftSnap is a case's fields as the form sends them; an unticked box
-  // or radio group counts as [].
+  // or radio group counts as []. data-draft-basis goes along as
+  // basis_<case>: the server drops a draft whose proposal moved on.
   function draftSnap(box) {
     var out = {};
+    var basis = box.getAttribute("data-draft-basis");
+    if (basis !== null) {
+      out[DRAFT_BASIS + box.getAttribute("data-draft-case")] = [basis];
+    }
     draftFields(box).forEach(function (el) {
       out[el.name] = out[el.name] || [];
       if (!checkable(el) || el.checked) {
@@ -3094,6 +3100,9 @@
       }
     });
     return (names || Object.keys(vals)).filter(function (name) {
+      if (name.indexOf(DRAFT_BASIS) === 0) {
+        return false;
+      }
       return !exists[name] || (vals[name].length > 0 && matched[name] === false);
     });
   }

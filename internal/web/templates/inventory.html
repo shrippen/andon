@@ -22,11 +22,12 @@
     {{$svc := t (print "service." $p.Service)}}
     {{if and $p.Service (not $p.Writable)}}<p class="small">{{t "inventory.no_write" "service" $svc}}</p>{{else if and $p.Cases (not $p.CanAdd)}}<p class="small">{{t "inventory.no_models"}}</p>{{end}}
     {{if $p.Cases}}
-    <form method="post" action="/inventory/review" class="card" id="cases">
+    {{template "bench_draft" dict "Draft" $p.Draft "Bench" "inventory" "Key" $p.DraftKey "Field" $.CSRFField "Token" $.Ctx.CSRF}}
+    <form method="post" action="/inventory/review" data-draft="/bench/inventory/draft" data-draft-place="{{$p.DraftKey}}" data-draft-cases="{{json $p.Draft}}" class="card" id="cases">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}">
       <div class="table-wrap"><table class="table cards-sm">
         <thead><tr><th></th><th>{{t "inventory.device"}}</th><th>{{t "inventory.what"}}</th><th>{{t "inventory.asset" "service" $svc}}</th></tr></thead>
-        <tbody>{{range $p.Cases}}{{$k := .Key}}<tr>
+        <tbody>{{range $p.Cases}}{{$k := .Key}}<tr data-draft-case="{{$k}}">
           <td><label class="check"><input type="checkbox" name="pick" value="{{$k}}" aria-label="{{.Name}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label></td>
           <td data-card="title"><b>{{.Name}}</b><br><small class="muted">{{t (print "service." .From)}}{{with .IP}} · {{.}}{{end}}{{with .MAC}} · {{.}}{{end}}</small></td>
           <td><select class="select" name="act_{{$k}}" aria-label="{{t "inventory.what"}}">

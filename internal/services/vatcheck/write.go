@@ -427,19 +427,7 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 	if err != nil {
 		return out, err
 	}
-	return out, workbench.Forget(d, who, draftAt(b.scope.Key, ""), written(plan, out))
-}
-
-// written are the cases Apply wrote without a failure: their drafts go.
-func written(plan workbench.Plan[Item], res workbench.Result) []string {
-	var out []string
-	for _, p := range plan.Steps {
-		failed := slices.ContainsFunc(res.Failed, func(f workbench.Failure) bool { return f.Case == p.Case })
-		if p.Problem == workbench.ProblemNone && !failed {
-			out = append(out, p.Case)
-		}
-	}
-	return out
+	return out, workbench.ForgetWritten(d, who, benchID, b.scope.Key, plan, out)
 }
 
 // auditPrefix starts the audit entries of written steps: vatcheck.link.

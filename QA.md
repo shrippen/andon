@@ -109,6 +109,7 @@ Erwartet: Dialoge mit Titel, Fokus zurück auf den Auslöser; Zahlen in Kachel u
 3. `/benches`: drei Gruppen mit Beschreibung und Zähler; „In die Menüleiste“ bei „Belege zuordnen“: Ab jetzt zeigt die Leiste nur die Werkbänke mit Stern, auch ohne offene Hinweise. Stern wieder entfernen.
 4. Strg+K, „ust“: Gruppe „Werkbänke“ mit Beschreibung.
 5. Am Handy: ☰ zeigt Hinweise und alle Werkbänke; die Karten auf `/benches` überlappen nicht.
+6. Zwischenstand in jeder Werkbank mit Fällen (Woche, Abos, Updates, Inventar, Einkäufe, Mahnlauf, Kategorien, Feeds, EÜR, Lieferanten): eine Zeile ändern (Feld, Häkchen), Seite neu laden. Die Änderung steht da, oben „Zwischenstand geladen: 1 Fälle · Verwerfen“; Verwerfen zeigt die Vorschläge. Nach dem Schreiben ist der Fall aus dem Zwischenstand verschwunden (`tools/bench-draft.py`). Ändert sich der Vorschlag, auf dem ein Fall steht (Mahnlauf: andere Stufe; Updates: andere Tags; Abos: anderer Betrag der Bank; Woche: andere Zeiten), zeigt die Seite den neuen Vorschlag statt des Zwischenstands.
 
 **J-B8 Warten** · DevTools „Network“ auf „Slow 3G“ (oder `tools/loading.py`)
 1. Seitenwechsel über die Leiste: Nach kurzer Zeit läuft oben der gestreifte Balken, um den geklickten Link ein Lauflicht, die alte Seite wird blass. Ohne Drosselung blitzt nichts auf.

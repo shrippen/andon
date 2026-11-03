@@ -33,10 +33,19 @@ const draftBytes = 1 << 20
 // ErrDraftSize means a draft grew past draftBytes.
 var ErrDraftSize = errors.New("workbench.err_draft_size")
 
-// LoadDraft reads the draft at place with only the cases still open.
-// The others stay stored: a list may miss a case for a moment (its
-// service unreadable); Forget removes the written ones.
-func LoadDraft(d *sql.DB, who *access.Principal, at Place, open []string) (Draft, error) {
+// Open are the cases a page shows: key → the basis of its proposal, ""
+// none (a reminder's stage, an image's tags). A case drafted on another
+// basis is not shown: its fields followed a proposal since replaced.
+type Open map[string]string
+
+// BasisField prefixes the basis a draft keeps for its case (web:
+// data-draft-basis): basis_<case>.
+const BasisField = "basis_"
+
+// LoadDraft reads the draft at place with only the cases still open on
+// the same basis. The others stay stored: a list may miss a case for a
+// moment (its service unreadable); Forget removes the written ones.
+func LoadDraft(d *sql.DB, who *access.Principal, at Place, open Open) (Draft, error) {
 	var stored Draft
 	err := db.WithRead(d, func(tx *sql.Tx) error {
 		var err error
@@ -49,11 +58,20 @@ func LoadDraft(d *sql.DB, who *access.Principal, at Place, open []string) (Draft
 
 	out := Draft{}
 	for k, v := range stored {
-		if slices.Contains(open, k) {
+		basis, ok := open[k]
+		if ok && basisOf(v, k) == basis {
 			out[k] = v
 		}
 	}
 	return out, nil
+}
+
+// basisOf is the basis a case's fields were drafted on.
+func basisOf(fields map[string][]string, k string) string {
+	if v := fields[BasisField+k]; len(v) > 0 {
+		return v[0]
+	}
+	return ""
 }
 
 // KeepDraft stores the cases given over the stored ones; a case without
@@ -142,4 +160,56 @@ func readDraft(q db.Queryer, who *access.Principal, at Place) (Draft, error) {
 		return Draft{}, nil // unreadable: start afresh
 	}
 	return out, nil
+}
+
+// Drafted is what a bench's page carries of its draft: the open cases
+// the user changed, and where the draft holds (web: data-draft-place).
+type Drafted struct {
+	Draft    Draft
+	DraftKey string
+	Bases    Open // each case's basis, for its row (web: data-draft-basis)
+}
+
+// PlaceOf is a bench's draft in a Verbund, per period where the bench
+// has one ("" none): "v4/2026-Q3", "v4/".
+func PlaceOf(bench, scope, period string) Place {
+	return Place{Bench: bench, Key: scope + "/" + period}
+}
+
+// OpenDraft loads the draft at place for a page showing the open cases.
+func OpenDraft(d *sql.DB, who *access.Principal, at Place, open Open) (Drafted, error) {
+	draft, err := LoadDraft(d, who, at, open)
+	return Drafted{Draft: draft, DraftKey: at.Key, Bases: open}, err
+}
+
+// Written are the cases Apply wrote without a failure.
+func Written[P any](plan Plan[P], res Result) []string {
+	var out []string
+	for _, p := range plan.Steps {
+		failed := slices.ContainsFunc(res.Failed, func(f Failure) bool { return f.Case == p.Case })
+		if p.Problem == ProblemNone && !failed {
+			out = append(out, p.Case)
+		}
+	}
+	return out
+}
+
+// ForgetWritten drops what Apply wrote from the bench's drafts in the
+// Verbund, every period of it.
+func ForgetWritten[P any](d *sql.DB, who *access.Principal, bench, scope string, plan Plan[P], res Result) error {
+	return Forget(d, who, PlaceOf(bench, scope, ""), Written(plan, res))
+}
+
+// Keys are cases without a basis, for OpenDraft.
+func Keys[C any](cases []C, key func(C) string) Open {
+	return Based(cases, key, func(C) string { return "" })
+}
+
+// Based are cases with the basis of their proposal, for OpenDraft.
+func Based[C any](cases []C, key, basis func(C) string) Open {
+	out := Open{}
+	for _, c := range cases {
+		out[key(c)] = basis(c)
+	}
+	return out
 }

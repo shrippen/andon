@@ -83,6 +83,7 @@ type Page struct {
 	URL      string // Invoice Ninja, for links
 	Assist   bool
 	Plan     metrics.DunningPlan // Invoice Ninja's reminder schedule, or the defaults
+	workbench.Drafted
 }
 
 type book struct {
@@ -110,6 +111,11 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, t
 			cs.Text = &t
 		}
 		p.Cases = append(p.Cases, cs)
+	}
+	// A reminder's text is its stage's: drafted at another, it goes.
+	open := workbench.Based(p.Cases, func(c Case) string { return c.Key }, func(c Case) string { return strconv.Itoa(c.Next) })
+	if p.Drafted, err = workbench.OpenDraft(d, who, workbench.PlaceOf("dunning", p.Scope, ""), open); err != nil {
+		return p, err
 	}
 	return p, nil
 }
@@ -245,7 +251,10 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 	out := workbench.Apply[Item](ctx, d, who, w, plan, "dunning", ip)
 	svcdata.Forget(b.conn.ID)
 	err = workbench.SaveState(d, who, prefKey, func(s *state) { s.Scope = b.scope.Key })
-	return out, err
+	if err != nil {
+		return out, err
+	}
+	return out, workbench.ForgetWritten(d, who, "dunning", b.scope.Key, plan, out)
 }
 
 type writer struct {

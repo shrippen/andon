@@ -4,7 +4,8 @@ change back: a typed vendor, a taken case, a split with a part and a
 scan found by a search. Then writes one case alone ("Nur diesen
 prüfen"): its review shows below the desk, goes stale on a change, and
 the write (refused by the demo) leaves the other changes in the draft.
-Discards the draft at the end.
+Discards the draft at the end. Last, every other bench with cases in
+the demo: a row's first text field and its tick survive a reload.
 
 Usage: start the demo (./start.sh demo, default http://localhost:8080), then
   <shrippen.github.io>/demo/tools/.venv/bin/python tools/bench-draft.py [base-url]
@@ -125,6 +126,50 @@ def one(page):
     return wrong
 
 
+# The other benches with a draft (web/benches.go); vendors has no case
+# in the demo.
+OTHERS = ["euer", "week", "inventory", "dunning", "purchases", "subs", "updates", "categorize", "feeds"]
+ROW = "form[data-draft] [data-draft-case]"
+TEXT = "input[name]:not([type]), input[type=text][name], textarea[name]"
+
+
+def others(page, base):
+    """Changes a row on each bench, reloads; returns what was lost."""
+    wrong = []
+    for bench in OTHERS:
+        page.goto(f"{base}/{bench}")
+        page.wait_for_load_state("networkidle")
+        rows = [r for r in page.query_selector_all(ROW) if r.query_selector('input[name="pick"]')]
+        row = rows[0] if rows else None
+        if row is None:
+            print(f"{bench}: no case in the demo, skipped")
+            continue
+        k = row.get_attribute("data-draft-case")
+        box = f'{ROW}[data-draft-case="{k}"]'
+        text = page.query_selector(f"{box} :is({TEXT})")
+        tick = page.query_selector(f'{box} input[name="pick"]')
+        typed = ticked = None
+        if text and text.is_visible():
+            text.fill("Entwurf " + bench)
+            typed = text.get_attribute("name")
+        if tick and tick.is_visible():
+            ticked = not tick.is_checked()
+            page.click(f'{box} label:has(input[name="pick"])')  # the styled box takes the click
+        page.wait_for_timeout(SAVE_MS)
+        page.reload()
+        page.wait_for_load_state("networkidle")
+        if typed and page.input_value(f'{box} [name="{typed}"]') != "Entwurf " + bench:
+            wrong.append(f"{bench}: {typed} lost")
+        if ticked is not None and page.is_checked(f'{box} input[name="pick"]') != ticked:
+            wrong.append(f"{bench}: tick lost")
+        if not page.query_selector("[data-draft-note]"):
+            wrong.append(f"{bench}: no draft note")
+        else:
+            page.click("[data-draft-note] button")
+            page.wait_for_load_state("networkidle")
+    return wrong
+
+
 def main():
     base = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8080"
     errors = []
@@ -148,6 +193,7 @@ def main():
 
         page.click("[data-draft-note] button")
         page.wait_for_url("**note=**")
+        wrong += others(page, base)
         browser.close()
 
     lost = {k: (got[k], v) for k, v in want.items() if got[k] != v}

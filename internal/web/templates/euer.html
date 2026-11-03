@@ -29,14 +29,15 @@
       {{else}}<p><a class="btn btn-outline" href="/categories?ninja={{$p.Ninja}}&amp;bank={{$p.Bank}}">{{t "euer.setup_link"}}</a></p>{{end}}
     </section>
     {{else if $p.Cases}}
-    <form method="post" action="/euer/review" class="card">
+    {{template "bench_draft" dict "Draft" $p.Draft "Bench" "euer" "Key" $p.DraftKey "Field" $.CSRFField "Token" $.Ctx.CSRF}}
+    <form method="post" action="/euer/review" data-draft="/bench/euer/draft" data-draft-place="{{$p.DraftKey}}" data-draft-cases="{{json $p.Draft}}" class="card">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="year" value="{{$p.Year}}">
       <p class="small muted">{{t "euer.cases" "n" (len $p.Cases) "suggested" $p.Suggested "field" $p.Label}}
         {{if $p.LinkID}}<a href="/verbund/{{$p.LinkID}}/categories?space={{$p.SpaceID}}">{{t "euer.mapping"}}</a>{{else}}<a href="/categories?ninja={{$p.Ninja}}&amp;bank={{$p.Bank}}">{{t "euer.mapping"}}</a>{{end}}</p>
       {{if not $p.Dropdown}}<datalist id="euer-lines">{{range $p.Lines}}<option value="{{.}}">{{end}}</datalist>{{end}}
       <div class="table-wrap"><table class="table cards-sm">
         <thead><tr><th></th><th>{{t "euer.expense"}}</th><th>{{t "euer.line"}}</th></tr></thead>
-        <tbody>{{range $p.Cases}}{{$e := .Expense}}<tr>
+        <tbody>{{range $p.Cases}}{{$e := .Expense}}<tr data-draft-case="{{$e.Key}}">
           <td><label class="check"><input type="checkbox" name="pick" value="{{$e.Key}}" aria-label="{{$e.Number}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
             <input type="hidden" name="act_{{$e.Key}}" value="set"></td>
           <td data-card="title"><b>{{or $e.Number $e.Key}}</b> · {{day $e.Date}} · {{money $e.Amount}}<br><small class="muted">{{$e.Notes}}</small></td>

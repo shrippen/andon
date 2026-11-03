@@ -23,11 +23,12 @@
     </nav>
     <p class="small muted">{{if $p.Sources}}{{t "closeweek.sources"}} {{range $i, $s := $p.Sources}}{{if $i}}, {{end}}{{t (print "service." $s)}}{{end}}{{else}}{{t "closeweek.no_sources"}}{{end}}</p>
     {{if $p.Cases}}
-    <form method="post" action="/week/review" class="card">
+    {{template "bench_draft" dict "Draft" $p.Draft "Bench" "week" "Key" $p.DraftKey "Field" $.CSRFField "Token" $.Ctx.CSRF}}
+    <form method="post" action="/week/review" data-draft="/bench/week/draft" data-draft-place="{{$p.DraftKey}}" data-draft-cases="{{json $p.Draft}}" class="card">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="week" value="{{$p.Week.Format "2006-01-02"}}">
       <div class="table-wrap"><table class="table cards-sm">
         <thead><tr><th></th><th>{{t "closeweek.seen"}}{{tzMark}}</th><th>{{t "closeweek.entry"}}</th></tr></thead>
-        <tbody>{{range $p.Cases}}{{$c := .}}{{$k := .Key}}<tr>
+        <tbody>{{range $p.Cases}}{{$c := .}}{{$k := .Key}}<tr data-draft-case="{{$k}}" data-draft-basis="{{index $p.Bases $k}}">
           <td><label class="check"><input type="checkbox" name="pick" value="{{$k}}"{{if .Checked}} checked{{end}} aria-label="{{.Title}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
             <input type="hidden" name="act_{{$k}}" value="book"></td>
           <td data-card="title"><b>{{or .Customer "?"}}</b> · {{day .Day}} {{.Start.Format "15:04"}}–{{.End.Format "15:04"}}<br>

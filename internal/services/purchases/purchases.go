@@ -87,6 +87,7 @@ type Page struct {
 	// warranties from Andon.
 	Service  enums.ServiceType
 	Writable bool
+	workbench.Drafted
 }
 
 type book struct {
@@ -110,6 +111,10 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, t
 	}
 	p.Cases, p.Ninja, p.Linked, p.Writable = b.cases, b.ninja, b.linked, b.writable
 	p.Service = enums.ServiceType(b.conn.Service)
+	open := workbench.Keys(p.Cases, func(c metrics.PurchaseCase) string { return c.Key })
+	if p.Drafted, err = workbench.OpenDraft(d, who, workbench.PlaceOf("purchases", p.Scope, ""), open); err != nil {
+		return p, err
+	}
 	return p, nil
 }
 
@@ -234,7 +239,10 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 	out := workbench.Apply[Item](ctx, d, who, w, plan, "purchases", ip)
 	svcdata.Forget(b.conn.ID)
 	err = workbench.SaveState(d, who, prefKey, func(s *state) { s.Scope = b.scope.Key })
-	return out, err
+	if err != nil {
+		return out, err
+	}
+	return out, workbench.ForgetWritten(d, who, "purchases", b.scope.Key, plan, out)
 }
 
 type writer struct {

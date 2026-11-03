@@ -19,11 +19,12 @@
     {{if $p.Scopes}}
     {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/categorize" "Keep" (dict)}}
     {{if $p.Cases}}
-    <form method="post" action="/categorize/review" class="card">
+    {{template "bench_draft" dict "Draft" $p.Draft "Bench" "categorize" "Key" $p.DraftKey "Field" $.CSRFField "Token" $.Ctx.CSRF}}
+    <form method="post" action="/categorize/review" data-draft="/bench/categorize/draft" data-draft-place="{{$p.DraftKey}}" data-draft-cases="{{json $p.Draft}}" class="card">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}">
       <div class="table-wrap"><table class="table cards-sm">
         <thead><tr><th></th><th>{{t "categorize.merchant"}}</th><th>{{t "categorize.category"}}</th></tr></thead>
-        <tbody>{{range $p.Cases}}{{$c := .}}{{$k := .Key}}<tr>
+        <tbody>{{range $p.Cases}}{{$c := .}}{{$k := .Key}}<tr data-draft-case="{{$k}}">
           <td><label class="check"><input type="checkbox" name="pick" value="{{$k}}"{{if .Ticked}} checked{{end}} aria-label="{{.Merchant}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
             <input type="hidden" name="act_{{$k}}" value="file"></td>
           <td data-card="title"><b>{{.Merchant}}</b><br>
