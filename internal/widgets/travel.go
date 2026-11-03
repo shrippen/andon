@@ -8,7 +8,6 @@ package widgets
 import (
 	"time"
 
-	"andon/internal/bayes"
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/sources"
@@ -25,13 +24,10 @@ type TravelConfig struct {
 // RideModelSlot is the result name of ExtraRideModel.
 const RideModelSlot = "ride_model"
 
-// travelOf classifies the rides of the tile's Dawarich data; the learned
-// model classes the rides no rule decides.
+// travelOf classifies the rides of the tile's Dawarich data.
 func travelOf(data *sources.DawarichDataset, ctx ViewCtx, results map[string]any) metrics.Travel {
 	kimai, _ := results[peerKimai].(*sources.KimaiDataset)
-	set := metrics.TravelSettingsOf(ctx.Settings)
-	set.Learned, _ = results[RideModelSlot].(bayes.Use)
-	return metrics.TravelOf(data, kimai, ctx.Options, set, time.Now())
+	return metrics.TravelOf(data, kimai, ctx.Options, metrics.TravelSettingsOf(ctx.Settings), time.Now())
 }
 
 // travelRate is the widget's km rate, else the space's.

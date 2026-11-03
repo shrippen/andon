@@ -1,7 +1,6 @@
 package metrics_test
 
 import (
-	"cmp"
 	"strconv"
 	"testing"
 	"time"
@@ -23,54 +22,48 @@ func byHand(rides []metrics.Ride, set map[int]metrics.RideClass) map[string]any 
 	return map[string]any{metrics.OptionRides: all}
 }
 
-// learnedTravel classifies geo's rides with a model taught options.
-func learnedTravel(geo *sources.DawarichDataset, kimai *sources.KimaiDataset, taught, options map[string]any) []metrics.ClassedRide {
+// suggested is what a model taught options suggests for each of geo's
+// rides, classified with options, "-" for nothing.
+func suggested(geo *sources.DawarichDataset, kimai *sources.KimaiDataset, taught, options map[string]any) ([]metrics.ClassedRide, []string) {
 	m := bayes.New()
 	metrics.TeachRides(m, geo, nil, taught)
-	set := metrics.TravelSettingsOf(nil)
-	set.Learned = bayes.Use{Model: m, MinP: learnedMinP}
-	return metrics.TravelOf(geo, kimai, options, set, at("23:00")).Rides
-}
-
-// proposals are the rides' learned classes, "-" for none.
-func proposals(rides []metrics.ClassedRide) []string {
+	u := bayes.Use{Model: m, MinP: learnedMinP}
+	rides := metrics.TravelOf(geo, kimai, options, metrics.TravelSettingsOf(nil), at("23:00")).Rides
 	out := make([]string, len(rides))
 	for i, r := range rides {
-		out[i] = cmp.Or(string(r.Proposed), "-")
+		out[i] = "-"
+		if s := metrics.SuggestRide(u, rides, r, 1); len(s) > 0 {
+			out[i] = string(s[0])
+		}
 	}
-	return out
+	return rides, out
 }
 
-// Home → office set business, home → lake private: the same rides are
-// proposed so (private is the rest rule's class already), the walk
-// ending at the office too; rides without a known start or end get
-// nothing. A proposal counts in no sum.
-func TestLearnedProposesForRest(t *testing.T) {
+// Home → office set business, home → lake private: the same rides get
+// those suggestions, the walk ending at the office too; rides without a
+// known start or end get none. The rides keep the rules' class.
+func TestSuggestRideForRest(t *testing.T) {
 	geo, _ := testData()
 	taught := byHand(metrics.Rides(geo), map[int]metrics.RideClass{0: metrics.ClassBusiness, 4: metrics.ClassPrivate})
 
-	rides := learnedTravel(geo, nil, taught, nil)
+	rides, got := suggested(geo, nil, taught, nil)
 
+	sameList(t, got, []string{"business", "business", "-", "-", "private", "-"})
 	sameList(t, classes(rides), []string{"private/rest", "private/rest", "private/rest", "private/rest", "private/rest", "private/rest"})
-	sameList(t, proposals(rides), []string{"business", "business", "-", "-", "-", "-"})
-	if sum := metrics.ByClass(rides)[metrics.ClassBusiness]; sum.Rides != 0 {
-		t.Fatalf("a proposal counts nowhere: %+v", sum)
-	}
 }
 
-// A class set by hand and every rule win over the model.
-func TestLearnedOnlyForRest(t *testing.T) {
+// A class set by hand and every rule get no suggestion.
+func TestSuggestRideOnlyForRest(t *testing.T) {
 	geo, kimai := testData()
 	all := metrics.Rides(geo)
-	// Every ride taught business: the model would propose it anywhere.
+	// Every ride taught business: the model would suggest it anywhere.
 	taught := byHand(all, map[int]metrics.RideClass{0: metrics.ClassBusiness, 1: metrics.ClassBusiness, 2: metrics.ClassBusiness,
 		3: metrics.ClassBusiness, 4: metrics.ClassBusiness, 5: metrics.ClassBusiness})
 
-	rides := learnedTravel(geo, kimai, taught, byHand(all, map[int]metrics.RideClass{4: metrics.ClassPrivate}))
+	_, got := suggested(geo, kimai, taught, byHand(all, map[int]metrics.RideClass{4: metrics.ClassPrivate}))
 
-	// walk and rest: proposed; customer rides: rule; lake: by hand.
-	sameList(t, classes(rides), []string{"private/rest", "private/rest", "business/customer", "business/customer", "private/manual", "private/rest"})
-	sameList(t, proposals(rides), []string{"business", "business", "-", "-", "-", "business"})
+	// walk and rest: suggested; customer rides: rule; lake: by hand.
+	sameList(t, got, []string{"business", "business", "-", "-", "-", "business"})
 }
 
 // The plugin's mileage trips are classes set by hand too.

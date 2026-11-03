@@ -11,6 +11,7 @@ import (
 	"sort"
 	"time"
 
+	"andon/internal/bayes"
 	"andon/internal/metrics"
 	"andon/internal/sources"
 )
@@ -37,10 +38,9 @@ func siteLabel(s *metrics.Site) string {
 	return s.Name
 }
 
-// rideState is a ride's light: unconfirmed business rides and learned
-// proposals are yellow.
+// rideState is a ride's light: unconfirmed business rides are yellow.
 func rideState(r metrics.ClassedRide) string {
-	if r.Unconfirmed || r.Proposed != metrics.ClassAuto {
+	if r.Unconfirmed {
 		return "warn"
 	}
 	return classState[r.Class]
@@ -83,7 +83,7 @@ func travelDetail(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, 
 		body.Blocks = append(body.Blocks, readingBlock(data, ctx))
 	}
 
-	body.List, body.Blocks = rideList(period, names, results, body.Blocks)
+	body.List, body.Blocks = rideList(period, travel.Rides, names, results, body.Blocks)
 	body.Blocks = append(body.Blocks, classBars(sums))
 	body.Blocks = append(body.Blocks, travelYear(travel, data, today)...)
 	booked := map[int64]float64{}
@@ -97,8 +97,8 @@ func travelDetail(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, 
 }
 
 // rideList is the period's rides, newest first, and the picked one in
-// detail with a map.
-func rideList(rides []metrics.ClassedRide, names map[int64]string, results map[string]any, blocks []Block) (*ObjList, []Block) {
+// detail with a map; all are every ride, for the learned suggestion.
+func rideList(rides, all []metrics.ClassedRide, names map[int64]string, results map[string]any, blocks []Block) (*ObjList, []Block) {
 	if len(rides) == 0 {
 		return nil, append(blocks, Block{Kind: BlockText, Data: Txt("detail.travel.none")})
 	}
@@ -115,9 +115,6 @@ func rideList(rides []metrics.ClassedRide, names map[int64]string, results map[s
 	list.Sel = pickIndex(results, keys)
 	r := pickedRide(rides, results)
 	list.Title, list.Sub = Day(r.Day()), TxtA("ride.reason."+string(r.Reason))
-	if r.Proposed != metrics.ClassAuto {
-		list.Sub = TxtA("ride.proposed." + string(r.Proposed))
-	}
 	list.State, list.StateText = rideState(r), T("ride.class."+string(r.Class))
 
 	customer := "–"
@@ -137,7 +134,8 @@ func rideList(rides []metrics.ClassedRide, names map[int64]string, results map[s
 	}
 	blocks = append(blocks, Block{Kind: BlockTable, Data: Table{Head: []Text{T("detail.exposure.what"), T("detail.exposure.value")}, Rows: rows}})
 
-	blocks = append(blocks, classForm(r))
+	learned, _ := results[RideModelSlot].(bayes.Use)
+	blocks = append(blocks, classForm(r, metrics.SuggestRide(learned, all, r, suggestMax)))
 
 	from, to := GeoPoint{Lat: r.FromLat, Lon: r.FromLon}, GeoPoint{Lat: r.ToLat, Lon: r.ToLon}
 	if m, ok := NewMap(ridePath(r, results), []MapMark{Pin(from, siteLabel(r.From), "ok"), Pin(to, siteLabel(r.To), rideState(r))}); ok {
@@ -146,20 +144,27 @@ func rideList(rides []metrics.ClassedRide, names map[int64]string, results map[s
 	return list, blocks
 }
 
+// suggestMax caps the learned classes under the class field.
+const suggestMax = 3
+
 // classForm sets the ride's class by hand, or hands it back to the
-// rules (services/sites.SetClass); a learned proposal is preselected,
-// so saving confirms it.
-func classForm(r metrics.ClassedRide) Block {
+// rules (services/sites.SetClass); the learned classes only show under
+// the field ("Vorschlag: beruflich"), the user picks.
+func classForm(r metrics.ClassedRide, suggested []metrics.RideClass) Block {
 	options := []FormOption{{Value: string(metrics.ClassAuto), Label: Txt("detail.travel.class_auto")}}
 	for _, c := range metrics.RideClasses {
 		options = append(options, FormOption{Value: string(c), Label: Txt("ride.class." + string(c))})
 	}
-	value := string(r.Proposed)
+	value := string(metrics.ClassAuto)
 	if r.Reason == metrics.ReasonManual {
 		value = string(r.Class)
 	}
+	var picks []metrics.Pick
+	for _, c := range suggested {
+		picks = append(picks, metrics.Pick{Value: string(c), Text: "ride.class." + string(c)})
+	}
 	return Block{Kind: BlockForm, Label: T("detail.travel.class_set"), Data: Form{Do: "ride_class", Args: map[string]string{"ride": rideKey(r)},
-		Submit: T("detail.travel.class_save"), Fields: []FormField{{Name: "class", Label: T("detail.travel.class"), Kind: FieldSelect, Value: value, Options: options}}}}
+		Submit: T("detail.travel.class_save"), Fields: []FormField{{Name: "class", Label: T("detail.travel.class"), Kind: FieldSelect, Value: value, Options: options, Suggest: picks}}}}
 }
 
 // rideRouteName is the result name of the picked ride's points.

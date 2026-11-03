@@ -7,12 +7,12 @@ package metrics
 //	rides set by hand ──► features ──► bayes.Model (services/learn, per Dawarich)
 //	  from:<place>  to:<place>             │
 //	  day:<weekday> hour:<3-hour block>    ▼
-//	  km:<log₂ km>              rest ride ──► Best ≥ MinP ──► Proposed
+//	  km:<log₂ km>              rest ride ──► Suggest ──► "Vorschlag: beruflich"
 //
 // A place is the Dawarich area or place a ride starts or ends at, else
 // its grid cell (about 1 km): "to:area:12", "to:c:5240,1306". Without a
-// known place nothing is proposed: time and distance alone are no
-// evidence. A proposal is only that: the ride keeps the rest rule's
+// known place nothing is suggested: time and distance alone are no
+// evidence. The model only suggests: the ride keeps the rest rule's
 // class, so no sum, amount or allowance counts it until the user sets
 // the class by hand.
 
@@ -79,30 +79,26 @@ func LearnRide(m *bayes.Model, r ClassedRide, class RideClass) bool {
 	return m.Learn(id, string(class), rideFeatures(r))
 }
 
-// propose gives the rides the rules left to the rest rule the class u
-// learned, where it differs from theirs; u learns the rides set by hand
-// here first, in memory.
-func propose(rides []ClassedRide, u bayes.Use) {
-	if !u.On() {
-		return
+// SuggestRide is the classes u suggests for r, best first, at most max;
+// none for a ride a rule or a person classed. u learns the classes
+// people chose among rides first, in memory.
+func SuggestRide(u bayes.Use, rides []ClassedRide, r ClassedRide, max int) []RideClass {
+	if !u.On() || r.Reason != ReasonRest {
+		return nil
 	}
-	for _, r := range rides {
-		if byUser(r) {
-			LearnRide(u.Model, r, r.Class)
+	for _, o := range rides {
+		if byUser(o) {
+			LearnRide(u.Model, o, o.Class)
 		}
 	}
 
-	for i := range rides {
-		r := &rides[i]
-		if r.Reason != ReasonRest {
-			continue
+	var out []RideClass
+	for _, g := range u.Suggest(rideFeatures(r), isPlaceFeature, max) {
+		if c := RideClass(g.Label); slices.Contains(RideClasses, c) {
+			out = append(out, c)
 		}
-		g, ok := u.Best(rideFeatures(*r), isPlaceFeature)
-		if !ok || RideClass(g.Label) == r.Class || !slices.Contains(RideClasses, RideClass(g.Label)) {
-			continue
-		}
-		r.Proposed = RideClass(g.Label)
 	}
+	return out
 }
 
 // rideFeatures are r's start, end, weekday, time of day and distance.

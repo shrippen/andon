@@ -145,9 +145,9 @@ func TestTravelAmountFormula(t *testing.T) {
 	}
 }
 
-// TestTravelLearned: the ride model of the slot proposes a class for
-// the ride no rule decides (the lake ride, taught business); the tile's
-// figures leave it out, the dialog marks it and preselects it.
+// TestTravelLearned: the ride model of the slot only suggests: the
+// tile's figures, the ride's light and the class field stay as without
+// it; the field gets a suggestion line.
 func TestTravelLearned(t *testing.T) {
 	results := travelData()
 	geo := results["data"].(*sources.DawarichDataset)
@@ -159,16 +159,32 @@ func TestTravelLearned(t *testing.T) {
 
 	v := viewOf(t, "travel", map[string]any{}, results, enums.ServiceDawarich, nil)
 	if v["BusinessKM"] != 20.0 || v["PrivateKM"] != 8.0 || v["TripAmount"] != 6.0 {
-		t.Fatalf("a proposal counts nowhere: %+v", v)
+		t.Fatalf("a suggestion counts nowhere: %+v", v)
 	}
 
 	kind, _ := widgets.Get("travel")
 	cfg, _ := widgets.Decode("travel", map[string]any{})
 	body, _ := kind.Detail(cfg, results, ctxFor(enums.ServiceDawarich, nil)).Body.(*widgets.DetailBody)
-	if body == nil || body.List == nil || body.List.Items[0].State != "warn" || body.List.State != "warn" {
-		t.Fatalf("proposal marked: %+v", body)
+	if body == nil || body.List == nil || body.List.Items[0].State != "off" || body.List.State != "off" {
+		t.Fatalf("light as without the model: %+v", body)
 	}
-	if sub, _ := body.List.Sub.(map[string]any); sub["$t"] != "ride.proposed.business" {
-		t.Fatalf("proposal named: %+v", body.List.Sub)
+	field := classField(t, body)
+	if field.Value != string(metrics.ClassAuto) {
+		t.Fatalf("nothing preselected: %q", field.Value)
 	}
+	if len(field.Suggest) == 0 || field.Suggest[0] != (metrics.Pick{Value: "business", Text: "ride.class.business"}) {
+		t.Fatalf("suggested under the field: %+v", field.Suggest)
+	}
+}
+
+// classField is the ride class field of the travel dialog.
+func classField(t *testing.T, body *widgets.DetailBody) widgets.FormField {
+	t.Helper()
+	for _, b := range body.Blocks {
+		if f, ok := b.Data.(widgets.Form); ok && f.Do == "ride_class" {
+			return f.Fields[0]
+		}
+	}
+	t.Fatal("no class form")
+	return widgets.FormField{}
 }
