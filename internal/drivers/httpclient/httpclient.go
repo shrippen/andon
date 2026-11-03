@@ -87,10 +87,23 @@ type dnsEntry struct {
 //	cache hit ─────────────────────────────► ips
 //	miss ─► DNSStart ─► singleflight(lookupIP) ─► DNSDone ─► cache ─► ips
 func resolve(ctx context.Context, host string) ([]net.IP, error) {
-	if e, ok := resolved.Load(host); ok && time.Now().Before(e.(dnsEntry).until) {
-		return e.(dnsEntry).ips, e.(dnsEntry).err
+	if e, ok := cached(host); ok {
+		return e.ips, e.err
 	}
+	return lookup(ctx, host)
+}
 
+// cached is host's unexpired cache entry.
+func cached(host string) (dnsEntry, bool) {
+	e, ok := resolved.Load(host)
+	if !ok || !time.Now().Before(e.(dnsEntry).until) {
+		return dnsEntry{}, false
+	}
+	return e.(dnsEntry), true
+}
+
+// lookup asks DNS for a host the cache missed, once for all callers.
+func lookup(ctx context.Context, host string) ([]net.IP, error) {
 	trace := httptrace.ContextClientTrace(ctx)
 	if trace != nil && trace.DNSStart != nil {
 		trace.DNSStart(httptrace.DNSStartInfo{Host: host})
@@ -99,6 +112,11 @@ func resolve(ctx context.Context, host string) ([]net.IP, error) {
 	// Detached: one caller giving up must not fail the others joined.
 	// A slot first, the timeout after: waiting in line is no lookup.
 	done := lookups.DoChan(host, func() (any, error) {
+		// A caller that missed the cache may join only after the last
+		// lookup left the group: its answer is cached by then.
+		if e, ok := cached(host); ok {
+			return e.ips, e.err
+		}
 		dnsSlots <- struct{}{}
 		defer func() { <-dnsSlots }()
 		lookupCtx, cancel := context.WithTimeout(context.Background(), ConnectTimeout)

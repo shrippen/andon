@@ -182,3 +182,18 @@ func TestLookupWaitCancelled(t *testing.T) {
 		t.Fatalf("caller waited %v", took)
 	}
 }
+
+// TestLookupLate: a caller that missed the cache and joins after the
+// lookup has finished (and left the singleflight group) takes the cached
+// answer instead of asking DNS again.
+func TestLookupLate(t *testing.T) {
+	calls := fakeDNS(t, 0)
+	resolved.Store("svc.test", dnsEntry{ips: []net.IP{net.IPv4(127, 0, 0, 1)}, until: time.Now().Add(dnsTTL)})
+
+	if _, err := lookup(context.Background(), "svc.test"); err != nil {
+		t.Fatal(err)
+	}
+	if n := calls.Load(); n != 0 {
+		t.Fatalf("expected the cached answer, got %d lookups", n)
+	}
+}
