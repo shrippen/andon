@@ -15,3 +15,12 @@
   <select class="select" id="bench-scope" name="scope">{{range .Scopes}}<option value="{{.Key}}"{{if eq .Key $.Picked}} selected{{end}}>{{.Name}}{{if .NeedsToken}} · {{t "workbench.needs_token"}}{{end}}</option>{{end}}</select>
   <button type="submit" class="btn btn-outline btn-sm">{{t "workbench.scope_switch"}}</button>
 </form>{{end}}{{end}}
+
+{{/* A bench's draft (workbench.Draft) put back on the page: how many
+     cases, and a button to discard it. Bench and Key name its place. */}}
+{{define "bench_draft"}}{{with .Draft}}
+<form method="post" action="/bench/{{$.Bench}}/draft/drop" class="inline-form" data-draft-note>
+  <input type="hidden" name="{{$.Field}}" value="{{$.Token}}"><input type="hidden" name="place" value="{{$.Key}}"><input type="hidden" name="back" value="referer">
+  <span class="small muted">{{t "workbench.draft_note" "n" (len .)}}</span>
+  <button type="submit" class="btn btn-quiet btn-sm">{{t "workbench.draft_drop"}}</button>
+</form>{{end}}{{end}}

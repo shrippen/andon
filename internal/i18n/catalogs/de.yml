@@ -7511,6 +7511,11 @@ vatcheck:
   problem_split_skipped: 'Gebucht, aber Invoice Ninja hat nicht alle Ausgaben übernommen (eine gehört inzwischen zu einem anderen Umsatz). Den Umsatz in Invoice Ninja prüfen.'
 workbench:
   err_nothing: 'Nichts ausgewählt.'
+  err_draft_size: 'Der Zwischenstand ist zu groß zum Speichern.'
+  err_draft_shape: 'Der Zwischenstand passt nicht zur Werkbank.'
+  draft_note: 'Zwischenstand geladen: {n} Fälle mit deinen Änderungen.'
+  draft_drop: 'Verwerfen'
+  draft_dropped: 'Zwischenstand verworfen.'
   scope: 'Verbund'
   scope_open: 'Mehrere Verbünde passen. Andon zeigt den ersten; wähle, mit welchem du arbeitest.'
   scope_switch: 'Wechseln'

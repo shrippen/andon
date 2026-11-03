@@ -7510,6 +7510,11 @@ vatcheck:
   problem_split_skipped: 'Booked, but Invoice Ninja did not take every expense (one now belongs to another transaction). Check the transaction in Invoice Ninja.'
 workbench:
   err_nothing: 'Nothing selected.'
+  err_draft_size: 'The draft is too large to save.'
+  err_draft_shape: 'The draft does not fit the workbench.'
+  draft_note: 'Draft restored: {n} cases with your changes.'
+  draft_drop: 'Discard'
+  draft_dropped: 'Draft discarded.'
   scope: 'Bundle'
   scope_open: 'Several bundles fit. Andon shows the first; pick the one you work with.'
   scope_switch: 'Switch'

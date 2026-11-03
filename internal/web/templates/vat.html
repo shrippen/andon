@@ -109,6 +109,7 @@
 
     <h2 id="cases">{{t "vatcheck.cases"}}</h2>
     {{if or $p.Cases $p.Apart $p.Gaps $p.Docs}}
+    {{template "bench_draft" dict "Draft" $p.Draft "Bench" "vat" "Key" $p.DraftKey "Field" $.CSRFField "Token" $.Ctx.CSRF}}
     {{if $p.Assist}}<form method="post" action="/vat/guess" class="inline-form">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="span" value="{{$p.Span.Key}}">
       <button type="submit" class="btn btn-outline btn-sm" title="{{t "vatcheck.guess_privacy"}}">{{if $p.Guessed}}{{t "vatcheck.guess_again"}}{{else}}{{t "vatcheck.guess"}}{{end}}</button>
@@ -116,7 +117,7 @@
     {{/* The workbench: a list to scan beside a desk for one entry. The
          taken ones (hidden pick) go to the review; nothing is written
          from here. */}}
-    <form method="post" action="/vat/review" data-vat-bench data-ready-label="{{t "vatcheck.ready"}}" data-taken-label="{{t "vatcheck.taken"}}">
+    <form method="post" action="/vat/review" data-vat-bench data-draft="/bench/vat/draft" data-draft-place="{{$p.DraftKey}}" data-draft-cases="{{json $p.Draft}}" data-ready-label="{{t "vatcheck.ready"}}" data-taken-label="{{t "vatcheck.taken"}}">
       <input type="hidden" name="{{$.CSRFField}}" value="{{$.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}"><input type="hidden" name="span" value="{{$p.Span.Key}}">
       {{$h := $p.Head}}
       <div class="bench">
@@ -210,12 +211,12 @@
 {{/* The desk of one transaction: what to do, and for a new expense its
      scan and fields, each saying where its value came from. */}}
 {{define "vat_desk"}}{{$c := .C}}{{$p := .P}}{{$k := $c.Txn.Key}}{{$act := $c.Act}}
-<section class="bench-desk" id="case-{{$k}}" data-desk="{{$k}}" data-scan-number="{{$c.Number}}" aria-label="{{or $c.Txn.Payer $c.Txn.Description}}"{{if not .First}} hidden{{end}}>
+<section class="bench-desk" id="case-{{$k}}" data-desk="{{$k}}" data-draft-case="{{$k}}" data-scan-number="{{$c.Number}}" aria-label="{{or $c.Txn.Payer $c.Txn.Description}}"{{if not .First}} hidden{{end}}>
   <input type="checkbox" name="pick" value="{{$k}}" data-pick hidden{{if $c.Picked}} checked{{end}}>
   <header class="bench-top"><div><h3>{{or $c.Txn.Payer $c.Txn.Description}}</h3>
     <p>{{day $c.Txn.Date}}{{with $c.Txn.Account}} · {{.}}{{end}}{{if $c.Mixed}} · {{t "vatcheck.mixed_account"}}{{else if $c.Private}} · {{t "vatcheck.private_account"}}{{end}}{{with $c.Txn.Description}} · „{{.}}“{{end}}{{with $c.Sure}} · <span title="{{t "vatcheck.sure_twin"}}">{{t "service.sure"}}: {{with .Merchant}}{{.}} · {{end}}{{with .Category}}{{.}}{{end}}{{range .Tags}} #{{.}}{{end}}</span>{{end}}</p></div>
     <b>{{if $c.Txn.Debit}}−{{end}}{{money $c.Txn.Amount $p.Currency}}</b></header>
-  <input type="hidden" name="act_{{$k}}" value="{{$act}}" data-act>
+  <input type="hidden" name="act_{{$k}}" value="{{$act}}" data-act data-draft-keep>
   <div class="seg" role="group" aria-label="{{t "vatcheck.proposal"}}">{{range $c.Acts}}<button type="button" data-set-act="{{.}}" aria-pressed="{{eq . $act}}" title="{{t (print "vatcheck.act_" . "_hint")}}">{{t (print "vatcheck.act_" .)}}</button>{{end}}</div>
   {{with $c.Transfer}}<p class="small">{{t "vatcheck.transfer" "account" .Account "day" (day .Date)}}</p>{{end}}
   {{with $c.Guess}}<p class="small{{if .Private}} late{{end}}">{{if .Private}}{{t "vatcheck.guess_private"}} {{end}}{{.Why}}</p>{{end}}

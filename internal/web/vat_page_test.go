@@ -10,6 +10,16 @@ import (
 	"time"
 )
 
+// studioDaysAgo is when the demo's Kabelwerk debit (demo-b-studio) was
+// booked (sources/demo_bank.go).
+const studioDaysAgo = 8
+
+// studioMonth is the VAT period holding that debit: early in a month
+// still the one before.
+func studioMonth() string {
+	return time.Now().UTC().AddDate(0, 0, -studioDaysAgo).Format("2006-01")
+}
+
 // TestVATPage: without Invoice Ninja the page says so; with the demo it
 // lists the open transactions, the review spells out the writes, and
 // the demo refuses to write them.
@@ -29,7 +39,7 @@ func TestVATPage(t *testing.T) {
 			"service": {service}, "name": {service}, "url": {"demo://" + service}, "mode": {"shared"}, "tls": {"verify"}})
 	}
 
-	month := time.Now().UTC().Format("2006-01")
+	month := studioMonth()
 	page = string(mustGet(t, srv, client, "/vat?span="+month))
 	for _, want := range []string{"Offene Umsätze", "Kabelwerk Studiobedarf", `name="act_demo-b-studio"`, "data-vat-bench", `class="bench-entry"`, `data-desk="demo-b-studio"`,
 		`name="note_demo-b-studio"`, "Zahllast", "ELSTER-Kennzahlen", "Vorauszahlung (Zahllast)", "data-copy="} {
@@ -216,7 +226,7 @@ func TestVATSplit(t *testing.T) {
 	// The page offers "split" but carries none of its slots: eight of
 	// selects per debit, which Chrome scans on load. Choosing it fetches
 	// the one desk's split (/vat/split).
-	month := time.Now().UTC().Format("2006-01")
+	month := studioMonth()
 	page := string(mustGet(t, srv, client, "/vat?span="+month))
 	if strings.Contains(page, `name="s0.use_`) {
 		t.Fatal("the page carries split slots before the split is chosen")
