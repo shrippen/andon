@@ -7950,7 +7950,7 @@ kept:
 
 learn:
   title: 'Lernmodell'
-  lead: 'Andon lernt aus deinen Daten und Entscheidungen (naiver Bayes) und schlägt dort vor, wo keine feste Regel greift: etwa die EÜR-Zeile einer Ausgabe. Jedes Modell gilt für eine Verbindung (bei persönlichem Login für jeden Inhaber) und wird gespeichert: es lernt Neues dazu und behält, was es aus gelöschten Daten gelernt hat. Ein Vorschlag erscheint erst, wenn das Modell mindestens zwei Klassen kennt. Es schlägt nur vor (Zeile „Vorschlag:“ unter dem Feld), ausgefüllt wird nichts.'
+  lead: 'Andon lernt aus deinen Daten und Entscheidungen (naiver Bayes) und schlägt dort vor, wo keine feste Regel greift: etwa die EÜR-Zeile einer Ausgabe. Jedes Modell gilt für eine Verbindung (bei persönlichem Login für jeden Inhaber) und wird gespeichert: es lernt Neues dazu und behält, was es aus gelöschten Daten gelernt hat. Ein Vorschlag erscheint erst, wenn das Modell mindestens zwei Klassen kennt.'
   suggest: 'Vorschlag:'
   settings: 'Einstellungen'
   mode: 'Gelernte Vorschläge'

@@ -449,6 +449,14 @@ textarea.input{min-height:5.5rem;line-height:1.5;resize:vertical}
 .input[aria-invalid="true"]{border-bottom-color:var(--danger)}
 .input:disabled,.select:disabled{opacity:.55;cursor:not-allowed}
 .field-hint.is-error{color:var(--danger)}
+/* Suggestion under a field (1.72): an app's guess, never filled in; a click on a value puts it into the field (shrippen.js).
+   <p class="field-suggest" data-suggest-for="cat-1"><span>Vorschlag:</span> <button type="button" class="field-suggest-pick" data-value="c2">Hosting</button>, <button …>…</button></p> */
+.field-suggest{margin:0;font-size:.78rem;color:var(--fg3);overflow-wrap:anywhere}
+.field-suggest-pick{background:none;border:0;padding:0;font:inherit;text-align:left;color:var(--link);cursor:pointer;text-decoration:underline dotted;text-underline-offset:.2em}
+.field-suggest-pick:hover{color:var(--fg0);text-decoration-style:solid}
+.field-suggest-pick:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+/* The pick equal to the field's value (shrippen.js updates it on every input and change): plain text, it is taken */
+.field-suggest-pick[aria-pressed="true"]{color:var(--fg1);text-decoration:none}
 .affix{display:flex}.affix .input{flex:1;min-width:0}
 .affix>span{display:flex;align-items:center;padding-inline:.7rem;background:var(--bg1);border-bottom:2px solid var(--bg2);font-family:var(--font-mono);font-size:.74rem;color:var(--fg2)}
 .input::placeholder{color:var(--fg3)}
