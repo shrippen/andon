@@ -66,3 +66,21 @@ func TestRelearnAndStore(t *testing.T) {
 		t.Fatalf("stored: %+v %v %+v", g, ok, back.Stats())
 	}
 }
+
+// A model that knows one label only cannot tell anything apart: every
+// known feature gives p = 1. It proposes nothing until a second label
+// has examples.
+func TestUseNeedsTwoLabels(t *testing.T) {
+	m := New()
+	m.Learn("1", "other", []string{"ihre", "newsletter"})
+	u := Use{Model: m, MinP: 0.99}
+	evidence := func(string) bool { return true }
+	if g, ok := u.Best([]string{"ihre", "rechnung"}, evidence); ok {
+		t.Fatalf("one label proposes %+v", g)
+	}
+	m.Learn("2", "invoice", []string{"rechnung"})
+	u.MinP = 0.8
+	if _, ok := u.Best([]string{"newsletter"}, evidence); !ok {
+		t.Fatal("two labels propose nothing")
+	}
+}

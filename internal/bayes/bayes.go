@@ -229,6 +229,10 @@ func compareStr(a, b string) int {
 	return 0
 }
 
+// minLabels is how many labels a model needs before it proposes: with
+// one, nothing is told apart.
+const minLabels = 2
+
 // Use is a model as a page uses it: with the least probability a
 // proposal needs. A nil Model proposes nothing (learning switched off).
 type Use struct {
@@ -239,13 +243,13 @@ type Use struct {
 // On says whether there is a model to ask.
 func (u Use) On() bool { return u.Model != nil }
 
-// Best is the likeliest label if it reaches MinP and at least one of
-// the evidence features (those for which evidence is true) is known:
+// Best is the likeliest label if the model knows two labels or more, it
+// reaches MinP and at least one of the evidence features (those for which evidence is true) is known:
 // without evidence, a prior or a weak feature (an amount) alone would
 // decide.
 func (u Use) Best(features []string, evidence func(string) bool) (Guess, bool) {
-	if u.Model == nil {
-		return Guess{}, false
+	if u.Model == nil || len(u.Model.examples) < minLabels {
+		return Guess{}, false // one label: every known feature gives p = 1
 	}
 	if !slices.ContainsFunc(features, func(f string) bool { return evidence(f) && u.Model.Knows(f) }) {
 		return Guess{}, false
