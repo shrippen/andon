@@ -7,10 +7,21 @@ package web
 //
 // The review page sends the same back (template bench_step), so Apply
 // writes exactly what the user saw.
+//
+// A form with data-draft keeps what the user changed (workbench.Draft):
+// each change posts the case's fields, the page puts them back on load.
+//
+//	POST /bench/{id}/draft       place=v4/2026-Q3  cases={"Kx9": {"pick": ["Kx9"], …}}
+//	POST /bench/{id}/draft/drop  place=…  back=referer
 
 import (
+	"encoding/json"
+	"errors"
+	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
+	"strings"
 
 	"andon/internal/services/workbench"
 )
@@ -22,6 +33,17 @@ const (
 	benchAct   = "act_"
 	benchScope = "scope"
 )
+
+// Form fields of a draft's posts.
+const (
+	draftPlace = "place"
+	draftCases = "cases"
+)
+
+// draftPlaceMax caps a place's key: a Verbund and a period.
+const draftPlaceMax = 128
+
+var errDraftShape = errors.New("workbench.err_draft_shape")
 
 // benchSteps reads the ticked rows with the given fields; a row without
 // an action is left out.
@@ -51,4 +73,72 @@ func benchNote(res workbench.Result) []string {
 	}
 	first := res.Failed[0]
 	return append(pairs, "failed", strconv.Itoa(len(res.Failed)), "reason", first.Name+": "+first.Reason)
+}
+
+// handleDraft keeps the changed cases of a bench's form; 204, as the
+// page posts in the background.
+func (d Deps) handleDraft(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	at, ok := draftAt(r)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	var cases workbench.Draft
+	if err := json.Unmarshal([]byte(r.FormValue(draftCases)), &cases); err != nil || !draftShaped(cases) {
+		d.fail(w, errDraftShape, http.StatusBadRequest)
+		return
+	}
+	if err := workbench.KeepDraft(d.DB, ctx.Who, at, cases, nil); err != nil {
+		status := http.StatusInternalServerError
+		if errors.Is(err, workbench.ErrDraftSize) {
+			status = http.StatusRequestEntityTooLarge
+		}
+		d.fail(w, err, status)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleDraftDrop discards a bench's draft, then back to the page.
+func (d Deps) handleDraftDrop(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	at, ok := draftAt(r)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	if err := workbench.DropDraft(d.DB, ctx.Who, at); err != nil {
+		d.fail(w, err, http.StatusInternalServerError)
+		return
+	}
+	to, _ := url.Parse(backTo(r, benchURL(at.Bench)))
+	q := to.Query()
+	q.Set("note", "workbench.draft_dropped")
+	to.RawQuery = q.Encode()
+	http.Redirect(w, r, to.String(), http.StatusSeeOther)
+}
+
+// draftAt is the draft's place: a bench of the menu and a short key.
+func draftAt(r *http.Request) (workbench.Place, bool) {
+	at := workbench.Place{Bench: r.PathValue("id"), Key: r.FormValue(draftPlace)}
+	if benchURL(at.Bench) == "" || len(at.Key) > draftPlaceMax {
+		return at, false
+	}
+	return at, true
+}
+
+// draftShaped says whether each case holds only its own fields, as
+// benchSteps reads them: pick with the case, <field>_<case>.
+func draftShaped(cases workbench.Draft) bool {
+	for k, fields := range cases {
+		if k == "" {
+			return false
+		}
+		for name, v := range fields {
+			own := strings.HasSuffix(name, "_"+k) || (name == benchPick && !slices.ContainsFunc(v, func(s string) bool { return s != k }))
+			if !own {
+				return false
+			}
+		}
+	}
+	return true
 }

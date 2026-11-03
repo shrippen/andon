@@ -2834,6 +2834,41 @@
     benchCount(form, split.closest("[data-desk]"));
   });
 
+  // benchSetAct shows the action's block; the parts count again.
+  function benchSetAct(form, desk, act) {
+    desk.querySelector("input[data-act]").value = act;
+    [].forEach.call(desk.querySelectorAll("[data-set-act]"), function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-set-act") === act));
+    });
+    [].forEach.call(desk.querySelectorAll("[data-for]"), function (block) {
+      block.hidden = block.getAttribute("data-for") !== act;
+    });
+    // The split's slots come from the server once chosen (/vat/split).
+    var later = act === "split" && desk.querySelector("[data-for=split][hx-get]");
+    if (later) {
+      htmx.trigger(later, "andon-split");
+    }
+    benchCount(form, desk);
+  }
+
+  // A kept draft (andon-draft) back on a desk: its action shows, and a
+  // scan found by a search is searched again, so its radio comes back.
+  d.addEventListener("andon-draft", function (e) {
+    var desk = e.target.closest("[data-desk]");
+    var form = desk && benchOf(desk);
+    if (!form) {
+      return;
+    }
+    benchSetAct(form, desk, desk.querySelector("input[data-act]").value);
+    var k = desk.getAttribute("data-desk");
+    ["scan", "xscan"].forEach(function (f) {
+      var q = desk.querySelector("input[name=\"q_" + f + "_" + CSS.escape(k) + "\"]");
+      if (e.detail.pending.indexOf(f + "_" + k) >= 0 && q && q.value.trim()) {
+        q.closest("[data-scan-search]").querySelector("button").click();
+      }
+    });
+  });
+
   function setupBench() {
     [].forEach.call(d.querySelectorAll("[data-split]"), benchSplit);
     [].forEach.call(d.querySelectorAll("form[data-vat-bench]"), function (form) {
@@ -2880,20 +2915,7 @@
     // The action: its block shows, the parts count again.
     var set = e.target.closest("[data-set-act]");
     if (set) {
-      var act = set.getAttribute("data-set-act");
-      desk.querySelector("input[data-act]").value = act;
-      [].forEach.call(desk.querySelectorAll("[data-set-act]"), function (b) {
-        b.setAttribute("aria-pressed", String(b === set));
-      });
-      [].forEach.call(desk.querySelectorAll("[data-for]"), function (block) {
-        block.hidden = block.getAttribute("data-for") !== act;
-      });
-      // The split's slots come from the server once chosen (/vat/split).
-      var later = act === "split" && desk.querySelector("[data-for=split][hx-get]");
-      if (later) {
-        htmx.trigger(later, "andon-split");
-      }
-      benchCount(form, desk);
+      benchSetAct(form, desk, set.getAttribute("data-set-act"));
       return;
     }
 
@@ -2980,5 +3002,168 @@
     }
     e.preventDefault();
     benchStep(form, e.key === "j" ? 1 : -1);
+  });
+
+  // Workbench drafts: a form[data-draft] keeps what the user changed, per
+  // case ([data-draft-case]), on the server; the page puts it back.
+  //
+  //   change ──wait──► POST data-draft  cases={"Kx9": {"vendor_Kx9": ["Nordhost"]}}
+  //   load ──► fields set, "andon-draft" on the case (detail.pending: names
+  //            without their field yet) ──htmx swap in it──► those set
+  //
+  // Hidden fields are the server's, except data-draft-keep (the action).
+  // Last in the file: a page's own "andon-draft" listeners come first.
+  var DRAFT_WAIT_MS = 800;
+
+  function draftFields(box) {
+    return [].filter.call(box.querySelectorAll("input[name], select[name], textarea[name]"), function (el) {
+      return el.type !== "hidden" || el.hasAttribute("data-draft-keep");
+    });
+  }
+
+  function checkable(el) {
+    return el.type === "checkbox" || el.type === "radio";
+  }
+
+  // draftSnap is a case's fields as the form sends them; an unticked box
+  // or radio group counts as [].
+  function draftSnap(box) {
+    var out = {};
+    draftFields(box).forEach(function (el) {
+      out[el.name] = out[el.name] || [];
+      if (!checkable(el) || el.checked) {
+        out[el.name].push(el.value);
+      }
+    });
+    return out;
+  }
+
+  function fieldValue(el) {
+    return checkable(el) ? el.checked : el.value;
+  }
+
+  // draftPut sets a case's fields from vals (only names, if given) and
+  // returns the names without a field yet: not on the page, or a radio
+  // lacking the kept choice (a scan found by a search).
+  function draftPut(box, vals, names) {
+    var exists = {};
+    var matched = {};
+    draftFields(box).forEach(function (el) {
+      var want = vals[el.name];
+      if (!want || (names && names.indexOf(el.name) < 0)) {
+        return;
+      }
+      exists[el.name] = true;
+      var was = fieldValue(el);
+      if (checkable(el)) {
+        el.checked = want.indexOf(el.value) >= 0;
+        matched[el.name] = matched[el.name] || el.checked;
+      } else if (want.length) {
+        el.value = want[0];
+      }
+      if (was !== fieldValue(el)) {
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+    return (names || Object.keys(vals)).filter(function (name) {
+      return !exists[name] || (vals[name].length > 0 && matched[name] === false);
+    });
+  }
+
+  function draftForm(el) {
+    return el.closest && el.closest("form[data-draft]");
+  }
+
+  // draftSave posts the changed cases; leaving keeps the request alive
+  // while the page goes.
+  function draftSave(form, leaving) {
+    clearTimeout(form.andonDraftTimer);
+    var dirty = form.andonDraftDirty || {};
+    var keys = Object.keys(dirty);
+    if (!keys.length) {
+      return;
+    }
+    var cases = {};
+    keys.forEach(function (k) { cases[k] = draftSnap(dirty[k]); });
+    form.andonDraftDirty = {};
+    fetch(form.getAttribute("data-draft"), {
+      method: "POST",
+      headers: { "X-CSRF-Token": csrf(), "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ place: form.getAttribute("data-draft-place"), cases: JSON.stringify(cases) }),
+      credentials: "same-origin",
+      keepalive: leaving
+    }).then(function (res) {
+      if (!res.ok) {
+        console.warn("andon: draft not kept", res.status);
+      }
+    });
+  }
+
+  // A change by the user marks its case; the save waits for a pause.
+  function draftTouch(e) {
+    var box = e.isTrusted && e.target.closest && e.target.closest("[data-draft-case]");
+    var form = box && draftForm(box);
+    if (!form) {
+      return;
+    }
+    form.andonDraftDirty = form.andonDraftDirty || {};
+    form.andonDraftDirty[box.getAttribute("data-draft-case")] = box;
+    clearTimeout(form.andonDraftTimer);
+    form.andonDraftTimer = setTimeout(function () { draftSave(form, false); }, DRAFT_WAIT_MS);
+  }
+  ["input", "change", "click"].forEach(function (type) { d.addEventListener(type, draftTouch); });
+
+  // Leaving the page (or sending the form) saves at once.
+  d.addEventListener("submit", function (e) {
+    var form = draftForm(e.target);
+    if (form) {
+      draftSave(form, true);
+    }
+  });
+  window.addEventListener("pagehide", function () {
+    [].forEach.call(d.querySelectorAll("form[data-draft]"), function (form) { draftSave(form, true); });
+  });
+
+  // htmx starts on DOMContentLoaded, after this deferred script: a draft
+  // put back before would trigger loads (a split's slots) nobody hears.
+  var domReady = false;
+  d.addEventListener("DOMContentLoaded", function () { domReady = true; });
+
+  function afterHtmx(fn) {
+    if (domReady) {
+      fn();
+      return;
+    }
+    d.addEventListener("DOMContentLoaded", fn, { once: true });
+  }
+
+  // On load: each kept case back into its fields.
+  window.andonPage(function () {
+    afterHtmx(draftRestore);
+  });
+
+  function draftRestore() {
+    [].forEach.call(d.querySelectorAll("form[data-draft]"), function (form) {
+      var cases = JSON.parse(form.getAttribute("data-draft-cases") || "{}") || {};
+      Object.keys(cases).forEach(function (k) {
+        var box = form.querySelector("[data-draft-case=\"" + CSS.escape(k) + "\"]");
+        if (!box) {
+          return;
+        }
+        var pending = draftPut(box, cases[k]);
+        box.andonDraft = { vals: cases[k], pending: pending };
+        box.dispatchEvent(new CustomEvent("andon-draft", { bubbles: true, detail: { pending: pending } }));
+      });
+    });
+  }
+
+  // Fields that came later (htmx) take their kept values.
+  d.addEventListener("htmx:afterSettle", function (e) {
+    var box = e.target.closest && e.target.closest("[data-draft-case]");
+    var kept = box && box.andonDraft;
+    if (!kept || !kept.pending.length) {
+      return;
+    }
+    kept.pending = draftPut(box, kept.vals, kept.pending);
   });
 })();
