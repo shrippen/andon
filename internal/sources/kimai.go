@@ -64,7 +64,7 @@ func kimaiSheet(raw any) KimaiSheet {
 		Minutes: int(math.Round(asFloat(m["duration"]) / secondsPerMinute)),
 		Rate:    asFloat(m["rate"]), HourlyRate: asFloat(m["hourlyRate"]), Billable: boolOr(m["billable"], true), Exported: asBool(m["exported"]),
 		ProjectID: refID(m["project"]), CustomerID: customerID, Activity: asStr(activity["name"]),
-		UserID: refID(m["user"]),
+		UserID: refID(m["user"]), Notes: asStr(m["description"]),
 	}
 }
 

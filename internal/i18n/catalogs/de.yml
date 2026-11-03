@@ -7655,7 +7655,7 @@ vendors:
   err_demo: 'Die Demo schreibt nicht in Invoice Ninja.'
 closeweek:
   title: 'Woche schließen'
-  lead: 'Arbeit, die andere Dienste gesehen haben und Kimai nicht: Besuche bei Kunden (Dawarich) und Termine, die einen Kunden oder ein Projekt nennen (Kalender). Vorgeschlagen sind Projekt und Tätigkeit, die du für den Kunden zuletzt gebucht hast; nach dem Prüfen trägt Andon die Zeiten in Kimai ein.'
+  lead: 'Arbeit, die andere Dienste gesehen haben und Kimai nicht: Besuche bei Kunden (Dawarich) und Termine, die einen Kunden oder ein Projekt nennen (Kalender). Vorgeschlagen sind Projekt und Tätigkeit, die du für den Kunden zuletzt gebucht hast; darunter stehen als Vorschlag die, die Andon aus deinen Einträgen zu den Wörtern des Termins oder Orts gelernt hat. Nach dem Prüfen trägt Andon die Zeiten in Kimai ein.'
   weeks: Wochen
   from: 'Woche ab {day}'
   sources: 'Gelesen aus:'
@@ -7961,7 +7961,7 @@ kept:
 
 learn:
   title: 'Lernmodell'
-  lead: 'Andon lernt aus deinen Daten und Entscheidungen (naiver Bayes) und schlägt dort vor, wo keine feste Regel greift: etwa die EÜR-Zeile einer Ausgabe. Jedes Modell gilt für eine Verbindung (bei persönlichem Login für jeden Inhaber) und wird gespeichert: es lernt Neues dazu und behält, was es aus gelöschten Daten gelernt hat. Ein Vorschlag erscheint erst, wenn das Modell mindestens zwei Klassen kennt.'
+  lead: 'Andon lernt aus deinen Daten und Entscheidungen (naiver Bayes) und schlägt dort vor, wo keine feste Regel greift: etwa die EÜR-Zeile einer Ausgabe. Jedes Modell gilt für eine Verbindung (bei persönlichem Login für jeden Inhaber) und wird gespeichert: es lernt Neues dazu und behält, was es aus gelöschten Daten gelernt hat; Kimai-Einträge, die Kimai nicht mehr liefert (gelöscht oder außerhalb des abgerufenen Zeitraums), vergisst es. Ein Vorschlag erscheint erst, wenn das Modell mindestens zwei Klassen kennt.'
   suggest: 'Vorschlag:'
   settings: 'Einstellungen'
   mode: 'Gelernte Vorschläge'
@@ -7980,6 +7980,7 @@ learn:
   col_features: 'Merkmale'
   col_trained: 'Zuletzt dazugelernt'
   purpose_euer: 'EÜR-Zeile'
+  purpose_kimai_task: 'Kimai-Projekt und -Tätigkeit'
   purpose_ride_class: 'Fahrt: beruflich oder privat'
   purpose_sure_category: 'Sure-Kategorie'
   purpose_mail: 'Rechnungsmail'
