@@ -100,11 +100,17 @@ func (d Deps) RegisterBenchRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /bench/{id}/draft/drop", d.authed(d.handleDraftDrop))
 }
 
-// benchURL is a bench's page, "" for an id not in the menu.
+// benchesAside are workbenches reached from other pages, not the menu:
+// id → page.
+var benchesAside = map[string]string{
+	"dunning": "/dunning", "categorize": "/categorize", "vendors": "/vendors", "feeds": "/feeds",
+}
+
+// benchURL is a bench's page, "" for an id of none.
 func benchURL(id string) string {
 	i := slices.IndexFunc(benches, func(b bench) bool { return b.id == id })
 	if i < 0 {
-		return ""
+		return benchesAside[id]
 	}
 	return benches[i].url
 }

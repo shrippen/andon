@@ -22,11 +22,12 @@
     {{if not $p.NVD}}<p class="small muted">{{t "updates.no_nvd"}}</p>{{end}}
     <p class="small"><a href="/feeds?scope={{$p.Scope}}">{{t "feeds.link"}}</a></p>
     {{if $p.Cases}}
-    <form method="post" action="/updates/review" class="card" id="cases">
+    {{template "bench_draft" dict "Draft" $p.Draft "Bench" "updates" "Key" $p.DraftKey "Field" $.CSRFField "Token" $.Ctx.CSRF}}
+    <form method="post" action="/updates/review" data-draft="/bench/updates/draft" data-draft-place="{{$p.DraftKey}}" data-draft-cases="{{json $p.Draft}}" class="card" id="cases">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}">
       <div class="table-wrap"><table class="table cards-sm">
         <thead><tr><th></th><th>{{t "updates.image"}}</th><th>{{t "updates.urgency"}}</th><th>{{t "updates.new_tag"}}</th></tr></thead>
-        <tbody>{{range $p.Cases}}{{$k := .Key}}<tr>
+        <tbody>{{range $p.Cases}}{{$k := .Key}}<tr data-draft-case="{{$k}}">
           <td>{{if .Pinned}}<label class="check"><input type="checkbox" name="pick" value="{{$k}}"{{if .Urgency}} checked{{end}} aria-label="{{.Image}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
             <input type="hidden" name="act_{{$k}}" value="propose">{{end}}</td>
           <td data-card="title"><b>{{.Image}}</b><br>

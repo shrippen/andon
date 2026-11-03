@@ -64,17 +64,3 @@ func TestReceiptBookedMeanwhile(t *testing.T) {
 		}
 	}
 }
-
-// TestWritten: only a step written without a failure leaves the draft;
-// one refused before or by the service stays.
-func TestWritten(t *testing.T) {
-	plan := workbench.Plan[Item]{Steps: []Planned{
-		{Step: workbench.Step{Case: "ok"}},
-		{Step: workbench.Step{Case: "problem"}, Problem: "vatcheck.problem_x"},
-		{Step: workbench.Step{Case: "refused"}},
-	}}
-	res := workbench.Result{Done: 1, Failed: []workbench.Failure{{Case: "problem"}, {Case: "refused"}}}
-	if got := written(plan, res); !slices.Equal(got, []string{"ok"}) {
-		t.Fatalf("written = %v, want [ok]", got)
-	}
-}

@@ -83,6 +83,7 @@ type Page struct {
 	NVD     bool
 	Assist  bool                       // Claude can sum up release notes
 	Changes map[string]*assist.Changes // by case key, for the current new tag; nil = not summarized
+	workbench.Drafted
 }
 
 type book struct {
@@ -108,6 +109,10 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string) (
 		}
 	}
 	p.Finders = b.scope.Conn(enums.ServiceWUD) != nil || b.scope.Conn(enums.ServiceFreshRSS) != nil
+	open := workbench.Keys(p.Cases, func(c metrics.UpdateCase) string { return c.Key })
+	if p.Drafted, err = workbench.OpenDraft(d, who, workbench.PlaceOf("updates", p.Scope, ""), open); err != nil {
+		return p, err
+	}
 	return p, nil
 }
 
@@ -235,7 +240,10 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 	out := workbench.Apply[Item](ctx, d, who, w, plan, "updates", ip)
 	svcdata.Forget(b.gitea.ID)
 	err = workbench.SaveState(d, who, prefKey, func(s *state) { s.Scope = b.scope.Key })
-	return out, w.opened, err
+	if err != nil {
+		return out, w.opened, err
+	}
+	return out, w.opened, workbench.ForgetWritten(d, who, "updates", b.scope.Key, plan, out)
 }
 
 type writer struct {

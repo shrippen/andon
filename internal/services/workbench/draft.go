@@ -143,3 +143,49 @@ func readDraft(q db.Queryer, who *access.Principal, at Place) (Draft, error) {
 	}
 	return out, nil
 }
+
+// Drafted is what a bench's page carries of its draft: the open cases
+// the user changed, and where the draft holds (web: data-draft-place).
+type Drafted struct {
+	Draft    Draft
+	DraftKey string
+}
+
+// PlaceOf is a bench's draft in a Verbund, per period where the bench
+// has one ("" none): "v4/2026-Q3", "v4/".
+func PlaceOf(bench, scope, period string) Place {
+	return Place{Bench: bench, Key: scope + "/" + period}
+}
+
+// OpenDraft loads the draft at place for a page showing the open cases.
+func OpenDraft(d *sql.DB, who *access.Principal, at Place, open []string) (Drafted, error) {
+	draft, err := LoadDraft(d, who, at, open)
+	return Drafted{Draft: draft, DraftKey: at.Key}, err
+}
+
+// Written are the cases Apply wrote without a failure.
+func Written[P any](plan Plan[P], res Result) []string {
+	var out []string
+	for _, p := range plan.Steps {
+		failed := slices.ContainsFunc(res.Failed, func(f Failure) bool { return f.Case == p.Case })
+		if p.Problem == ProblemNone && !failed {
+			out = append(out, p.Case)
+		}
+	}
+	return out
+}
+
+// ForgetWritten drops what Apply wrote from the bench's drafts in the
+// Verbund, every period of it.
+func ForgetWritten[P any](d *sql.DB, who *access.Principal, bench, scope string, plan Plan[P], res Result) error {
+	return Forget(d, who, PlaceOf(bench, scope, ""), Written(plan, res))
+}
+
+// Keys are the cases' keys, for OpenDraft.
+func Keys[C any](cases []C, key func(C) string) []string {
+	out := make([]string, 0, len(cases))
+	for _, c := range cases {
+		out = append(out, key(c))
+	}
+	return out
+}

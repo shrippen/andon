@@ -79,6 +79,7 @@ type Page struct {
 	Ninja      bool // … an Invoice Ninja
 	Categories []sources.NinjaCategory
 	TaxRates   []sources.NinjaTaxRate
+	workbench.Drafted
 }
 
 type book struct {
@@ -104,6 +105,10 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, t
 	p.Wallos, p.Ninja = b.wallos != nil, b.ninja != nil
 	if b.ninja != nil {
 		p.Categories, p.TaxRates = b.ninja.Categories, b.ninja.TaxRates
+	}
+	open := workbench.Keys(p.Cases, func(c metrics.SubCase) string { return c.Key })
+	if p.Drafted, err = workbench.OpenDraft(d, who, workbench.PlaceOf("subs", p.Scope, ""), open); err != nil {
+		return p, err
 	}
 	return p, nil
 }
@@ -287,7 +292,10 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 		svcdata.Forget(b.conns[service].ID)
 	}
 	err = workbench.SaveState(d, who, prefKey, func(s *state) { s.Scope = b.scope.Key })
-	return out, err
+	if err != nil {
+		return out, err
+	}
+	return out, workbench.ForgetWritten(d, who, "subs", b.scope.Key, plan, out)
 }
 
 // serviceOf is the service an action writes to.

@@ -83,6 +83,7 @@ type Page struct {
 	LinkID    int64 // the Verbund, for its categories page; 0 none
 	Ninja     int64 // its Invoice Ninja and Sure or Firefly (0 none), for
 	Bank      int64 // the categories page outside a Verbund
+	workbench.Drafted
 }
 
 // book is the loaded data.
@@ -126,6 +127,10 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string, y
 		if c.Line != "" {
 			p.Suggested++
 		}
+	}
+	open := workbench.Keys(p.Cases, func(c metrics.EuerCase) string { return c.Expense.Key })
+	if p.Drafted, err = workbench.OpenDraft(d, who, workbench.PlaceOf("euer", p.Scope, ""), open); err != nil {
+		return p, err
 	}
 	return p, nil
 }
@@ -235,7 +240,10 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 	out := workbench.Apply[Item](ctx, d, who, w, plan, "euer", ip)
 	svcdata.Forget(b.conn.ID)
 	err = workbench.SaveState(d, who, prefKey, func(s *state) { s.Scope = b.scope.Key })
-	return out, err
+	if err != nil {
+		return out, err
+	}
+	return out, workbench.ForgetWritten(d, who, "euer", b.scope.Key, plan, out)
 }
 
 // Unset empties an expense's EÜR field again (the journal's undo).

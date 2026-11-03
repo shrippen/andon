@@ -19,13 +19,14 @@
     {{if $p.Scopes}}
     {{template "bench_scopes" dict "Scopes" $p.Scopes "Picked" $p.Scope "Open" $p.Choose "Action" "/vendors" "Keep" (dict)}}
     {{if $p.Groups}}
-    <form method="post" action="/vendors/review">
+    {{template "bench_draft" dict "Draft" $p.Draft "Bench" "vendors" "Key" $p.DraftKey "Field" $.CSRFField "Token" $.Ctx.CSRF}}
+    <form method="post" action="/vendors/review" data-draft="/bench/vendors/draft" data-draft-place="{{$p.DraftKey}}" data-draft-cases="{{json $p.Draft}}">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}">
       {{range $p.Groups}}{{$g := .}}{{$keep := index .Vendors 0}}
       <section class="card">
         <h2>{{$keep.Name}}</h2>
         <ul class="plain-list">{{range $i, $v := .Vendors}}{{if $i}}
-          <li><label class="check"><input type="checkbox" name="pick" value="{{$v.Key}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span>
+          <li data-draft-case="{{$v.Key}}"><label class="check"><input type="checkbox" name="pick" value="{{$v.Key}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span>
             <span>{{t "vendors.merge" "from" $v.Name "n" (index $g.Expenses $v.Key)}}</span></label>
             <input type="hidden" name="act_{{$v.Key}}" value="merge">
             <select class="select" name="into_{{$v.Key}}" aria-label="{{t "vendors.into"}}">{{range $g.Vendors}}{{if ne .Key $v.Key}}<option value="{{.Key}}">{{t "vendors.into_option" "name" .Name "n" (index $g.Expenses .Key)}}</option>{{end}}{{end}}</select></li>{{end}}{{end}}</ul>

@@ -2,6 +2,7 @@ package workbench_test
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -111,5 +112,19 @@ func TestDraftSize(t *testing.T) {
 	got, _ := workbench.LoadDraft(d, who, at, []string{"a", "b"})
 	if len(got) != 1 || got["a"] == nil {
 		t.Fatalf("stored draft lost: %v", got)
+	}
+}
+
+// TestWritten: only a step written without a failure leaves the draft;
+// one refused before or by the service stays.
+func TestWritten(t *testing.T) {
+	plan := workbench.Plan[int]{Steps: []workbench.Planned[int]{
+		{Step: workbench.Step{Case: "ok"}},
+		{Step: workbench.Step{Case: "problem"}, Problem: "x.problem"},
+		{Step: workbench.Step{Case: "refused"}},
+	}}
+	res := workbench.Result{Done: 1, Failed: []workbench.Failure{{Case: "problem"}, {Case: "refused"}}}
+	if got := workbench.Written(plan, res); !slices.Equal(got, []string{"ok"}) {
+		t.Fatalf("written = %v, want [ok]", got)
 	}
 }

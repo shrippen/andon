@@ -88,6 +88,7 @@ type Page struct {
 	Service  enums.ServiceType
 	Writable bool
 	CanAdd   bool // writable, and Snipe-IT offers models
+	workbench.Drafted
 }
 
 type book struct {
@@ -112,6 +113,10 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string) (
 	}
 	p.Cases, p.Sources, p.Service, p.Writable = b.cases, b.from, b.inv.Service, b.writable
 	p.CanAdd = b.writable && (b.snipe == nil || len(b.snipe.Models) > 0)
+	open := workbench.Keys(p.Cases, func(c metrics.NetClient) string { return c.Key() })
+	if p.Drafted, err = workbench.OpenDraft(d, who, workbench.PlaceOf("inventory", p.Scope, ""), open); err != nil {
+		return p, err
+	}
 	if b.snipe == nil {
 		return p, nil
 	}
@@ -301,7 +306,10 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 	out := workbench.Apply[Item](ctx, d, who, w, plan, "inventory", ip)
 	svcdata.Forget(b.conn.ID)
 	err = workbench.SaveState(d, who, prefKey, func(s *state) { s.Scope = b.scope.Key })
-	return out, err
+	if err != nil {
+		return out, err
+	}
+	return out, workbench.ForgetWritten(d, who, "inventory", b.scope.Key, plan, out)
 }
 
 type writer struct {

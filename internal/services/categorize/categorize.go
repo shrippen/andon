@@ -61,6 +61,7 @@ type Page struct {
 	Cases      []metrics.CatCase
 	Categories []sources.BankCategory
 	Currency   string
+	workbench.Drafted
 }
 
 type book struct {
@@ -79,6 +80,10 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string) (
 		return p, err
 	}
 	p.Cases, p.Categories, p.Currency = b.cases, b.bank.Categories, b.bank.Currency
+	open := workbench.Keys(p.Cases, func(c metrics.CatCase) string { return c.Key })
+	if p.Drafted, err = workbench.OpenDraft(d, who, workbench.PlaceOf("categorize", p.Scope, ""), open); err != nil {
+		return p, err
+	}
 	return p, nil
 }
 
@@ -181,7 +186,10 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 	out := workbench.Apply[Item](ctx, d, who, w, plan, "categorize", ip)
 	svcdata.Forget(b.conn.ID)
 	err = workbench.SaveState(d, who, prefKey, func(s *state) { s.Scope = b.scope.Key })
-	return out, err
+	if err != nil {
+		return out, err
+	}
+	return out, workbench.ForgetWritten(d, who, "categorize", b.scope.Key, plan, out)
 }
 
 type writer struct {

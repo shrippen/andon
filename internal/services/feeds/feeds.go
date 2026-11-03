@@ -68,6 +68,7 @@ type Page struct {
 	Choose   bool
 	Cases    []metrics.FeedCase
 	Category string // the release feeds' usual category, proposed for new ones
+	workbench.Drafted
 }
 
 type book struct {
@@ -86,6 +87,10 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string) (
 		return p, err
 	}
 	p.Cases, p.Category = b.cases, b.category
+	open := workbench.Keys(p.Cases, func(c metrics.FeedCase) string { return c.Key })
+	if p.Drafted, err = workbench.OpenDraft(d, who, workbench.PlaceOf("feeds", p.Scope, ""), open); err != nil {
+		return p, err
+	}
 	return p, nil
 }
 
@@ -214,7 +219,10 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 	out := workbench.Apply[Item](ctx, d, who, w, plan, "feeds", ip)
 	svcdata.Forget(b.conn.ID)
 	err = workbench.SaveState(d, who, prefKey, func(s *state) { s.Scope = b.scope.Key })
-	return out, err
+	if err != nil {
+		return out, err
+	}
+	return out, workbench.ForgetWritten(d, who, "feeds", b.scope.Key, plan, out)
 }
 
 type writer struct {

@@ -92,22 +92,15 @@ type Page struct {
 	Interval  string   // monthly, quarterly
 	Method    string   // ist, soll
 	Currency  string
-	URL       string          // Invoice Ninja, for links
-	Receipts  int             // the period's expenses without a scan (receipts), -1 unknown
-	Assist    bool            // the language model is set up
-	Guessed   bool            // it answered for this period
-	Draft     workbench.Draft // the cases the user changed and left open
-	DraftKey  string          // where the draft holds: Verbund and period
+	URL       string // Invoice Ninja, for links
+	Receipts  int    // the period's expenses without a scan (receipts), -1 unknown
+	Assist    bool   // the language model is set up
+	Guessed   bool   // it answered for this period
+	workbench.Drafted
 }
 
 // benchID is the check's id among the workbenches (its draft's bench).
 const benchID = "vat"
-
-// draftAt is the draft of a Verbund and period; span "" stands for
-// every period of the Verbund (workbench.Forget).
-func draftAt(scope, span string) workbench.Place {
-	return workbench.Place{Bench: benchID, Key: scope + "/" + span}
-}
 
 // SpanState is where a period's return stands.
 type SpanState string
@@ -253,11 +246,10 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 	}
 	p.Gaps = b.gapCases(ctx, d, who, p.Span, parts, vendorEuer)
 	p.Docs = b.docCases(ctx, d, who, p.Span, parts, vendorEuer, p.proposed())
-	at := draftAt(p.Scope, p.Span.Key)
-	if p.Draft, err = workbench.LoadDraft(d, who, at, p.openKeys()); err != nil {
+	at := workbench.PlaceOf(benchID, p.Scope, p.Span.Key)
+	if p.Drafted, err = workbench.OpenDraft(d, who, at, p.openKeys()); err != nil {
 		return p, err
 	}
-	p.DraftKey = at.Key
 	p.Receipts = -1
 	if c, err := receipts.CountsOf(ctx, d, who, receiptsTab, p.Span.Start.Year(), p.Span.Key); err == nil && c.Ready {
 		p.Receipts = c.Match

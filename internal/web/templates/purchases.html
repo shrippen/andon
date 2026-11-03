@@ -22,11 +22,12 @@
     {{if and $p.Service (not $p.Writable)}}<p class="small muted">{{t "purchases.no_write" "service" $svc}}</p>{{end}}
     {{if not $p.Ninja}}<p class="small muted">{{t "purchases.no_ninja"}}</p>{{else if not $p.Linked}}<p class="small muted">{{t "purchases.no_link_field"}}</p>{{end}}
     {{if $p.Cases}}
-    <form method="post" action="/purchases/review" class="card" id="cases">
+    {{template "bench_draft" dict "Draft" $p.Draft "Bench" "purchases" "Key" $p.DraftKey "Field" $.CSRFField "Token" $.Ctx.CSRF}}
+    <form method="post" action="/purchases/review" data-draft="/bench/purchases/draft" data-draft-place="{{$p.DraftKey}}" data-draft-cases="{{json $p.Draft}}" class="card" id="cases">
       <input type="hidden" name="{{.CSRFField}}" value="{{.Ctx.CSRF}}"><input type="hidden" name="scope" value="{{$p.Scope}}">
       <div class="table-wrap"><table class="table cards-sm">
         <thead><tr><th></th><th>{{t "purchases.asset"}}</th><th>{{t "purchases.gaps"}}</th><th>{{t "purchases.warranty"}}</th></tr></thead>
-        <tbody>{{range $p.Cases}}{{$c := .}}{{$k := .Key}}<tr>
+        <tbody>{{range $p.Cases}}{{$c := .}}{{$k := .Key}}<tr data-draft-case="{{$k}}">
           <td>{{if and (.Has "warranty") $p.Writable}}<label class="check"><input type="checkbox" name="pick" value="{{$k}}" checked aria-label="{{.Asset.Name}}"><span class="check-box"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7.5l3 3 6-6.5"/></svg></span></label>
             <input type="hidden" name="act_{{$k}}" value="warranty">{{end}}</td>
           <td data-card="title"><b>{{.Asset.Name}}</b><br><small class="muted">{{day .Asset.PurchaseDate}}{{if .Asset.PurchaseCost}} · {{money .Asset.PurchaseCost "EUR"}}{{end}}{{with .Expense}} · {{t "purchases.expense" "number" .Number}}{{end}}</small></td>

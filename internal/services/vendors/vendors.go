@@ -58,6 +58,7 @@ type Page struct {
 	Scope  string
 	Choose bool
 	Groups []metrics.VendorGroup
+	workbench.Drafted
 }
 
 type book struct {
@@ -75,6 +76,13 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope string) (
 		return p, err
 	}
 	p.Groups = metrics.VendorDuplicates(b.ninja)
+	var open []string
+	for _, g := range p.Groups {
+		open = append(open, workbench.Keys(g.Vendors, func(v sources.NinjaVendor) string { return v.Key })...)
+	}
+	if p.Drafted, err = workbench.OpenDraft(d, who, workbench.PlaceOf("vendors", p.Scope, ""), open); err != nil {
+		return p, err
+	}
 	return p, nil
 }
 
@@ -185,7 +193,10 @@ func Apply(ctx context.Context, d *sql.DB, who *access.Principal, scope string, 
 	out := workbench.Apply[Item](ctx, d, who, w, plan, "vendors", ip)
 	svcdata.Forget(b.conn.ID)
 	err = workbench.SaveState(d, who, prefKey, func(s *state) { s.Scope = b.scope.Key })
-	return out, err
+	if err != nil {
+		return out, err
+	}
+	return out, workbench.ForgetWritten(d, who, "vendors", b.scope.Key, plan, out)
 }
 
 type writer struct {
