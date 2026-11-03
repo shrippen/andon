@@ -84,6 +84,25 @@ type DraftSuggest struct {
 	Euer     []Pick // EÜR lines
 }
 
+// DropFilled drops the suggestions of fields filled after the draft
+// (Sure's mapping, Claude's reading): a suggestion stands only under an
+// empty field. The vendor field always holds text, so only a known
+// vendor ends its line.
+func (d *ExpenseDraft) DropFilled() {
+	if d.VendorKey != "" {
+		d.Suggest.Vendor = nil
+	}
+	if d.CategoryKey != "" {
+		d.Suggest.Category = nil
+	}
+	if d.TaxKnown {
+		d.Suggest.Tax = nil
+	}
+	if d.Euer != "" {
+		d.Suggest.Euer = nil
+	}
+}
+
 // None says whether nothing is suggested.
 func (s DraftSuggest) None() bool {
 	return s.Vendor == nil && s.Category == nil && s.Tax == nil && s.Euer == nil

@@ -172,3 +172,20 @@ func TestLearnKeepsWithoutBank(t *testing.T) {
 		t.Errorf("booking out of window: %d → %d", before, m.Stats().Examples)
 	}
 }
+
+// A field filled after the draft (Sure's mapping, Claude's reading)
+// loses its suggestion line; an open one keeps it. The vendor field
+// always holds text (the payer): its line goes only with a known vendor.
+func TestDropFilled(t *testing.T) {
+	picks := []metrics.Pick{{Value: "x", Label: "x"}}
+	d := metrics.ExpenseDraft{Vendor: "AMZN", CategoryKey: "c1", Suggest: metrics.DraftSuggest{Vendor: picks, Category: picks, Tax: picks, Euer: picks}}
+	d.DropFilled()
+	if d.Suggest.Vendor == nil || d.Suggest.Category != nil || d.Suggest.Tax == nil || d.Suggest.Euer == nil {
+		t.Errorf("category filled: %+v", d.Suggest)
+	}
+	d.VendorKey, d.TaxKnown, d.Euer = "v1", true, "EDV"
+	d.DropFilled()
+	if !d.Suggest.None() {
+		t.Errorf("all filled: %+v", d.Suggest)
+	}
+}

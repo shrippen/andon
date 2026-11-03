@@ -236,6 +236,7 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 		}
 		cs.Draft.Euer, cs.Draft.EuerFrom = euer.Guess(euerInput(cs.Draft, cs.Txn))
 		cs.Draft.Suggest.Euer = euer.Suggest(euerInput(cs.Draft, cs.Txn))
+		cs.Draft.DropFilled()
 		if cs.Txn.Debit {
 			cs.Note = noteOf(cs.Txn)
 		}
