@@ -29,6 +29,7 @@ import (
 	"andon/internal/services/hints"
 	"andon/internal/services/history"
 	"andon/internal/services/linkstatus"
+	"andon/internal/services/sites"
 	"andon/internal/services/svcdata"
 	"andon/internal/services/util"
 	"andon/internal/services/verbund"
@@ -516,6 +517,9 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 				frag.Slots[widgets.IPSeenSlot] = Slot{Data: seen}
 			}
 		}
+	}
+	if kind.Extra == widgets.ExtraRideModel && conn != nil && from == originStored {
+		frag.Slots[widgets.RideModelSlot] = Slot{Data: sites.Learned(d, conn, who)}
 	}
 	if kind.Extra == widgets.ExtraHistory {
 		h, err := history.Load(d, widget.SpaceID, 0, time.Now().UTC())

@@ -9,21 +9,27 @@ package sites
 // The ride is known by its start (Unix seconds). Back to the rules only
 // clears the option: a plugin trip stays (nothing is deleted across the
 // services).
+//
+// Every class set by hand teaches the ride model (ridelearn.go).
 
 import (
 	"andon/internal/caps"
 	"context"
 	"database/sql"
 	"errors"
+	"log/slog"
 	"slices"
 	"strconv"
 	"time"
 
+	"andon/internal/bayes"
 	"andon/internal/enums"
 	"andon/internal/metrics"
+	"andon/internal/model"
 	"andon/internal/outbound"
 	"andon/internal/services/access"
 	"andon/internal/services/connections"
+	"andon/internal/services/learn"
 )
 
 var (
@@ -54,13 +60,25 @@ func SetClass(ctx context.Context, d *sql.DB, who *access.Principal, connID, sta
 	}
 	defer e.forget()
 
+	taught := class
 	if class != metrics.ClassAuto && e.rideHolder(ride.Mode) == kimaiHolder {
 		if err := e.tripOf(ctx, d, who, ride, class); err != nil {
 			return err
 		}
 		class = metrics.ClassAuto // the plugin holds it now
 	}
-	return e.keepClass(d, who, start, class)
+	if err := e.keepClass(d, who, start, class); err != nil {
+		return err
+	}
+
+	// The class is kept: a model that failed to learn only proposes less.
+	err = learn.Learn(d, PurposeRides, e.geoConn, model.UserHolder(who.UserID), func(m *bayes.Model) bool {
+		return metrics.LearnRide(m, ride, taught)
+	})
+	if err != nil {
+		slog.Warn("sites: ride class not learned", "conn", connID, "err", err)
+	}
+	return nil
 }
 
 // rideHolder is who keeps a ride's class: the plugin for the modes it

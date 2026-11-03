@@ -7981,6 +7981,7 @@ learn:
   col_trained: 'Zuletzt dazugelernt'
   purpose_euer: 'EÜR-Zeile'
   purpose_kimai_task: 'Kimai-Projekt und -Tätigkeit'
+  purpose_ride_class: 'Fahrt: beruflich oder privat'
   purpose_sure_category: 'Sure-Kategorie'
   purpose_mail: 'Rechnungsmail'
   train: 'Jetzt trainieren'

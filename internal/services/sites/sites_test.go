@@ -1,6 +1,7 @@
 package sites_test
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -8,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 
@@ -76,8 +78,9 @@ const (
 )
 
 // fakeKimai: customer Acme (12); with plugin a mileage place for home
-// (area 1) and one without Dawarich link.
-func fakeKimai(rec *recorder, plugin pluginMode) *httptest.Server {
+// (area 1) and one without Dawarich link, and trips (JSON, none if not
+// given).
+func fakeKimai(rec *recorder, plugin pluginMode, trips ...string) *httptest.Server {
 	mux := http.NewServeMux()
 	for path, body := range map[string]string{"/api/timesheets": `[]`, "/api/timesheets/active": `[]`, "/api/projects": `[]`,
 		"/api/customers": `[{"id": 12, "name": "Acme"}]`} {
@@ -96,7 +99,7 @@ func fakeKimai(rec *recorder, plugin pluginMode) *httptest.Server {
 			w.Write([]byte(`[{"id": 3, "name": "Zuhause", "type": "home", "dawarichAreaId": 1, "latitude": 52.52, "longitude": 13.4, "radius": 100},
 				{"id": 5, "name": "Büro", "type": "work", "latitude": 52.5, "longitude": 13.3, "radius": 150}]`))
 		})
-		mux.HandleFunc("GET /api/mileage/trips", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(`[]`)) })
+		mux.HandleFunc("GET /api/mileage/trips", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(cmp.Or(strings.Join(trips, ""), `[]`))) })
 		mux.HandleFunc("POST /api/mileage/places", func(w http.ResponseWriter, r *http.Request) {
 			rec.add(r)
 			w.Write([]byte(`{"id": 4}`))

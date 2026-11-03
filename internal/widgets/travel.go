@@ -21,6 +21,9 @@ type TravelConfig struct {
 	HideBar bool // no bar of the business share
 }
 
+// RideModelSlot is the result name of ExtraRideModel.
+const RideModelSlot = "ride_model"
+
 // travelOf classifies the rides of the tile's Dawarich data.
 func travelOf(data *sources.DawarichDataset, ctx ViewCtx, results map[string]any) metrics.Travel {
 	kimai, _ := results[peerKimai].(*sources.KimaiDataset)
@@ -78,6 +81,7 @@ func travelView(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, re
 
 func init() {
 	Tile[TravelConfig]{Key: "travel", Detail: dataDetail(travelDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceDawarich, RefreshS: 3600,
+		Extra: ExtraRideModel,
 		Fields: []Field{{Key: "km_rate", Input: InputNumber, Min: "0"}, sel("period", "month", "month", "year"),
 			{Key: "hide_bar", Input: InputCheck}},
 		Decode: func(r Raw) TravelConfig {

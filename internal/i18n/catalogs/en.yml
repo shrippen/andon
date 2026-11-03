@@ -7980,6 +7980,7 @@ learn:
   col_trained: 'Last learned'
   purpose_euer: 'EUER line'
   purpose_kimai_task: 'Kimai project and activity'
+  purpose_ride_class: 'Ride: business or private'
   purpose_sure_category: 'Sure category'
   purpose_mail: 'Invoice mail'
   train: 'Train now'
