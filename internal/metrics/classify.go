@@ -10,6 +10,7 @@
 //
 // Afterwards a private ride between two business rides of the same day
 // becomes business (reason chain): customer A → bakery → customer B.
+// TravelOf then lets a learned model class the rest rides (ridelearn.go).
 package metrics
 
 import (

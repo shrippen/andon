@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"andon/internal/bayes"
 	"andon/internal/sources"
 )
 
@@ -22,6 +23,9 @@ type TravelSettings struct {
 	CompanyCar bool
 	// FuelWords are the Sure categories or merchants of fuel and charging.
 	FuelWords []string
+	// Learned is the model of rides set by hand (services/learn); none
+	// proposes nothing.
+	Learned bayes.Use
 }
 
 // Default travel settings (German rates).
@@ -78,6 +82,7 @@ func TravelOf(geo *sources.DawarichDataset, kimai *sources.KimaiDataset, options
 		rides, t.Estimated = EstimatedRides(geo, book), true
 	}
 	t.Rides = Classify(rides, book, kimai, set.Base, ParseOverrides(options), now)
+	learned(t.Rides, set.Learned)
 	return t
 }
 

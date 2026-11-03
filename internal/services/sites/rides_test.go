@@ -12,8 +12,12 @@ import (
 
 	"andon/internal/enums"
 	"andon/internal/metrics"
+	"andon/internal/model"
+	"andon/internal/services/access"
 	"andon/internal/services/connections"
+	"andon/internal/services/learn"
 	"andon/internal/services/sites"
+	"andon/internal/services/svcdata"
 	"andon/internal/testkit"
 )
 
@@ -168,5 +172,64 @@ func TestSetClassBicycleStaysInAndon(t *testing.T) {
 	}
 	if got := ridesOption(t, d, conn); got[strconv.FormatInt(rideStart.Unix(), 10)] != "business" {
 		t.Fatalf("option: %+v", got)
+	}
+}
+
+// rideExamples is how many rides the connection's ride model holds.
+func rideExamples(t *testing.T, d *sql.DB, who *access.Principal, conn int64) int {
+	t.Helper()
+	c, err := connections.ByID(d, conn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return sites.Learned(d, c, model.UserHolder(who.UserID)).Model.Stats().Examples
+}
+
+// A class set by hand teaches the ride model, also when the plugin keeps
+// it; handed back to the rules, the ride is forgotten.
+func TestSetClassTeaches(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
+	rec := &recorder{}
+	geo, kimai := fakeDawarich(rec, oneRide()), fakeKimai(rec, pluginWrites)
+	defer geo.Close()
+	defer kimai.Close()
+	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, geo.URL)
+	testkit.Conn(t, d, who, space, enums.ServiceKimai, kimai.URL)
+	ctx := context.Background()
+
+	if err := sites.SetClass(ctx, d, who, conn, rideStart.Unix(), metrics.ClassBusiness); err != nil {
+		t.Fatalf("set: %v", err)
+	}
+	if n := rideExamples(t, d, who, conn); n != 1 {
+		t.Fatalf("plugin trip learned: %d", n)
+	}
+	if err := sites.SetClass(ctx, d, who, conn, rideStart.Unix(), metrics.ClassAuto); err != nil {
+		t.Fatalf("auto: %v", err)
+	}
+	if n := rideExamples(t, d, who, conn); n != 0 {
+		t.Fatalf("handed back: %d", n)
+	}
+}
+
+// The job learns the classes set by hand before the model existed.
+func TestTrainLearnsStoredClasses(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "a@b.c", enums.RoleUser)
+	rec := &recorder{}
+	geo := fakeDawarich(rec, oneRide())
+	defer geo.Close()
+	conn := testkit.Conn(t, d, who, space, enums.ServiceDawarich, geo.URL)
+	key := strconv.FormatInt(rideStart.Unix(), 10)
+	if err := connections.SetOptions(d, who, conn, map[string]any{metrics.OptionRides: map[string]any{key: "private"}}); err != nil {
+		t.Fatal(err)
+	}
+	svcdata.Forget(conn)
+
+	if err := learn.Train(context.Background(), d, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if n := rideExamples(t, d, who, conn); n != 1 {
+		t.Fatalf("stored class learned: %d", n)
 	}
 }

@@ -6813,6 +6813,7 @@ ride:
     chain: between two business rides
     rest: no business trace
     manual: set by hand
+    learned: learned from rides you set
   mode:
     driving: car
     walking: walking
@@ -7969,6 +7970,7 @@ learn:
   col_features: 'Features'
   col_trained: 'Last learned'
   purpose_euer: 'EUER line'
+  purpose_ride_class: 'Ride: business or private'
   train: 'Train now'
   reset: 'Reset'
   reset_hint: 'Forgets everything learned. What came from a connection''s data is learned again at the next training; what came only from your decisions is lost.'

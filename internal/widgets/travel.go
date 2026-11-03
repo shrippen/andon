@@ -8,6 +8,7 @@ package widgets
 import (
 	"time"
 
+	"andon/internal/bayes"
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/sources"
@@ -21,10 +22,16 @@ type TravelConfig struct {
 	HideBar bool // no bar of the business share
 }
 
-// travelOf classifies the rides of the tile's Dawarich data.
+// RideModelSlot is the result name of ExtraRideModel.
+const RideModelSlot = "ride_model"
+
+// travelOf classifies the rides of the tile's Dawarich data; the learned
+// model classes the rides no rule decides.
 func travelOf(data *sources.DawarichDataset, ctx ViewCtx, results map[string]any) metrics.Travel {
 	kimai, _ := results[peerKimai].(*sources.KimaiDataset)
-	return metrics.TravelOf(data, kimai, ctx.Options, metrics.TravelSettingsOf(ctx.Settings), time.Now())
+	set := metrics.TravelSettingsOf(ctx.Settings)
+	set.Learned, _ = results[RideModelSlot].(bayes.Use)
+	return metrics.TravelOf(data, kimai, ctx.Options, set, time.Now())
 }
 
 // travelRate is the widget's km rate, else the space's.
@@ -78,6 +85,7 @@ func travelView(cfg TravelConfig, data *sources.DawarichDataset, ctx ViewCtx, re
 
 func init() {
 	Tile[TravelConfig]{Key: "travel", Detail: dataDetail(travelDetail), Category: CategoryInsight, Topic: TopicWork, Service: enums.ServiceDawarich, RefreshS: 3600,
+		Extra: ExtraRideModel,
 		Fields: []Field{{Key: "km_rate", Input: InputNumber, Min: "0"}, sel("period", "month", "month", "year"),
 			{Key: "hide_bar", Input: InputCheck}},
 		Decode: func(r Raw) TravelConfig {

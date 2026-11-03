@@ -6814,6 +6814,7 @@ ride:
     chain: zwischen zwei beruflichen Fahrten
     rest: keine berufliche Spur
     manual: von Hand eingeordnet
+    learned: gelernt aus deinen Einordnungen
   mode:
     driving: Auto
     walking: zu Fuß
@@ -7970,6 +7971,7 @@ learn:
   col_features: 'Merkmale'
   col_trained: 'Zuletzt dazugelernt'
   purpose_euer: 'EÜR-Zeile'
+  purpose_ride_class: 'Fahrt: beruflich oder privat'
   train: 'Jetzt trainieren'
   reset: 'Zurücksetzen'
   reset_hint: 'Vergisst alles Gelernte. Was aus den Daten einer Verbindung stammt, lernt das Modell beim nächsten Training neu; was nur aus deinen Entscheidungen stammt, ist verloren.'

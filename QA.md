@@ -243,6 +243,7 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 1. Board „Reisen“, Detaildialoge.
 2. `/travel/places`: Zuhause zuordnen; ein häufiges Ziel als „privat“ anlegen (Vorbelegung prüfen).
 3. In den ersten sieben Tagen des Monats: Hinweis „Laden für Geschäftsfahrten“ (Wallbox im persönlichen Bereich) nennt Ladevorgänge, kWh, Kosten und den geschäftlichen Anteil; passen die km zu den Fahrten des Vormonats?
+4. Reisen-Dialog: eine Fahrt „privat (keine berufliche Spur)“ von Hand auf „beruflich“ setzen, eine ähnliche (gleiches Ziel, ähnliche Zeit) bleibt ohne Regel: steht sie nach dem Neuladen auf „beruflich – gelernt aus deinen Einordnungen“? Fahrten mit Regel (Kunde, Kimai-Zeit, Anfahrt) und von Hand ändern sich nicht; „automatisch“ nimmt die eigene Fahrt aus dem Modell. Einstellungen → „Lernmodell“ zeigt „Fahrt: beruflich oder privat“ je Dawarich; „aus“ schlägt nichts mehr vor.
 
 **J-C6 Vom Geld-Hinweis zur Lösung**
 1. `/hints?sort=value`, jeder Geld-Hinweis: führt die Aktion an die Stelle, wo man ihn behebt (in Andon, wenn Andon es kann)?

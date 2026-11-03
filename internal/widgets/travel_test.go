@@ -1,13 +1,16 @@
 package widgets_test
 
 import (
+	"strconv"
 	"strings"
 
 	"andon/internal/i18n"
 	"testing"
 	"time"
 
+	"andon/internal/bayes"
 	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/sources"
 	"andon/internal/widgets"
 )
@@ -139,5 +142,21 @@ func TestTravelAmountFormula(t *testing.T) {
 	got := i18n.T("travel.amount", "de", map[string]any{"km": "20", "rate": "0,30", "amount": "6,00 €"})
 	if !strings.Contains(got, "20 km × 0,30 €/km") {
 		t.Fatalf("formula: %q", got)
+	}
+}
+
+// TestTravelLearned: the ride model of the slot classes the ride no rule
+// decides; here the lake ride, taught business.
+func TestTravelLearned(t *testing.T) {
+	results := travelData()
+	geo := results["data"].(*sources.DawarichDataset)
+	lake := metrics.Rides(geo)[2]
+	m := bayes.New()
+	metrics.TeachRides(m, geo, map[string]any{metrics.OptionRides: map[string]any{strconv.FormatInt(lake.Start.Unix(), 10): "business"}})
+	results[widgets.RideModelSlot] = bayes.Use{Model: m, MinP: 0.6}
+
+	v := viewOf(t, "travel", map[string]any{}, results, enums.ServiceDawarich, nil)
+	if v["BusinessKM"] != 28.0 || v["PrivateKM"] != 0.0 {
+		t.Fatalf("learned business: %+v", v)
 	}
 }
