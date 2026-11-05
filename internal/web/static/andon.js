@@ -2602,6 +2602,15 @@
   // without a field there is the booking's own or one the expense has.
   function benchHas(block, p) {
     var f = block.querySelector("[data-part=\"" + p + "\"]");
+    if (p === "scan") {
+      // The scan's radios stand beside the fields, in the desk's side.
+      var desk = block.closest("[data-desk]");
+      var side = desk && desk.querySelector("aside[data-for=\"" + desk.querySelector("input[data-act]").value + "\"]");
+      f = (side && side.querySelector("[data-part=scan]")) || f;
+      if (f && side) {
+        block = side;
+      }
+    }
     var gap = f && f.closest("[data-gap]");
     if (!f || (gap && gap.hidden)) {
       return true;
@@ -2611,6 +2620,88 @@
       return !!(r && r.value);
     }
     return !!f.value.trim();
+  }
+
+  // benchState redraws a comparison row's state as its field fills.
+  function benchState(form, block, p, on) {
+    [].forEach.call(block.querySelectorAll("[data-state-of=\"" + p + "\"]"), function (el) {
+      el.setAttribute("data-state", on ? "ok" : "missing");
+      el.textContent = form.getAttribute(on ? "data-state-ok" : "data-state-missing");
+    });
+  }
+
+  // benchSteps moves the desk's steps: the scan is done once one is picked.
+  function benchSteps(desk, block, act) {
+    var steps = desk.querySelector("[data-steps]");
+    if (!steps) {
+      return;
+    }
+    var items = steps.children;
+    var sorted = act !== "";
+
+    // "Not decided yet" stops being true with the first choice.
+    var why = desk.querySelector("[data-why-unsorted]");
+    if (why) {
+      why.hidden = sorted;
+    }
+
+    var scan = benchCounted[act] && !benchHas(block, "scan") ? 2 : 3;
+    var now = !sorted ? 0 : scan;
+    [].forEach.call(items, function (li, i) {
+      li.classList.toggle("is-done", i < now);
+      if (i === now) {
+        li.setAttribute("aria-current", "step");
+      } else {
+        li.removeAttribute("aria-current");
+      }
+    });
+  }
+
+  // benchDoc shows scan id beside the fields of side, or says there is none.
+  function benchDoc(side, id) {
+    var frame = side && side.querySelector("[data-doc]");
+    if (!frame) {
+      return;
+    }
+    var url = id ? "/receipts/preview/" + id : "";
+    if (url && frame.getAttribute("src") !== url) {
+      frame.setAttribute("src", url);
+    }
+    frame.hidden = !url;
+    var none = side.querySelector("[data-doc-none]");
+    if (none) {
+      none.hidden = !!url;
+    }
+  }
+
+  // benchScanFill writes what the picked scan says into the receipt
+  // column, and takes its day and number unless the user typed another.
+  function benchScanFill(desk, block, radio) {
+    var data = { number: radio.getAttribute("data-number") || "", day: radio.getAttribute("data-day") || "",
+      title: radio.getAttribute("data-title") || "", vendor: radio.getAttribute("data-vendor") || "" };
+    var texts = { number: data.number, day: radio.getAttribute("data-day-text") || "", title: data.title, vendor: data.vendor };
+    [].forEach.call(block.querySelectorAll("[data-scan-src]"), function (line) {
+      var what = line.getAttribute("data-scan-src");
+      var btn = line.querySelector("button");
+      btn.textContent = texts[what] || "";
+      btn.setAttribute("data-value", data[what] || "");
+      line.hidden = !texts[what];
+    });
+    [].forEach.call(block.querySelectorAll("[data-scan-text]"), function (cell) {
+      var what = cell.getAttribute("data-scan-text");
+      cell.textContent = what === "amount" ? radio.getAttribute("data-amount") || "" : data[what] || "";
+    });
+    var day = block.querySelector("input[name^=day_]");
+    var was = desk.getAttribute("data-scan-day") || "";
+    if (day && data.day && (day.value === "" || day.value === was)) {
+      day.value = data.day;
+      desk.setAttribute("data-scan-day", data.day);
+    }
+    var td = block.querySelector("[data-scan-td=day]");
+    if (td && day) {
+      var bank = block.querySelector("[data-suggest-for=\"" + day.id + "\"]:not([data-scan-src]) button");
+      td.toggleAttribute("data-differs", !!(bank && data.day && bank.getAttribute("data-value") !== data.day));
+    }
   }
 
   // benchCounted: actions whose expense the list counts.
@@ -2631,16 +2722,18 @@
     var counted = benchCounted[act];
     var n = 0;
     parts.forEach(function (p, i) {
-      var on = !counted || benchHas(block, p);
+      var on = act !== "" && (!counted || benchHas(block, p));
       if (on) {
         n++;
       }
       if (segs[i]) {
         segs[i].classList.toggle("on", on);
       }
+      benchState(form, block, p, on);
     });
+    benchSteps(desk, block, act);
 
-    var ready = counted ? n === parts.length : act !== "skip";
+    var ready = counted ? n === parts.length : act !== "" && act !== "skip";
     // A split is ready when its parts make the booking.
     var split = desk.querySelector("[data-split]");
     if (act === "split") {
@@ -2870,6 +2963,11 @@
     [].forEach.call(desk.querySelectorAll("[data-for]"), function (block) {
       block.hidden = block.getAttribute("data-for") !== act;
     });
+    // The receipt beside the fields, where the action has one.
+    var wrap = desk.querySelector("[data-desk-doc]");
+    if (wrap) {
+      wrap.classList.toggle("bench-doc", !!wrap.querySelector("aside[data-for]:not([hidden])"));
+    }
     // The split's slots come from the server once chosen (/vat/split).
     var later = act === "split" && desk.querySelector("[data-for=split][hx-get]");
     if (later) {
@@ -2988,6 +3086,8 @@
     benchStale(desk);
     if (e.type === "change" && e.target.matches("select[name^=exp_]")) {
       benchGaps(desk, e.target);
+      var picked = e.target.options[e.target.selectedIndex];
+      benchDoc(desk.querySelector("aside[data-for=link]"), picked && Number(picked.getAttribute("data-doc")));
     }
     var split = e.target.closest("[data-split]");
     if (split) {
@@ -2999,6 +3099,8 @@
       benchSplit(split);
     }
     if (e.type === "change" && e.target.matches("input[data-part=scan]")) {
+      benchDoc(e.target.closest("aside"), e.target.value);
+      benchScanFill(desk, benchBlock(desk), e.target);
       var num = benchBlock(desk).querySelector("input[data-part=number]");
       var was = desk.getAttribute("data-scan-number") || "";
       if (num && (num.value === "" || num.value === was) && e.target.getAttribute("data-number")) {

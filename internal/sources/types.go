@@ -166,6 +166,7 @@ type NinjaExpense struct {
 	Key, CategoryKey, TaxName, TxnKey string
 	TaxRate                           float64
 	Billable                          bool // should_be_invoiced: to bill the client
+	PrivateNote                       string
 
 	Custom [NinjaSlots]string // custom_value1 … custom_value4, e.g. the EÜR line
 }

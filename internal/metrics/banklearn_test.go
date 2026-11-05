@@ -189,3 +189,15 @@ func TestDropFilled(t *testing.T) {
 		t.Errorf("all filled: %+v", d.Suggest)
 	}
 }
+
+// A vendor's last expense was half its booking, reckoned in a private
+// note: both are offered, neither filled.
+func TestSuggestLastShare(t *testing.T) {
+	n := &sources.NinjaDataset{BankRead: true, Vendors: []sources.NinjaVendor{{Key: "v", Name: "Fernverkehr"}},
+		BankTxns: []sources.NinjaBankTxn{{Key: "t1", Amount: 63, Debit: true}},
+		Expenses: []sources.NinjaExpense{{Key: "e", VendorKey: "v", Date: "2026-09-02", Amount: 31.5, TxnKey: "t1", PrivateNote: "Nutzung 50/50"}}}
+	d := metrics.DraftWith(n, sources.NinjaBankTxn{Payer: "Fernverkehr", Amount: 63, Debit: true}, metrics.BankLearning{})
+	if len(d.Suggest.Share) != 1 || d.Suggest.Share[0].Value != "50" || len(d.Suggest.Private) != 1 || d.Suggest.Private[0].Value != "Nutzung 50/50" {
+		t.Errorf("suggest: %+v", d.Suggest)
+	}
+}

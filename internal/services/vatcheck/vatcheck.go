@@ -90,6 +90,7 @@ type Page struct {
 	Euer      string   // the EÜR field's name, "" not chosen (Verbund → Kategorien)
 	EuerLines []string // its choices (metrics.EuerChoices)
 	Number    bool     // the invoice number has a field (receipts)
+	Scans     bool     // the scan has a field (Paperless paired)
 	NumberOf  string   // its name, "" unnamed
 	Interval  string   // monthly, quarterly
 	Method    string   // ist, soll
@@ -98,6 +99,7 @@ type Page struct {
 	Receipts  int    // the period's expenses without a scan (receipts), -1 unknown
 	Assist    bool   // the language model is set up
 	Guessed   bool   // it answered for this period
+	done      int    // the period's transactions already booked
 	workbench.Drafted
 }
 
@@ -140,6 +142,7 @@ type Case struct {
 	parts  []Part            // the parts it counts (partsOf)
 	gaps   []Part            // what the expense found or filled lacks
 	lacks  map[string][]Part // each candidate expense's gaps, by key
+	docs   map[string]int64  // the scan each candidate expense holds, by key
 	Split  []SplitPart       // a debit's slots for a split (maxParts)
 }
 
@@ -221,7 +224,8 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 	if b.numberSlot > 0 {
 		p.Number, p.NumberOf = true, b.ninja.ExpenseFields[b.numberSlot-1].Label
 	}
-	parts := partsOf(p.Euer != "", p.Number, b.scanSlot > 0)
+	p.Scans = b.scanSlot > 0
+	parts := partsOf(p.Euer != "", p.Number, p.Scans)
 	euer := metrics.EuerGuesserOf(b.ninja, b.cats.EuerSlot, learn.Euer(d, b.conn, model.UserHolder(who.UserID)))
 	pool := b.splitPool(ctx, d, who, p.Span)
 	guesses := b.state.guesses(b.conn.ID)
@@ -237,9 +241,6 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 		cs.Draft.Euer, cs.Draft.EuerFrom = euer.Guess(euerInput(cs.Draft, cs.Txn))
 		cs.Draft.Suggest.Euer = euer.Suggest(euerInput(cs.Draft, cs.Txn))
 		cs.Draft.DropFilled()
-		if cs.Txn.Debit {
-			cs.Note = noteOf(cs.Txn)
-		}
 		b.gapped(&cs)
 		b.splitOf(&cs, pool, euer)
 		b.propose(ctx, d, who, &cs)
@@ -260,8 +261,13 @@ func Open(ctx context.Context, d *sql.DB, who *access.Principal, scope, spanKey 
 		p.Receipts = c.Match
 	}
 	for _, t := range b.ninja.BankTxns {
-		if t.Archived && inSpan(t.Date, p.Span) {
+		if !inSpan(t.Date, p.Span) {
+			continue
+		}
+		if t.Archived {
 			p.Skipped = append(p.Skipped, t)
+		} else if t.Status == sources.BankDone {
+			p.done++
 		}
 	}
 	return p, nil
@@ -572,9 +578,14 @@ func (b book) gapsOf(e sources.NinjaExpense) []Part {
 // gapped notes what a link's expenses lack: the first's counts, being
 // the one the page takes; the others' fields show when picked.
 func (b book) gapped(c *Case) {
-	c.lacks = map[string][]Part{}
+	c.lacks, c.docs = map[string][]Part{}, map[string]int64{}
 	for _, e := range c.Expenses {
 		c.lacks[e.Key] = b.gapsOf(e)
+		if b.scanSlot > 0 {
+			if ids := metrics.DocIDs(e.Custom[b.scanSlot-1]); len(ids) > 0 {
+				c.docs[e.Key] = ids[0]
+			}
+		}
 	}
 	if len(c.Expenses) > 0 {
 		c.gaps = c.lacks[c.Expenses[0].Key]

@@ -384,6 +384,23 @@ func searchOf(e sources.ReceiptExpense, in SearchInput, m Mapping) sources.DocSe
 	return s
 }
 
+// Preview reads a scan to read on the page: its file, else (a demo, a
+// scan without an archived file) its thumbnail.
+func Preview(ctx context.Context, d *sql.DB, who *access.Principal, id int64) ([]byte, string, error) {
+	p, err := openPair(d, who)
+	if err != nil {
+		return nil, "", err
+	}
+	sctx, err := p.sourceCtx(d, who, p.docs)
+	if err != nil {
+		return nil, "", err
+	}
+	if body, kind, err := sources.PaperlessFile(ctx, sctx, id); err == nil {
+		return body, kind, nil
+	}
+	return sources.PaperlessThumb(ctx, sctx, id)
+}
+
 // Thumb reads a scan's thumbnail from the picked Paperless.
 func Thumb(ctx context.Context, d *sql.DB, who *access.Principal, id int64) ([]byte, string, error) {
 	p, err := openPair(d, who)

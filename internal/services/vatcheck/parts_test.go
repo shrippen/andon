@@ -16,16 +16,16 @@ func TestCaseParts(t *testing.T) {
 		Draft: metrics.ExpenseDraft{Vendor: "Kabelwerk", CategoryKey: "c1", TaxKnown: true}}, Note: "Stative"}
 
 	c.parts = partsOf(false, false, true)
-	if len(c.Parts()) != 8 || c.Done() != 7 || c.Ready() {
+	if len(c.Parts()) != 12 || c.Done() != 11 || c.Ready() {
 		t.Fatalf("without fields: %d parts, %d done, ready %v", len(c.Parts()), c.Done(), c.Ready())
 	}
 	c.Scans = []receipts.Candidate{{Doc: sources.ReceiptDoc{ID: 7}, Score: 92}}
-	if c.Done() != 8 || !c.Ready() {
+	if c.Done() != 12 || !c.Ready() {
 		t.Fatalf("with a scan: %d done, ready %v", c.Done(), c.Ready())
 	}
 
 	c.parts = partsOf(true, true, true)
-	if c.Done() != 8 || c.Ready() || (Page{Cases: []Case{c}}).Head().NoEuer != 1 {
+	if c.Done() != 12 || c.Ready() || (Page{Cases: []Case{c}}).Head().NoEuer != 1 {
 		t.Fatalf("with EÜR and number fields: %d done, ready %v", c.Done(), c.Ready())
 	}
 

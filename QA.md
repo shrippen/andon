@@ -181,6 +181,14 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 1. `/billing` mit Dawarich im Verbund: ein Entwurf bietet „Fahrtkosten mitberechnen“; angehakt steht die Zeile in der Rechnung, beim nächsten Entwurf beginnen die Fahrten danach.
 2. `/dunning`: der Mahnplan aus Invoice Ninja steht oben (ohne eingerichtete Erinnerungen: Hinweis auf Andons Standard); fällige Erinnerungen mit Stufe und „fällig seit“; „Texte von Claude schreiben lassen“ füllt Betreff und Text; nichts angehakt; „Prüfen“ → „Mit Invoice Ninja verschicken“ (Demo lehnt ab).
 
+**J-C16 USt-Abgleich: offene Umsätze abarbeiten** (Desktop)
+1. `/vat` → „Offene Umsätze“: oben die Zählung (geschäftlich fertig, geschäftlich offen, unsortiert, privat); sie deckt die Transaktionsliste ab.
+2. Umsatz wählen: Schritte (geschäftlich?, Ausgabe zuordnen, Beleg raussuchen, Felder ausfüllen) stehen an der richtigen Stelle; der Kasten sagt, warum er offen ist und woher die Vorschläge kommen. Fall für Fall: bekannter und neuer Lieferant, Verknüpfen, Ergänzen, Aus Beleg anlegen.
+3. „Noch unsortiert“: nichts ist gewählt, kein Feld sichtbar. „Neue Ausgabe“ wählen: Schritt 1 ist erledigt, der Kasten „noch nicht entschieden“ verschwindet, die Tabelle erscheint.
+4. Tabelle: 14 Pflichtfelder mit Spalten Bank, Beleg, Vorschlag, In die Ausgabe; ein Klick auf einen Wert der Bank oder des Belegs füllt das Feld; „fehlt“ verschwindet mit dem Wert, der Balken in der Liste wächst mit. Datum ist das Belegdatum, „Bezahlt am“ der Banktag.
+5. Rechts der Beleg: Paperless-Vorschau neben den Feldern (PDF im Rahmen, echtes Paperless prüfen); anderen Beleg wählen wechselt die Vorschau; ohne Beleg die Suche und „Noch kein Beleg gewählt.“; „Belege suchen und wählen“ steht nur einmal als Überschrift.
+6. „Zusätzlich: Anteil und private Notiz“: geteilte Buchung (Anteil vom Lieferanten zuletzt vorgeschlagen, Bank bleibt bezahlter Betrag), private Notiz; Prüfen nennt beides, Schreiben setzt Betrag, Datum, private Notiz in Ninja.
+
 **J-C5 USt-Abgleich: Abgabe**
 1. `/vat` → „ELSTER-Kennzahlen“: Werte mit „Kopieren“; „Als gemeldet merken“; danach eine Buchung im Zeitraum ändern → „Berichtigung fällig“ mit den Kennzahlen.
    - Rechnung zu 0 % an einen EU-Kunden im August, bezahlt im September: Kz 21 steht im August, auch bei Ist-Versteuerung.
