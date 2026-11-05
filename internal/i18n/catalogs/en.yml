@@ -7308,6 +7308,7 @@ vatcheck:
   check_foreign: 'Another country''s VAT is no input VAT here, so it is not in Kz 66.'
   check_no_country: 'No tax and no vendor country: Andon cannot test § 13b. Add the country to the vendor.'
   check_tax_on_top: 'Amount equals the bank transaction, but "inclusive tax" is off: Invoice Ninja and Kz 66 count {diff} input VAT too much. Switch it on in Invoice Ninja.'
+  check_refund: 'Refunded, without a day in Invoice Ninja: the payment counts in full here. Reduce the month of the refund yourself (Kz 81, 86).'
   elster_hint: 'If anything in the period changes afterwards, the page warns: a corrected return is due.'
   elster_filed: 'Filed; unchanged since.'
   elster_changed: 'Changed since filing, a correction is due:'

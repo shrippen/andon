@@ -131,6 +131,7 @@ type NinjaPayment struct {
 	Amount      float64
 	ClientID    int64
 	Key, Number string // id as sent (hashed in v5) and the payment's number
+	Refunded    float64
 }
 
 type NinjaClient struct {

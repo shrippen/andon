@@ -62,6 +62,7 @@ const (
 	CheckForeignTax CheckKind = "foreign"    // foreign VAT: not input VAT here, not in Kz 66
 	CheckNoCountry  CheckKind = "no_country" // no tax, vendor of unknown country: § 13b not tested
 	CheckTaxOnTop   CheckKind = "tax_on_top" // the bank's gross amount booked as net
+	CheckRefund     CheckKind = "refund"     // refunded: reduces the month it happened, unknown here
 )
 
 // ElsterCheck is one booking the figures may be wrong about.
@@ -155,6 +156,9 @@ func ElsterOf(n *sources.NinjaDataset, start, end time.Time, method string) Elst
 	}
 	add := func(inv sources.NinjaInvoice, share float64) {
 		net := inv.Net * share
+		if net == 0 {
+			return
+		}
 		country := clients[inv.ClientID].CountryID
 		switch rate := invoiceRate(inv); {
 		case math.Abs(rate-rateFull) <= rateTol:
@@ -206,6 +210,14 @@ func ElsterOf(n *sources.NinjaDataset, start, end time.Time, method string) Elst
 		}
 	}
 
+	// A refund reduces the month it happened, which Invoice Ninja does
+	// not say: the payment's month stays as filed, the page asks.
+	for _, p := range n.Payments {
+		if p.Refunded != 0 && in(p.Date) {
+			e.Checks = append(e.Checks, ElsterCheck{Kind: CheckRefund, Day: p.Date, Name: clients[p.ClientID].Name, Number: p.Number, Amount: p.Refunded})
+		}
+	}
+
 	// Input VAT and reverse charge from the period's expenses.
 	vendors := vendorsByKey(n)
 	txns := map[string]sources.NinjaBankTxn{}
@@ -232,6 +244,9 @@ func ElsterOf(n *sources.NinjaDataset, start, end time.Time, method string) Elst
 		}
 		if x.Tax != 0 || v.CountryID == home {
 			continue
+		}
+		if x.VendorKey == "" {
+			continue // no vendor (a bank fee): nothing to look up
 		}
 		if v.CountryID == "" {
 			note.Kind = CheckNoCountry
@@ -271,10 +286,11 @@ func vendorsByKey(n *sources.NinjaDataset) map[string]sources.NinjaVendor {
 }
 
 // foreignVAT says whether an expense carries another country's VAT: a
-// vendor abroad at a rate Germany has not. German VAT from abroad (a
-// vendor registered here) is input VAT.
+// vendor abroad at a rate Germany has not, or at none named. German VAT
+// from abroad (a vendor registered here) is input VAT; a country with
+// the same rate cannot be told from it.
 func foreignVAT(x sources.NinjaExpense, v sources.NinjaVendor, home string) bool {
-	if x.Tax == 0 || x.TaxRate == 0 || v.CountryID == "" || v.CountryID == home {
+	if x.Tax == 0 || v.CountryID == "" || v.CountryID == home {
 		return false
 	}
 	return math.Abs(x.TaxRate-rateFull) > rateTol && math.Abs(x.TaxRate-rateReduced) > rateTol

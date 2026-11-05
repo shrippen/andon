@@ -176,3 +176,41 @@ func TestElsterTaxOnTop(t *testing.T) {
 		t.Errorf("check: %+v", c)
 	}
 }
+
+// A refund leaves the paid month's figures: it reduces the month it
+// happened in, which Invoice Ninja does not say, so the page asks.
+func TestElsterRefundIsChecked(t *testing.T) {
+	n := &sources.NinjaDataset{HomeCountryID: "276", Clients: []sources.NinjaClient{{ID: 1, Name: "Acme", CountryID: "276"}},
+		Invoices: []sources.NinjaInvoice{{ID: 1, ClientID: 1, Status: "paid", Date: "2026-09-01", Net: 100, Taxes: 19, Amount: 119}},
+		Payments: []sources.NinjaPayment{{ID: 1, Number: "P1", ClientID: 1, Date: "2026-09-05", Amount: 119, Refunded: 119}}}
+	start, end := elsterSpan(t, "2026-09-01", "2026-09-30")
+	e := metrics.ElsterOf(n, start, end, "ist")
+	if e.Kz81 != 100 {
+		t.Errorf("Kz 81 = %v, want 100", e.Kz81)
+	}
+	if c := checkOf(e, metrics.CheckRefund); c == nil || c.Number != "P1" || c.Name != "Acme" || c.Amount != 119 {
+		t.Errorf("check: %+v", c)
+	}
+}
+
+// A foreign vendor's tax without a rate is no input VAT either.
+func TestElsterForeignTaxNoRate(t *testing.T) {
+	n := &sources.NinjaDataset{HomeCountryID: "276", Vendors: []sources.NinjaVendor{{Key: "ie", Name: "Cloud IE", CountryID: "372"}},
+		Expenses: []sources.NinjaExpense{{Number: "A1", VendorKey: "ie", Date: "2026-09-10", Amount: 123, Tax: 23}}}
+	start, end := elsterSpan(t, "2026-09-01", "2026-09-30")
+	e := metrics.ElsterOf(n, start, end, "soll")
+	if e.Kz66 != 0 || checkOf(e, metrics.CheckForeignTax) == nil {
+		t.Errorf("Kz 66 = %v, checks %+v", e.Kz66, e.Checks)
+	}
+}
+
+// No vendor at all (a bank fee) and a 0 € invoice ask nothing.
+func TestElsterNoNoise(t *testing.T) {
+	n := &sources.NinjaDataset{HomeCountryID: "276", Clients: []sources.NinjaClient{{ID: 1, CountryID: "276"}},
+		Invoices: []sources.NinjaInvoice{{ID: 1, ClientID: 1, Status: "sent", Date: "2026-09-10"}},
+		Expenses: []sources.NinjaExpense{{Number: "A1", Date: "2026-09-10", Amount: 5}}}
+	start, end := elsterSpan(t, "2026-09-01", "2026-09-30")
+	if e := metrics.ElsterOf(n, start, end, "soll"); len(e.Checks) != 0 {
+		t.Errorf("checks: %+v", e.Checks)
+	}
+}

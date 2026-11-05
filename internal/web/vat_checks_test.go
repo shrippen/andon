@@ -10,7 +10,7 @@ import (
 
 // Every kind of check has its text on the page, with the amount it names.
 func TestVATChecksRender(t *testing.T) {
-	kinds := []metrics.CheckKind{metrics.CheckRate, metrics.CheckZero, metrics.CheckForeignTax, metrics.CheckNoCountry, metrics.CheckTaxOnTop}
+	kinds := []metrics.CheckKind{metrics.CheckRate, metrics.CheckZero, metrics.CheckForeignTax, metrics.CheckNoCountry, metrics.CheckTaxOnTop, metrics.CheckRefund}
 	var e metrics.Elster
 	for _, k := range kinds {
 		e.Checks = append(e.Checks, metrics.ElsterCheck{Kind: k, Day: "2026-09-10", Name: "Acme", Number: "A1", Amount: 119, Diff: 3.61})
