@@ -2958,6 +2958,31 @@
     }
   }
 
+  // A new search replaces the hits but not the choice: the picked hit
+  // stays, or the desk would show a receipt the expense goes without.
+  d.addEventListener("htmx:beforeSwap", function (e) {
+    var found = e.target.matches && e.target.matches("[id^=found-][role=radiogroup]") ? e.target : null;
+    var radio = found && found.querySelector("input[type=radio]:checked");
+    if (radio) {
+      found.andonPicked = radio.closest("label").cloneNode(true);
+    }
+  });
+  d.addEventListener("htmx:afterSwap", function (e) {
+    var picked = e.target.andonPicked;
+    if (!picked) {
+      return;
+    }
+    e.target.andonPicked = null;
+    var again = picked.querySelector("input");
+    var same = e.target.querySelector("input[type=radio][value=\"" + CSS.escape(again.value) + "\"]");
+    if (same) {
+      same.checked = true;
+      return;
+    }
+    e.target.insertBefore(picked, e.target.firstChild);
+    again.checked = true;
+  });
+
   // New hits of a search (htmx) change what the desk would write too;
   // a desk's new review leaves the only one on the page.
   d.addEventListener("htmx:afterSwap", function (e) {

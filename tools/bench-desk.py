@@ -3,7 +3,7 @@
 dropping a scan gives the expense its bank day back, an unsorted entry
 also after a reload that put the draft back and a new search; a date
 the user set (bank day clicked, day typed) stays through a reload and
-another scan; an unsorted entry cannot be taken before it is
+another scan; a second search keeps the picked hit; an unsorted entry cannot be taken before it is
 sorted, and "Später" leaves its label.
 
 Usage: start the demo (./start.sh demo, default http://localhost:8080), then
@@ -15,7 +15,8 @@ Before the fix:
   day after a reload without a scan: 2026-10-16 (want 2026-10-24)
   bank day after a reload: 2026-10-16 (want 2026-10-24)
   day after a new search without a scan: 2026-10-16 (want 2026-10-24)
-  clicked bank day after another scan: 2026-10-13 (want 2026-10-24)
+  clicked bank day after another scan: 2026-10-16 (want 2026-10-24)
+  scan after a second search: none checked (want 201)
   take enabled while unsorted
   label after later: '' (want 'Noch unsortiert')
 
@@ -32,7 +33,7 @@ LOGIN = ("mara@studio-weber.example.test", "demo-password-1")  # internal/servic
 SCANNED, UNSORTED = "demo-b-scan", "demo-p-ticket"
 RECEIPT_DAY = "2020-01-02"  # far from any bank day
 QUERY, OTHER_QUERY = "Rechnung", "Bahn"
-TYPED_DAY = "2026-10-05"
+TYPED_DAY, TYPED_KEYS = "2026-10-10", "10102026"  # same in day-first and month-first fields
 SWAP_MS = 300  # htmx settles the hits
 SAVE_MS = 3000  # andon.js DRAFT_WAIT_MS, the request and a slow disk
 
@@ -150,14 +151,40 @@ def set_day_stays(page):
     if got != bank:
         wrong.append(f"clicked bank day after another scan: {got} (want {bank})")
 
-    page.fill(f'[name="day_{k}"]', TYPED_DAY)
+    return wrong
+
+
+def typed_day_stays(page):
+    """A day typed with real keys stays through a reload and a dropped scan."""
+    k = SCANNED
+    page.click(f'.bench-entry[data-case="{k}"]')
+    bank = page.get_attribute(f'[name="day_{k}"]', "data-bank-day")
+    other = pick_off_bank(page, k, bank)
+    if not other:
+        return [f"demo search has no scan off the bank day {bank}"]
+    page.focus(f'[name="day_{k}"]')
+    page.keyboard.type(TYPED_KEYS)
     reload_with(page, k, other)
     open_scans(page, k)
-    page.check(none)
+    page.check(f'[data-desk="{k}"] input[name="scan_{k}"][value=""]')
     got = page.input_value(f'[name="day_{k}"]')
-    if got != TYPED_DAY:
-        wrong.append(f"typed day after a reload without a scan: {got} (want {TYPED_DAY})")
-    return wrong
+    return [] if got == TYPED_DAY else [f"typed day after a reload without a scan: {got} (want {TYPED_DAY})"]
+
+
+def second_search(page):
+    """A second search keeps the picked hit: the frame shows what is sent."""
+    k = SCANNED
+    page.click(f'.bench-entry[data-case="{k}"]')
+    bank = page.get_attribute(f'[name="day_{k}"]', "data-bank-day")
+    other = pick_off_bank(page, k, bank)
+    if not other:
+        return [f"demo search has no scan off the bank day {bank}"]
+    page.fill(f'[name="q_scan_{k}"]', OTHER_QUERY)
+    with page.expect_response(lambda r: "/vat/scans" in r.url):
+        page.click(f'[data-desk="{k}"] [data-scan-search] button')
+    page.wait_for_timeout(SWAP_MS)
+    picked = page.eval_on_selector_all(f'[name="scan_{k}"]:checked', "els => els.map(e => e.value)")
+    return [] if picked == [other] else [f"scan after a second search: {picked or 'none checked'} (want {other})"]
 
 
 def bank_kept(page):
@@ -218,7 +245,11 @@ def main():
         discard(page)
         wrong += search_after_reload(page)
         discard(page)
-        wrong += set_day_stays(page) + unsorted(page)
+        wrong += set_day_stays(page)
+        discard(page)
+        wrong += typed_day_stays(page)
+        discard(page)
+        wrong += second_search(page) + unsorted(page)
 
         page.wait_for_timeout(SAVE_MS)
         discard(page)
