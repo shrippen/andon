@@ -62,7 +62,7 @@ const (
 	CheckForeignTax CheckKind = "foreign"    // foreign VAT: not input VAT here, not in Kz 66
 	CheckNoCountry  CheckKind = "no_country" // no tax, vendor of unknown country: § 13b not tested
 	CheckTaxOnTop   CheckKind = "tax_on_top" // the bank's gross amount booked as net
-	CheckRefund     CheckKind = "refund"     // refunded: reduces the month it happened, unknown here
+	CheckRefund     CheckKind = "refund"     // a payment refunded: not taken off, reduce by hand
 )
 
 // ElsterCheck is one booking the figures may be wrong about.
@@ -210,11 +210,12 @@ func ElsterOf(n *sources.NinjaDataset, start, end time.Time, method string) Elst
 		}
 	}
 
-	// A refund reduces the month it happened, which Invoice Ninja does
-	// not say: the payment's month stays as filed, the page asks.
+	// A refund reduces the month it happened: the payment's month stays
+	// as filed, and the page asks in the month of the payment's last
+	// change, the nearest Invoice Ninja says.
 	for _, p := range n.Payments {
-		if p.Refunded != 0 && in(p.Date) {
-			e.Checks = append(e.Checks, ElsterCheck{Kind: CheckRefund, Day: p.Date, Name: clients[p.ClientID].Name, Number: p.Number, Amount: p.Refunded})
+		if p.Refunded != 0 && in(p.RefundDay) {
+			e.Checks = append(e.Checks, ElsterCheck{Kind: CheckRefund, Day: p.RefundDay, Name: clients[p.ClientID].Name, Number: p.Number, Amount: p.Refunded})
 		}
 	}
 

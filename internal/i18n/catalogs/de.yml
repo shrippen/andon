@@ -7309,7 +7309,7 @@ vatcheck:
   check_foreign: 'Umsatzsteuer eines anderen Landes ist hier keine Vorsteuer, darum nicht in Kz 66.'
   check_no_country: 'Ohne Steuer und ohne Land beim Lieferanten: Ob § 13b gilt, kann Andon nicht prüfen. Land beim Lieferanten nachtragen.'
   check_tax_on_top: 'Betrag wie der Bankumsatz, aber „inklusive Steuer“ aus: Invoice Ninja und Kz 66 rechnen {diff} Vorsteuer zu viel. In Invoice Ninja einschalten.'
-  check_refund: 'Erstattet, ohne Tag in Invoice Ninja: Die Zahlung zählt hier voll. Im Monat der Erstattung selbst mindern (Kz 81, 86).'
+  check_refund: 'Erstattet (Tag: letzte Änderung der Zahlung in Invoice Ninja). Die Zahlung zählt weiter im Monat ihres Eingangs. Prüfen, ob die Erstattung in diesen Zeitraum gehört, und die Kennzahl des Umsatzes hier selbst mindern.'
   elster_hint: 'Ändert sich danach etwas im Zeitraum, warnt die Seite: dann ist eine berichtigte Voranmeldung fällig.'
   elster_filed: 'Gemeldet; seitdem unverändert.'
   elster_changed: 'Seit der Meldung geändert, eine Berichtigung ist fällig:'

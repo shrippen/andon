@@ -132,6 +132,7 @@ type NinjaPayment struct {
 	ClientID    int64
 	Key, Number string // id as sent (hashed in v5) and the payment's number
 	Refunded    float64
+	RefundDay   string // the payment's last change: the refund's day is not sent
 }
 
 type NinjaClient struct {

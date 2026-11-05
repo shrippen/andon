@@ -177,19 +177,23 @@ func TestElsterTaxOnTop(t *testing.T) {
 	}
 }
 
-// A refund leaves the paid month's figures: it reduces the month it
-// happened in, which Invoice Ninja does not say, so the page asks.
+// A refund leaves the paid month's figures and asks in the month it
+// happened, the one it reduces.
 func TestElsterRefundIsChecked(t *testing.T) {
 	n := &sources.NinjaDataset{HomeCountryID: "276", Clients: []sources.NinjaClient{{ID: 1, Name: "Acme", CountryID: "276"}},
 		Invoices: []sources.NinjaInvoice{{ID: 1, ClientID: 1, Status: "paid", Date: "2026-09-01", Net: 100, Taxes: 19, Amount: 119}},
-		Payments: []sources.NinjaPayment{{ID: 1, Number: "P1", ClientID: 1, Date: "2026-09-05", Amount: 119, Refunded: 119}}}
+		Payments: []sources.NinjaPayment{{ID: 1, Number: "P1", ClientID: 1, Date: "2026-09-05", Amount: 119, Refunded: 119, RefundDay: "2026-10-12"}}}
+
 	start, end := elsterSpan(t, "2026-09-01", "2026-09-30")
-	e := metrics.ElsterOf(n, start, end, "ist")
-	if e.Kz81 != 100 {
-		t.Errorf("Kz 81 = %v, want 100", e.Kz81)
+	sep := metrics.ElsterOf(n, start, end, "ist")
+	if sep.Kz81 != 100 || len(sep.Checks) != 0 {
+		t.Errorf("September: Kz 81 = %v, checks %+v", sep.Kz81, sep.Checks)
 	}
-	if c := checkOf(e, metrics.CheckRefund); c == nil || c.Number != "P1" || c.Name != "Acme" || c.Amount != 119 {
-		t.Errorf("check: %+v", c)
+
+	start, end = elsterSpan(t, "2026-10-01", "2026-10-31")
+	c := checkOf(metrics.ElsterOf(n, start, end, "ist"), metrics.CheckRefund)
+	if c == nil || c.Number != "P1" || c.Name != "Acme" || c.Amount != 119 || c.Day != "2026-10-12" {
+		t.Errorf("October: check %+v", c)
 	}
 }
 

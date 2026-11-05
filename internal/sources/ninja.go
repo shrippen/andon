@@ -161,6 +161,15 @@ func itoa(n int64) string {
 	return string(buf[i:])
 }
 
+// unixDay is the day of Invoice Ninja's Unix timestamps, "" without one.
+func unixDay(v any) string {
+	sec := asFloat(v)
+	if sec <= 0 {
+		return ""
+	}
+	return time.Unix(int64(sec), 0).UTC().Format(time.DateOnly)
+}
+
 // expenseTax is an expense's input VAT: explicit tax amounts, else computed
 // from the rate (inclusive or exclusive).
 func expenseTax(m map[string]any) float64 {
@@ -233,7 +242,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 		}
 		if day(pm["date"]) >= since {
 			payments = append(payments, NinjaPayment{
-				ID: refNum(pm["id"]), Date: day(pm["date"]), Amount: asFloat(pm["amount"]), Refunded: asFloat(pm["refunded"]),
+				ID: refNum(pm["id"]), Date: day(pm["date"]), Amount: asFloat(pm["amount"]), Refunded: asFloat(pm["refunded"]), RefundDay: unixDay(pm["updated_at"]),
 				ClientID: refNum(pm["client_id"]), Key: idKey(pm["id"]), Number: asStr(pm["number"]),
 			})
 		}

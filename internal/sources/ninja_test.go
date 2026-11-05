@@ -311,11 +311,12 @@ func ninjaFixture(t *testing.T, payments string) *sources.NinjaDataset {
 }
 
 // A refund has no day of its own: the payment stays as it was (its month
-// was filed, a bank booking still matches it) and carries what went back.
+// was filed, a bank booking still matches it) and carries what went back
+// and its last change, the nearest there is to the refund's day.
 func TestNinjaPaymentRefund(t *testing.T) {
 	today := time.Now().Format(time.DateOnly)
-	n := ninjaFixture(t, `{"id": 1, "number": "P1", "client_id": 9, "date": "`+today+`", "amount": 100, "refunded": 30}`)
-	if p := n.Payments[0]; p.Amount != 100 || p.Refunded != 30 {
-		t.Errorf("payment = %v, refunded %v, want 100 and 30", p.Amount, p.Refunded)
+	n := ninjaFixture(t, `{"id": 1, "number": "P1", "client_id": 9, "date": "`+today+`", "amount": 100, "refunded": 30, "updated_at": 1791806400}`)
+	if p := n.Payments[0]; p.Amount != 100 || p.Refunded != 30 || p.RefundDay != "2026-10-12" {
+		t.Errorf("payment = %v, refunded %v on %q, want 100, 30 on 2026-10-12", p.Amount, p.Refunded, p.RefundDay)
 	}
 }
