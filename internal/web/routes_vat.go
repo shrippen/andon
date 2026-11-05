@@ -88,7 +88,8 @@ func (d Deps) handleVATScans(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 		field = vatcheck.FieldFillScan
 	}
 	query := r.FormValue("q_" + field + "_" + k)
-	found, err := vatcheck.Search(r.Context(), d.DB, ctx.Who, q.Scope, k, r.FormValue(vatcheck.FieldVendor+"_"+k), query)
+	keep, _ := strconv.ParseInt(r.FormValue("keep_"+field+"_"+k), 10, 64)
+	found, err := vatcheck.Search(r.Context(), d.DB, ctx.Who, q.Scope, k, r.FormValue(vatcheck.FieldVendor+"_"+k), query, keep)
 	values := map[string]any{"Partial": true, "Found": found, "Case": k, "Field": field}
 	if err != nil {
 		values["Error"] = vatError(err)

@@ -3,7 +3,9 @@
 dropping a scan gives the expense its bank day back, an unsorted entry
 also after a reload that put the draft back and a new search; a date
 the user set (bank day clicked, day typed) stays through a reload and
-another scan; a second search keeps the picked hit; an unsorted entry cannot be taken before it is
+another scan; a second search keeps the picked hit, also through a
+reload; a picked scan gone meanwhile leaves no scan and the bank day;
+an unsorted entry cannot be taken before it is
 sorted, and "Später" leaves its label.
 
 Usage: start the demo (./start.sh demo, default http://localhost:8080), then
@@ -17,6 +19,8 @@ Before the fix:
   day after a new search without a scan: 2026-10-16 (want 2026-10-24)
   clicked bank day after another scan: 2026-10-16 (want 2026-10-24)
   scan after a second search: none checked (want 201)
+  scan after a second search and a reload: none checked (want 201)
+  scan gone after a reload: none checked, day 2026-10-16 (want "Ohne Beleg", 2026-10-24)
   take enabled while unsorted
   label after later: '' (want 'Noch unsortiert')
 
@@ -35,6 +39,7 @@ RECEIPT_DAY = "2020-01-02"  # far from any bank day
 QUERY, OTHER_QUERY = "Rechnung", "Bahn"
 TYPED_DAY, TYPED_KEYS = "2026-10-10", "10102026"  # same in day-first and month-first fields
 SWAP_MS = 300  # htmx settles the hits
+RESTORE_MS = 1500  # a draft's search back after a reload
 SAVE_MS = 3000  # andon.js DRAFT_WAIT_MS, the request and a slow disk
 
 
@@ -201,6 +206,47 @@ def bank_kept(page):
     return [] if got == bank else [f"bank day after a reload: {got} (want {bank})"]
 
 
+def second_search_reload(page):
+    """The picked hit comes back by its id, not by the query now in the field."""
+    k = SCANNED
+    page.click(f'.bench-entry[data-case="{k}"]')
+    bank = page.get_attribute(f'[name="day_{k}"]', "data-bank-day")
+    other = pick_off_bank(page, k, bank)
+    if not other:
+        return [f"demo search has no scan off the bank day {bank}"]
+    page.fill(f'[name="q_scan_{k}"]', OTHER_QUERY)
+    page.wait_for_timeout(SAVE_MS)
+    page.reload()
+    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(RESTORE_MS)
+    picked = page.eval_on_selector_all(f'[name="scan_{k}"]:checked', "els => els.map(e => e.value)")
+    if picked != [other]:
+        return [f"scan after a second search and a reload: {picked or 'none checked'} (want {other})"]
+    frame = page.get_attribute(f'[data-desk="{k}"] aside[data-for=create] [data-doc]', "src") or ""
+    return [] if frame.endswith("/" + other) else [f"frame after a reload: {frame} (want {other})"]
+
+
+def scan_gone(page):
+    """A picked scan gone meanwhile: no scan is what the desk says and sends."""
+    k = SCANNED
+    page.click(f'.bench-entry[data-case="{k}"]')
+    bank = page.get_attribute(f'[name="day_{k}"]', "data-bank-day")
+    other = pick_off_bank(page, k, bank)
+    if not other:
+        return [f"demo search has no scan off the bank day {bank}"]
+    page.wait_for_timeout(SAVE_MS)
+    page.route("**/vat/scans*", lambda r: r.fulfill(status=200, content_type="text/html", body=""))
+    page.reload()
+    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(RESTORE_MS)
+    page.unroute("**/vat/scans*")
+    picked = page.eval_on_selector_all(f'[name="scan_{k}"]:checked', "els => els.map(e => e.value)")
+    day = page.input_value(f'[name="day_{k}"]')
+    if picked != [""] or day != bank:
+        return [f"scan gone after a reload: {picked or 'none checked'}, day {day} (want \"Ohne Beleg\", {bank})"]
+    return []
+
+
 def unsorted(page):
     """Nothing to take before a choice; the label stays through "Später"."""
     k = UNSORTED
@@ -249,7 +295,13 @@ def main():
         discard(page)
         wrong += typed_day_stays(page)
         discard(page)
-        wrong += second_search(page) + unsorted(page)
+        wrong += second_search(page)
+        discard(page)
+        wrong += second_search_reload(page)
+        discard(page)
+        wrong += scan_gone(page)
+        discard(page)
+        wrong += unsorted(page)
 
         page.wait_for_timeout(SAVE_MS)
         discard(page)

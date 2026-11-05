@@ -2962,10 +2962,11 @@
   // stays, or the desk would show a receipt the expense goes without.
   d.addEventListener("htmx:beforeSwap", function (e) {
     var found = e.target.matches && e.target.matches("[id^=found-][role=radiogroup]") ? e.target : null;
-    var radio = found && found.querySelector("input[type=radio]:checked");
-    if (radio) {
-      found.andonPicked = radio.closest("label").cloneNode(true);
+    if (!found) {
+      return;
     }
+    var radio = found.querySelector("input[type=radio]:checked");
+    found.andonPicked = e.detail.shouldSwap && radio ? radio.closest("label").cloneNode(true) : null;
   });
   d.addEventListener("htmx:afterSwap", function (e) {
     var picked = e.target.andonPicked;
@@ -2981,6 +2982,35 @@
     }
     e.target.insertBefore(picked, e.target.firstChild);
     again.checked = true;
+  });
+
+  // After hits came (and a draft took its pick from them): a pick that
+  // did not come back is gone, so the desk says and sends "no scan".
+  d.addEventListener("htmx:afterSettle", function (e) {
+    var found = e.target.matches && e.target.matches("[id^=found-][role=radiogroup]") ? e.target : null;
+    if (!found) {
+      return;
+    }
+    var keep = found.parentNode.querySelector("[data-scan-keep]");
+    if (keep) {
+      keep.value = "";
+    }
+    setTimeout(function () {
+      var side = found.closest("aside");
+      var none = side && side.querySelector("input[data-part=scan][value=\"\"]");
+      if (!none || side.querySelector("input[data-part=scan]:checked")) {
+        return;
+      }
+      none.checked = true;
+      none.dispatchEvent(new Event("change", { bubbles: true }));
+      var desk = found.closest("[data-desk]");
+      benchScanDay(benchBlock(desk), none);
+
+      // The draft stops waiting for it, or a later search would undo the user's pick.
+      if (desk.andonDraft) {
+        desk.andonDraft.pending = desk.andonDraft.pending.filter(function (name) { return name !== none.name; });
+      }
+    });
   });
 
   // New hits of a search (htmx) change what the desk would write too;
@@ -3036,9 +3066,12 @@
     var k = desk.getAttribute("data-desk");
     ["scan", "xscan"].forEach(function (f) {
       var q = desk.querySelector("input[name=\"q_" + f + "_" + CSS.escape(k) + "\"]");
-      if (e.detail.pending.indexOf(f + "_" + k) >= 0 && q && q.value.trim()) {
-        q.closest("[data-scan-search]").querySelector("button").click();
+      if (e.detail.pending.indexOf(f + "_" + k) < 0 || !q) {
+        return;
       }
+      var row = q.closest("[data-scan-search]");
+      row.querySelector("[data-scan-keep]").value = desk.andonDraft.vals[f + "_" + k][0];
+      row.querySelector("button").click();
     });
   });
 

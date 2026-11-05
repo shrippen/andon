@@ -531,12 +531,29 @@ func (e FetchError) Error() string { return e.Msg }
 
 // Search looks in Paperless for scans for transaction key's new expense
 // of vendor, or for gap case key's expense: query in title and content,
-// within the booking's year.
-func Search(ctx context.Context, d *sql.DB, who *access.Principal, scope, key, vendor, query string) ([]receipts.Candidate, error) {
+// within the booking's year. keep (0 none) is a scan picked earlier: it
+// comes back by its id while it is free, whatever the query finds.
+func Search(ctx context.Context, d *sql.DB, who *access.Principal, scope, key, vendor, query string, keep int64) ([]receipts.Candidate, error) {
 	b, _, err := load(ctx, d, who, scope, svcdata.Stored)
 	if err != nil {
 		return nil, err
 	}
+	found, err := b.search(ctx, d, who, key, vendor, query)
+	if err != nil || keep == 0 || slices.ContainsFunc(found, func(c receipts.Candidate) bool { return c.Doc.ID == keep }) {
+		return found, err
+	}
+	free, err := receipts.FreeScans(ctx, d, who, b.conn.ID, []int64{keep})
+	if err != nil {
+		return found, err
+	}
+	if c, ok := free[keep]; ok {
+		return append([]receipts.Candidate{c}, found...), nil
+	}
+	return found, nil
+}
+
+// search finds the query's scans for a transaction or an expense's gap.
+func (b book) search(ctx context.Context, d *sql.DB, who *access.Principal, key, vendor, query string) ([]receipts.Candidate, error) {
 	if exp, ok := strings.CutPrefix(key, fillPrefix); ok {
 		j := slices.IndexFunc(b.ninja.Expenses, func(e sources.NinjaExpense) bool { return e.Key == exp })
 		if j < 0 {

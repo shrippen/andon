@@ -182,6 +182,12 @@ func scanSearch(t *testing.T, srv *httptest.Server, client *http.Client, page st
 	if !strings.Contains(found, `name="scan_demo-b-scan"`) || !strings.Contains(found, "/receipts/thumb/") {
 		t.Fatalf("search offers no scan:\n%s", found)
 	}
+
+	// A picked hit comes back by its id, whatever the query now finds.
+	kept := string(mustGet(t, srv, client, "/vat/scans?case=demo-b-scan&q_scan_demo-b-scan=&keep_scan_demo-b-scan=201"))
+	if !strings.Contains(kept, `value="201"`) {
+		t.Fatalf("kept scan missing:\n%s", kept)
+	}
 	if none := string(mustGet(t, srv, client, "/vat/scans?case=demo-b-scan&q_scan_demo-b-scan=")); !strings.Contains(none, "Nichts gefunden") {
 		t.Fatalf("empty search:\n%s", none)
 	}
