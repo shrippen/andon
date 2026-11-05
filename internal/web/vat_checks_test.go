@@ -26,6 +26,10 @@ func TestVATChecksRender(t *testing.T) {
 	if strings.Count(page, "<li>") != len(kinds) || !strings.Contains(page, "3,61") {
 		t.Fatalf("checks:\n%s", page)
 	}
+	// A return's bases are net: a refund's amount must not read as one.
+	if !strings.Contains(page, "brutto") {
+		t.Fatalf("the refund's amount is not named gross:\n%s", page)
+	}
 	if strings.Contains(page, "vatcheck.check") {
 		t.Fatalf("a text is missing:\n%s", page)
 	}

@@ -71,7 +71,7 @@ type ElsterCheck struct {
 	Day    string
 	Name   string  // client or vendor
 	Number string  // invoice or expense number
-	Amount float64 // net invoiced, or the expense's amount
+	Amount float64 // net invoiced, the expense's amount, or gross refunded
 	Diff   float64 // CheckTaxOnTop: input VAT counted too much
 }
 
