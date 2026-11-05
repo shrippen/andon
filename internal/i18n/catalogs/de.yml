@@ -7303,6 +7303,12 @@ vatcheck:
   zm_clients: Kunden
   elster_file: 'Als gemeldet merken'
   elster_refile: 'Neu als gemeldet merken'
+  checks_title: 'Vor dem Melden prüfen: {n}'
+  check_rate: 'Der Steuersatz dieser Rechnungen passt zu keiner Kennzahl, sie sind nicht gezählt. Aufteilen und selbst eintragen.'
+  check_zero: '0 % im Inland oder ohne Land beim Kunden, nicht gezählt. Land nachtragen; steuerfreie Umsätze gehören in Kz 43 oder 48 und werden nicht von Andon ausgefüllt.'
+  check_foreign: 'Umsatzsteuer eines anderen Landes ist hier keine Vorsteuer, darum nicht in Kz 66.'
+  check_no_country: 'Ohne Steuer und ohne Land beim Lieferanten: Ob § 13b gilt, kann Andon nicht prüfen. Land beim Lieferanten nachtragen.'
+  check_tax_on_top: 'Betrag wie der Bankumsatz, aber „inklusive Steuer“ aus: Invoice Ninja und Kz 66 rechnen {diff} Vorsteuer zu viel. In Invoice Ninja einschalten.'
   elster_hint: 'Ändert sich danach etwas im Zeitraum, warnt die Seite: dann ist eine berichtigte Voranmeldung fällig.'
   elster_filed: 'Gemeldet; seitdem unverändert.'
   elster_changed: 'Seit der Meldung geändert, eine Berichtigung ist fällig:'

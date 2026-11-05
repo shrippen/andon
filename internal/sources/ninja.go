@@ -233,7 +233,7 @@ func loadNinja(ctx context.Context, api services.NinjaApi, sctx Ctx) (*NinjaData
 		}
 		if day(pm["date"]) >= since {
 			payments = append(payments, NinjaPayment{
-				ID: refNum(pm["id"]), Date: day(pm["date"]), Amount: asFloat(pm["amount"]),
+				ID: refNum(pm["id"]), Date: day(pm["date"]), Amount: asFloat(pm["amount"]) - asFloat(pm["refunded"]),
 				ClientID: refNum(pm["client_id"]), Key: idKey(pm["id"]), Number: asStr(pm["number"]),
 			})
 		}

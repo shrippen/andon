@@ -285,3 +285,36 @@ func TestNinjaHistoryNewestFirst(t *testing.T) {
 		t.Fatalf("asked %d, newest %v, oldest %v", len(asked), asked["i0"], asked["i44"])
 	}
 }
+
+// ninjaFixture is an Invoice Ninja answering with the given payments and
+// nothing else.
+func ninjaFixture(t *testing.T, payments string) *sources.NinjaDataset {
+	t.Helper()
+	list := func(body string) http.HandlerFunc {
+		return func(w http.ResponseWriter, _ *http.Request) {
+			w.Write([]byte(`{"data": [` + body + `], "meta": {"pagination": {"total_pages": 1}}}`))
+		}
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/payments", list(payments))
+	for _, empty := range []string{"invoices", "clients", "expenses", "quotes", "recurring_invoices"} {
+		mux.HandleFunc("/api/v1/"+empty, list(""))
+	}
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+
+	out, err := sources.NinjaData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, Secret: "t", VerifyTLS: false})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out.(*sources.NinjaDataset)
+}
+
+// A refund takes the money back: what a payment counts is what stayed.
+func TestNinjaPaymentRefund(t *testing.T) {
+	today := time.Now().Format(time.DateOnly)
+	n := ninjaFixture(t, `{"id": 1, "number": "P1", "client_id": 9, "date": "`+today+`", "amount": 100, "refunded": 30}`)
+	if got := n.Payments[0].Amount; got != 70 {
+		t.Errorf("payment = %v, want 70", got)
+	}
+}

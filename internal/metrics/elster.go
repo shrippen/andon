@@ -5,8 +5,9 @@ package metrics
 // takes them), taxes cents:
 //
 //	Kz 81 / 86   revenue at 19 % / 7 %, net
-//	Kz 21        services to EU businesses (0 %, reverse charge there)
-//	Kz 45        other non-taxable revenue (0 %, outside the EU)
+//	Kz 21        services to EU businesses (0 %, reverse charge there),
+//	             by invoice date for either method (§ 18b UStG), as the ZM
+//	Kz 45        other non-taxable revenue (0 %, client outside the EU)
 //	Kz 46 / 47   EU services received under § 13b: base / tax
 //	Kz 84 / 85   other § 13b services (outside the EU): base / tax
 //	Kz 66        input VAT from invoices
@@ -15,9 +16,13 @@ package metrics
 //
 // Reverse charge: an expense without tax from a vendor abroad. Andon
 // cannot tell goods from services; the page says so.
+//
+// What cannot be placed is not guessed: it stays out of the figures, or
+// in as Invoice Ninja has it, and Checks names it for the user.
 
 import (
 	"math"
+	"slices"
 	"time"
 
 	"andon/internal/sources"
@@ -45,6 +50,50 @@ type Elster struct {
 	Kz81, Kz86, Kz21, Kz45, Kz46, Kz84 float64 // bases, whole euros
 	Kz47, Kz85, Kz66, Kz67, Kz83       float64 // taxes
 	Reverse                            []ReverseCharge
+	Checks                             []ElsterCheck
+}
+
+// CheckKind is why a booking needs a look before the return is filed.
+type CheckKind string
+
+const (
+	CheckRate       CheckKind = "rate"       // an invoice's rate fits no line
+	CheckZero       CheckKind = "zero"       // 0 %, the client at home or of unknown country
+	CheckForeignTax CheckKind = "foreign"    // foreign VAT: not input VAT here, not in Kz 66
+	CheckNoCountry  CheckKind = "no_country" // no tax, vendor of unknown country: § 13b not tested
+	CheckTaxOnTop   CheckKind = "tax_on_top" // the bank's gross amount booked as net
+)
+
+// ElsterCheck is one booking the figures may be wrong about.
+type ElsterCheck struct {
+	Kind   CheckKind
+	Day    string
+	Name   string  // client or vendor
+	Number string  // invoice or expense number
+	Amount float64 // net invoiced, or the expense's amount
+	Diff   float64 // CheckTaxOnTop: input VAT counted too much
+}
+
+// CheckGroup is the checks of one kind, for the page.
+type CheckGroup struct {
+	Kind  CheckKind
+	Items []ElsterCheck
+	Diff  float64 // the items' sum
+}
+
+// CheckGroups lists the checks by kind, in the order they were found.
+func (e Elster) CheckGroups() []CheckGroup {
+	var out []CheckGroup
+	for _, c := range e.Checks {
+		i := slices.IndexFunc(out, func(g CheckGroup) bool { return g.Kind == c.Kind })
+		if i < 0 {
+			out = append(out, CheckGroup{Kind: c.Kind})
+			i = len(out) - 1
+		}
+		out[i].Items = append(out[i].Items, c)
+		out[i].Diff = round2(out[i].Diff + c.Diff)
+	}
+	return out
 }
 
 // ReverseCharge is an expense from abroad without tax.
@@ -92,21 +141,42 @@ func ElsterOf(n *sources.NinjaDataset, start, end time.Time, method string) Elst
 	}
 
 	// Revenue: net per rate, from invoices (soll) or their payments (ist).
+	// Services to EU businesses count by invoice date either way (below).
 	var b81, b86, b21, b45 float64
+	seen := map[invoiceRef]int{}
+	check := func(kind CheckKind, inv sources.NinjaInvoice, net float64) {
+		ref := invoiceRef{inv.ID, inv.Number}
+		if i, ok := seen[ref]; ok {
+			e.Checks[i].Amount = round2(e.Checks[i].Amount + net)
+			return
+		}
+		seen[ref] = len(e.Checks)
+		e.Checks = append(e.Checks, ElsterCheck{Kind: kind, Day: inv.Date, Name: clients[inv.ClientID].Name, Number: inv.Number, Amount: round2(net)})
+	}
 	add := func(inv sources.NinjaInvoice, share float64) {
 		net := inv.Net * share
+		country := clients[inv.ClientID].CountryID
 		switch rate := invoiceRate(inv); {
 		case math.Abs(rate-rateFull) <= rateTol:
 			b81 += net
 		case math.Abs(rate-rateReduced) <= rateTol:
 			b86 += net
-		case rate == 0 && InEU(clients[inv.ClientID].CountryID):
-			b21 += net
+		case rate == 0 && InEU(country):
+			// by invoice date, below
+		case rate == 0 && (country == "" || country == n.HomeCountryID):
+			check(CheckZero, inv, net)
 		case rate == 0:
 			b45 += net
+		default:
+			check(CheckRate, inv, net)
 		}
 	}
 	counted := NinjaCounted(n)
+	for _, inv := range counted {
+		if in(inv.Date) && invoiceRate(inv) == 0 && InEU(clients[inv.ClientID].CountryID) {
+			b21 += inv.Net
+		}
+	}
 	if method == "soll" {
 		for _, inv := range counted {
 			if in(inv.Date) {
@@ -137,9 +207,10 @@ func ElsterOf(n *sources.NinjaDataset, start, end time.Time, method string) Elst
 	}
 
 	// Input VAT and reverse charge from the period's expenses.
-	vendors := map[string]sources.NinjaVendor{}
-	for _, v := range n.Vendors {
-		vendors[v.Key] = v
+	vendors := vendorsByKey(n)
+	txns := map[string]sources.NinjaBankTxn{}
+	for _, t := range n.BankTxns {
+		txns[t.Key] = t
 	}
 	home := n.HomeCountryID
 	var b46, b84 float64
@@ -147,9 +218,24 @@ func ElsterOf(n *sources.NinjaDataset, start, end time.Time, method string) Elst
 		if !in(x.Date) {
 			continue
 		}
-		e.Kz66 += x.Tax
 		v := vendors[x.VendorKey]
-		if x.Tax != 0 || v.CountryID == "" || v.CountryID == home {
+		note := ElsterCheck{Day: x.Date, Name: v.Name, Number: x.Number, Amount: x.Amount}
+		if foreignVAT(x, v, home) {
+			note.Kind = CheckForeignTax
+			e.Checks = append(e.Checks, note)
+			continue
+		}
+		e.Kz66 += x.Tax
+		if over := taxOnTop(x, txns[x.TxnKey]); over > 0 {
+			note.Kind, note.Diff = CheckTaxOnTop, over
+			e.Checks = append(e.Checks, note)
+		}
+		if x.Tax != 0 || v.CountryID == home {
+			continue
+		}
+		if v.CountryID == "" {
+			note.Kind = CheckNoCountry
+			e.Checks = append(e.Checks, note)
 			continue
 		}
 		rc := ReverseCharge{Expense: x, Vendor: v.Name, EU: InEU(v.CountryID)}
@@ -167,6 +253,43 @@ func ElsterOf(n *sources.NinjaDataset, start, end time.Time, method string) Elst
 	output := e.Kz81*rateFull/100 + e.Kz86*rateReduced/100 + e.Kz47 + e.Kz85
 	e.Kz83 = round2(output - e.Kz66 - e.Kz67)
 	return e
+}
+
+// invoiceRef tells invoices apart, whichever of the two the data has.
+type invoiceRef struct {
+	id     int64
+	number string
+}
+
+// vendorsByKey indexes a dataset's vendors.
+func vendorsByKey(n *sources.NinjaDataset) map[string]sources.NinjaVendor {
+	out := make(map[string]sources.NinjaVendor, len(n.Vendors))
+	for _, v := range n.Vendors {
+		out[v.Key] = v
+	}
+	return out
+}
+
+// foreignVAT says whether an expense carries another country's VAT: a
+// vendor abroad at a rate Germany has not. German VAT from abroad (a
+// vendor registered here) is input VAT.
+func foreignVAT(x sources.NinjaExpense, v sources.NinjaVendor, home string) bool {
+	if x.Tax == 0 || x.TaxRate == 0 || v.CountryID == "" || v.CountryID == home {
+		return false
+	}
+	return math.Abs(x.TaxRate-rateFull) > rateTol && math.Abs(x.TaxRate-rateReduced) > rateTol
+}
+
+// taxOnTop is the input VAT an expense counts too much: its booking's
+// whole amount taken as net, tax on top of what was paid. 0 if not.
+func taxOnTop(x sources.NinjaExpense, t sources.NinjaBankTxn) float64 {
+	if x.TaxRate <= 0 || math.Abs(t.Amount-x.Amount) > amountTol {
+		return 0
+	}
+	if over := round2(x.Tax - x.Amount*x.TaxRate/(100+x.TaxRate)); over >= amountTol {
+		return over
+	}
+	return 0
 }
 
 // invoiceRate is an invoice's tax rate in percent, from its tax and net.

@@ -79,6 +79,7 @@
           <td><button type="button" class="btn btn-quiet btn-sm" data-copy="{{if .Base}}{{printf "%.0f" .Value}}{{else}}{{printf "%.2f" .Value}}{{end}}">{{t "vatcheck.elster_copy"}}</button></td>
         </tr>{{end}}</tbody>
       </table></div>
+      {{template "vat_checks" dict "E" $e "Currency" $p.Currency}}
       {{with $e.Reverse}}<details><summary>{{t "vatcheck.rc_title" "n" (len .)}}</summary>
         <p class="small muted">{{t "vatcheck.rc_lead"}}</p>
         <ul class="plain-list small">{{range .}}<li>{{day .Expense.Date}} · {{.Vendor}} · {{money .Expense.Amount $p.Currency}} · {{if .EU}}Kz 46/47{{else}}Kz 84/85{{end}}</li>{{end}}</ul>
@@ -188,6 +189,12 @@
 </body>
 </html>
 {{end}}
+
+{{/* What the return's figures may be wrong about, by kind. */}}
+{{define "vat_checks"}}{{$cur := .Currency}}{{with .E.Checks}}<div class="callout callout-warn" id="elster-checks"><strong>{{t "vatcheck.checks_title" "n" (len .)}}</strong>
+  {{range $.E.CheckGroups}}<p>{{t (print "vatcheck.check_" .Kind) "diff" (money .Diff $cur)}}</p>
+  <ul class="plain-list small">{{range .Items}}<li>{{day .Day}} · {{or .Name "–"}}{{with .Number}} · {{.}}{{end}} · {{money .Amount $cur}}</li>{{end}}</ul>{{end}}
+</div>{{end}}{{end}}
 
 {{/* A period's name: "09/2026" or "Q3 2026". */}}
 {{/* A card's state as Kante's status: filed ok, due a correction bad,
