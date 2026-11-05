@@ -605,7 +605,24 @@ func suggestLast(d *ExpenseDraft, n *sources.NinjaDataset, last sources.NinjaExp
 	if i < 0 || last.TxnKey == "" || n.BankTxns[i].Amount <= 0 {
 		return
 	}
-	share := math.Round(last.Amount / n.BankTxns[i].Amount * percentWhole)
+
+	// A split's part is no share.
+	parts := 0
+	for _, e := range n.Expenses {
+		if e.TxnKey == last.TxnKey {
+			parts++
+		}
+	}
+	if parts > 1 {
+		return
+	}
+
+	// A net amount counts with its tax.
+	paid := last.Amount
+	if !last.Gross {
+		paid += last.Tax
+	}
+	share := math.Round(paid / n.BankTxns[i].Amount * percentWhole)
 	if share > 0 && share < percentWhole {
 		v := strconv.FormatFloat(share, 'f', -1, 64)
 		d.Suggest.Share = []Pick{{Value: v, Label: v + " %"}}

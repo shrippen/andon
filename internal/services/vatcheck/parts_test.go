@@ -84,3 +84,25 @@ func TestReceiptAsks(t *testing.T) {
 		t.Fatal("ready without an amount")
 	}
 }
+
+// Tally keeps to the period card's count: a private transfer side or an
+// expense the model reads as private is not open business work.
+func TestTallyPrivateApart(t *testing.T) {
+	transfer := Case{BankCase: metrics.BankCase{Action: metrics.ActionSkip, Private: true, Transfer: &metrics.Transfer{}}}
+	guessed := Case{BankCase: metrics.BankCase{Action: metrics.ActionSkip, Private: true, Txn: sources.NinjaBankTxn{Debit: true}}}
+	unsorted := Case{BankCase: metrics.BankCase{Action: metrics.ActionNone, Private: true, Txn: sources.NinjaBankTxn{Debit: true}}}
+	proposed := Case{BankCase: metrics.BankCase{Action: metrics.ActionCreate, Private: true, Txn: sources.NinjaBankTxn{Debit: true}}}
+
+	got := Page{Apart: []Case{transfer, guessed, unsorted, proposed}}.Tally()
+	if want := (Tally{Open: 1, Unsorted: 1, Private: 2}); got != want {
+		t.Errorf("tally %+v, want %+v", got, want)
+	}
+}
+
+// A debit the model reads as private is not "nothing fits this income".
+func TestWhyPrivateDebit(t *testing.T) {
+	c := Case{BankCase: metrics.BankCase{Action: metrics.ActionSkip, Private: true, Txn: sources.NinjaBankTxn{Debit: true}}}
+	if got, want := c.Why(), "vatcheck.why_private"; got != want {
+		t.Errorf("why %q, want %q", got, want)
+	}
+}

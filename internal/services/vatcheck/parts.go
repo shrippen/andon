@@ -283,6 +283,8 @@ func (c Case) Why() string {
 		return prefix + "unsorted"
 	}
 	switch c.Action {
+	case metrics.ActionSkip:
+		return prefix + "private"
 	case ActionFill:
 		return prefix + "fill"
 	case ActionReceipt:
@@ -348,10 +350,13 @@ type Tally struct {
 func (p Page) Tally() Tally {
 	t := Tally{Open: len(p.Cases), Private: len(p.Skipped), Done: p.done}
 	for _, c := range p.Apart {
-		if c.Unsorted() {
+		switch {
+		case c.Unsorted():
 			t.Unsorted++
-		} else {
+		case c.Waiting():
 			t.Open++
+		default:
+			t.Private++
 		}
 	}
 	return t

@@ -742,3 +742,52 @@ func TestEuerFieldByLabel(t *testing.T) {
 		t.Fatalf("field %q, lines %v", p.Euer, p.EuerLines)
 	}
 }
+
+// Two cases propose one scan: the second loses it, and with it the
+// receipt's date, or its input VAT lands in the receipt's month.
+func TestTakenScanDropsDay(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, "demo://invoiceninja")
+	testkit.Conn(t, d, who, space, enums.ServicePaperless, "demo://paperless")
+	ctx := context.Background()
+	today := time.Now().UTC()
+
+	var first, second *vatcheck.Case
+	for _, s := range metrics.VATSpans(today, "monthly", 3) {
+		p, err := vatcheck.Open(ctx, d, who, scopeOf(conn), s.Key, today)
+		if err != nil {
+			t.Fatalf("open %s: %v", s.Key, err)
+		}
+		for i := range p.Cases {
+			c := &p.Cases[i]
+			if c.Action != metrics.ActionCreate {
+				continue
+			}
+			if first == nil && c.Scan() != 0 {
+				first = c
+				continue
+			}
+			if first != nil && second == nil && c.Txn.Date != first.ScanDay() {
+				second = c
+			}
+		}
+	}
+	if first == nil || second == nil {
+		t.Fatalf("demo lacks two new expenses, one with a scan: %v %v", first, second)
+	}
+
+	scan, day := strconv.FormatInt(first.Scan(), 10), first.ScanDay()
+	step := func(c *vatcheck.Case) workbench.Step {
+		return workbench.Step{Case: c.Txn.Key, Action: string(metrics.ActionCreate), Fields: map[string]string{
+			vatcheck.FieldVendor: "Zweimal", vatcheck.FieldTax: "19", vatcheck.FieldScan: scan, vatcheck.FieldDay: day}}
+	}
+	plan, err := vatcheck.Review(ctx, d, who, scopeOf(conn), []workbench.Step{step(first), step(second)})
+	if err != nil {
+		t.Fatalf("review: %v", err)
+	}
+	got := plan.Steps[1].Item
+	if got.Scan != 0 || got.Day != second.Txn.Date {
+		t.Errorf("second case: scan %d, day %s, want none and bank day %s", got.Scan, got.Day, second.Txn.Date)
+	}
+}

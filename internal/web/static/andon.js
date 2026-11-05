@@ -2693,9 +2693,13 @@
     });
     var day = block.querySelector("input[name^=day_]");
     var was = desk.getAttribute("data-scan-day") || "";
-    if (day && data.day && (day.value === "" || day.value === was)) {
-      day.value = data.day;
-      desk.setAttribute("data-scan-day", data.day);
+
+    // Without a scan the expense goes back to the bank's day: a dropped
+    // receipt's date would book its input VAT in the wrong month.
+    var next = data.day || (day && day.getAttribute("data-bank-day")) || "";
+    if (day && next && (day.value === "" || day.value === was)) {
+      day.value = next;
+      desk.setAttribute("data-scan-day", next);
     }
     var td = block.querySelector("[data-scan-td=day]");
     if (td && day) {
@@ -2741,7 +2745,7 @@
     }
     var take = desk.querySelector("[data-take-next]");
     if (take) {
-      take.disabled = act === "split" && !ready;
+      take.disabled = act === "" || (act === "split" && !ready);
     }
     entry.toggleAttribute("data-ready", ready);
     var bar = entry.querySelector(".progress-segs");
@@ -2751,7 +2755,11 @@
       bar.removeAttribute("data-tier");
     }
     var pressed = desk.querySelector("[data-set-act][aria-pressed=true]");
-    entry.querySelector("[data-act-label]").textContent = pressed ? pressed.textContent : "";
+
+    // Unsorted has no pressed action; its label stays.
+    if (pressed) {
+      entry.querySelector("[data-act-label]").textContent = pressed.textContent;
+    }
     var count = "";
     if (desk.querySelector("input[data-pick]").checked) {
       count = form.getAttribute("data-taken-label");
@@ -3073,6 +3081,12 @@
     if (none) {
       none.hidden = gaps.length > 0;
     }
+
+    // The scan's radios stand beside the fields: an expense holding one takes none.
+    var pick = desk.querySelector("aside[data-for=link] [data-gap=scan]");
+    if (pick) {
+      pick.hidden = gaps.indexOf("scan") < 0;
+    }
   }
 
   // A field or scan changed: count again; a scan brings its number
@@ -3087,7 +3101,9 @@
     if (e.type === "change" && e.target.matches("select[name^=exp_]")) {
       benchGaps(desk, e.target);
       var picked = e.target.options[e.target.selectedIndex];
-      benchDoc(desk.querySelector("aside[data-for=link]"), picked && Number(picked.getAttribute("data-doc")));
+      var aside = desk.querySelector("aside[data-for=link]");
+      var chosen = aside && aside.querySelector("[data-gap=scan]:not([hidden]) input[data-part=scan]:checked");
+      benchDoc(aside, (picked && Number(picked.getAttribute("data-doc"))) || (chosen && chosen.value));
     }
     var split = e.target.closest("[data-split]");
     if (split) {

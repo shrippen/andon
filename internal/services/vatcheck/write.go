@@ -199,10 +199,17 @@ func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int
 		return // Paperless unreachable: the scan stays, linking it reports the error
 	}
 	for _, c := range scans {
-		if c.Doc.ID == p.Item.Scan && !taken[c.Doc.ID] {
+		if c.Doc.ID != p.Item.Scan {
+			continue
+		}
+		if !taken[c.Doc.ID] {
 			p.Item.ScanTitle = c.Doc.Title
 			taken[c.Doc.ID] = true
 			return
+		}
+		// Another step has it: its date goes too, unless the user typed another.
+		if p.Item.Day == c.Doc.Day {
+			p.Item.Day = p.Item.Txn.Date
 		}
 	}
 	p.Item.Scan = 0

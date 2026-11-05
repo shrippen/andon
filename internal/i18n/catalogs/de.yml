@@ -7365,6 +7365,8 @@ vatcheck:
   why_create_known_detail: 'Keine Ausgabe über {amount} bis 10 Tage daneben. Von {vendor} gibt es frühere Ausgaben: Kategorie und Steuer kommen von der letzten.'
   why_create_new: 'Offen, weil diese Abbuchung noch keine Ausgabe hat.'
   why_create_new_detail: 'Keine Ausgabe über {amount} bis 10 Tage daneben, und der Lieferant ist noch unbekannt. Darum steht hier wenig vorausgefüllt; Vorschläge hat Andon aus früheren Buchungen gelernt.'
+  why_private: 'Offen, weil Andon das als privat liest.'
+  why_private_detail: 'Nichts wird gebucht, solange du es nicht anders wählst. War es geschäftlich, wähle unten die Ausgabe.'
   why_none: 'Offen, weil nichts zu diesem Eingang passt.'
   why_none_detail: 'Keine offene Rechnung und keine gebuchte Zahlung über {amount}. Ist es nichts Geschäftliches, archivieren.'
   elster_hint: 'Ändert sich danach etwas im Zeitraum, warnt die Seite: dann ist eine berichtigte Voranmeldung fällig.'

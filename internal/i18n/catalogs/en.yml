@@ -7364,6 +7364,8 @@ vatcheck:
   why_create_known_detail: 'No expense of {amount} up to 10 days apart. {vendor} has earlier expenses: category and tax come from the last one.'
   why_create_new: 'Open because this debit has no expense yet.'
   why_create_new_detail: 'No expense of {amount} up to 10 days apart, and the vendor is unknown yet. So little is filled in; suggestions are learned from earlier bookings.'
+  why_private: 'Open because Andon reads this as private.'
+  why_private_detail: 'Nothing is booked unless you choose otherwise. If it was business, choose the expense below.'
   why_none: 'Open because nothing fits this income.'
   why_none_detail: 'No open invoice and no booked payment of {amount}. If it is not business, archive it.'
   elster_hint: 'If anything in the period changes afterwards, the page warns: a corrected return is due.'

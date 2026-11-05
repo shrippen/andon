@@ -9,7 +9,7 @@
 </head>
 <body>
   {{template "header" .}}
-  <main class="vat">
+  <main class="vat vat-wide">
     <h1>{{t "nav.vat"}}</h1>
     <p class="muted">{{t "vatcheck.lead"}}</p>
     {{if .Error}}<p class="error">{{t .Error}}</p>{{end}}
@@ -252,7 +252,7 @@
   {{if $c.Expenses}}<aside class="bench-side" data-for="link"{{if ne $act "link"}} hidden{{end}}>{{template "vat_doc" dict "C" $c "P" $p "Field" "xscan" "Pick" ($c.Offers "scan")}}</aside>{{end}}{{end}}
   {{end}}
   </div>
-  <div class="btn-row"><button type="button" class="btn btn-accent" data-take-next>{{t "vatcheck.take_next"}}</button><button type="button" class="btn btn-outline" data-later>{{t "vatcheck.later"}}</button>
+  <div class="btn-row"><button type="button" class="btn btn-accent" data-take-next{{if not $act}} disabled{{end}}>{{t "vatcheck.take_next"}}</button><button type="button" class="btn btn-outline" data-later>{{t "vatcheck.later"}}</button>
     <button type="button" class="btn btn-quiet" hx-post="/vat/review" hx-include="closest form" hx-vals='{"only": "{{$k}}"}' hx-target="#one-{{$k}}" title="{{t "vatcheck.review_one_hint"}}">{{t "vatcheck.review_one"}}</button></div>
   <div id="one-{{$k}}" data-one aria-live="polite"></div>
 </section>{{end}}
@@ -262,7 +262,7 @@
      none is sure. Fixed: a receipt case, the scan is the case. */}}
 {{define "vat_doc"}}{{$c := .C}}{{$doc := $c.ScanDoc}}
 <div class="h-label">{{t "vatcheck.scan_title"}}</div>
-{{if not .Fixed}}{{if .Pick}}<details class="fold"{{if not $doc}} open{{end}}><summary><span>{{t "vatcheck.scan_others"}}</span><span class="count">{{len $c.Scans}}</span></summary><div class="body">{{template "vat_scans" dict "C" $c "P" .P "Field" .Field}}</div></details>{{end}}{{end}}
+{{if not .Fixed}}{{if .Pick}}<details class="fold" data-gap="scan"{{if and (eq .Field "xscan") (not ($c.Gap "scan"))}} hidden{{end}}{{if not $doc}} open{{end}}><summary><span>{{t "vatcheck.scan_others"}}</span><span class="count">{{len $c.Scans}}</span></summary><div class="body">{{template "vat_scans" dict "C" $c "P" .P "Field" .Field}}</div></details>{{end}}{{end}}
 <iframe class="doc-view" data-doc title="{{t "vatcheck.scan_title"}}" loading="lazy" referrerpolicy="no-referrer"{{if $doc}} src="/receipts/preview/{{$doc}}"{{else}} hidden{{end}}></iframe>
 <p class="small muted" data-doc-none{{if $doc}} hidden{{end}}>{{t "vatcheck.scan_none_yet"}}</p>
 {{if .Fixed}}<div class="picks">{{range $c.Scans}}{{template "vat_pick" dict "S" . "K" $c.Txn.Key "Field" "scan" "Checked" true}}{{end}}</div>{{end}}{{end}}
@@ -301,7 +301,7 @@
   <tr><td>{{t "vatcheck.date"}}</td>
     <td>{{if $bank}}{{template "vat_src" dict "For" (print "day-" $k) "Value" $c.Txn.Date "Text" (day $c.Txn.Date) "Pressed" (eq $c.Txn.Date $c.Day)}}{{end}}</td>
     <td{{if and $sc (ne $c.Day $c.Txn.Date)}} data-differs{{end}} data-scan-td="day">{{template "vat_src" dict "For" (print "day-" $k) "Scan" "day" "Value" $c.ScanDay "Text" (day $c.ScanDay) "Pressed" true}}</td><td></td>
-    <td class="compare-to"><input class="input" type="date" id="day-{{$k}}" name="day_{{$k}}" value="{{$c.Day}}" aria-label="{{t "vatcheck.date"}}"></td></tr>
+    <td class="compare-to"><input class="input" type="date" id="day-{{$k}}" name="day_{{$k}}" value="{{$c.Day}}" data-bank-day="{{$c.Txn.Date}}" aria-label="{{t "vatcheck.date"}}"></td></tr>
   {{if $p.Euer}}<tr><td>{{$p.Euer}}{{template "vat_state" dict "Part" "euer" "Has" ($c.Has "euer")}}</td><td></td><td></td>
     <td>{{template "suggest" dict "For" (print "euer-" $k) "Picks" $d.Suggest.Euer}}</td>
     <td class="compare-to"><select class="select" id="euer-{{$k}}" name="euer_{{$k}}" data-part="euer" aria-label="{{$p.Euer}}"><option value="">{{t "vatcheck.no_euer" "field" $p.Euer}}</option>{{range $p.EuerLines}}<option value="{{.}}"{{if eq . $d.Euer}} selected{{end}}>{{.}}</option>{{end}}</select>{{if $d.Euer}}<small class="muted">{{t (print "vatcheck.origin_" $d.EuerFrom)}}</small>{{end}}</td></tr>{{end}}
