@@ -2674,6 +2674,22 @@
     }
   }
 
+  // benchScanDay moves the date along with a scan the user picked, unless
+  // they typed another: the scan's day, or without a scan the bank's; a
+  // dropped receipt's date would book its input VAT in the wrong month.
+  function benchScanDay(desk, block, radio) {
+    var day = block.querySelector("input[name^=day_]");
+    if (!day) {
+      return;
+    }
+    var was = desk.getAttribute("data-scan-day") || "";
+    var next = radio.getAttribute("data-day") || day.getAttribute("data-bank-day") || "";
+    if (next && benchDayFree(desk, day, was)) {
+      day.value = next;
+      desk.setAttribute("data-scan-day", next);
+    }
+  }
+
   // benchDayFree says whether day is still Andon's to set: empty, the
   // bank's, or a scan's. A draft put back after a reload brings a scan's
   // day the desk's own note does not know.
@@ -2687,8 +2703,7 @@
     });
   }
 
-  // benchScanFill writes what the picked scan says into the receipt
-  // column, and takes its day and number unless the user typed another.
+  // benchScanFill writes what the picked scan says into the receipt column.
   function benchScanFill(desk, block, radio) {
     var data = { number: radio.getAttribute("data-number") || "", day: radio.getAttribute("data-day") || "",
       title: radio.getAttribute("data-title") || "", vendor: radio.getAttribute("data-vendor") || "" };
@@ -2705,15 +2720,6 @@
       cell.textContent = what === "amount" ? radio.getAttribute("data-amount") || "" : data[what] || "";
     });
     var day = block.querySelector("input[name^=day_]");
-    var was = desk.getAttribute("data-scan-day") || "";
-
-    // Without a scan the expense goes back to the bank's day: a dropped
-    // receipt's date would book its input VAT in the wrong month.
-    var next = data.day || (day && day.getAttribute("data-bank-day")) || "";
-    if (day && next && benchDayFree(desk, day, was)) {
-      day.value = next;
-      desk.setAttribute("data-scan-day", next);
-    }
     var td = block.querySelector("[data-scan-td=day]");
     if (td && day) {
       var bank = block.querySelector("[data-suggest-for=\"" + day.id + "\"]:not([data-scan-src]) button");
@@ -3130,6 +3136,11 @@
     if (e.type === "change" && e.target.matches("input[data-part=scan]")) {
       benchDoc(e.target.closest("aside"), e.target.value);
       benchScanFill(desk, benchBlock(desk), e.target);
+
+      // A draft put back holds its own date; only the user's pick moves it.
+      if (e.isTrusted) {
+        benchScanDay(desk, benchBlock(desk), e.target);
+      }
       var num = benchBlock(desk).querySelector("input[data-part=number]");
       var was = desk.getAttribute("data-scan-number") || "";
       if (num && (num.value === "" || num.value === was) && e.target.getAttribute("data-number")) {
