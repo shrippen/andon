@@ -2674,6 +2674,19 @@
     }
   }
 
+  // benchDayFree says whether day is still Andon's to set: empty, the
+  // bank's, or a scan's. A draft put back after a reload brings a scan's
+  // day the desk's own note does not know.
+  function benchDayFree(desk, day, was) {
+    var v = day.value;
+    if (v === "" || v === was || v === day.getAttribute("data-bank-day")) {
+      return true;
+    }
+    return [].some.call(desk.querySelectorAll("input[data-part=scan][data-day]"), function (r) {
+      return r.getAttribute("data-day") === v;
+    });
+  }
+
   // benchScanFill writes what the picked scan says into the receipt
   // column, and takes its day and number unless the user typed another.
   function benchScanFill(desk, block, radio) {
@@ -2697,7 +2710,7 @@
     // Without a scan the expense goes back to the bank's day: a dropped
     // receipt's date would book its input VAT in the wrong month.
     var next = data.day || (day && day.getAttribute("data-bank-day")) || "";
-    if (day && next && (day.value === "" || day.value === was)) {
+    if (day && next && benchDayFree(desk, day, was)) {
       day.value = next;
       desk.setAttribute("data-scan-day", next);
     }

@@ -85,8 +85,8 @@ func TestReceiptAsks(t *testing.T) {
 	}
 }
 
-// Tally keeps to the period card's count: a private transfer side or an
-// expense the model reads as private is not open business work.
+// A private transfer side or an expense the model reads as private is
+// not open business work.
 func TestTallyPrivateApart(t *testing.T) {
 	transfer := Case{BankCase: metrics.BankCase{Action: metrics.ActionSkip, Private: true, Transfer: &metrics.Transfer{}}}
 	guessed := Case{BankCase: metrics.BankCase{Action: metrics.ActionSkip, Private: true, Txn: sources.NinjaBankTxn{Debit: true}}}
