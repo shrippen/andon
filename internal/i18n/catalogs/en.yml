@@ -7302,6 +7302,13 @@ vatcheck:
   zm_clients: Clients
   elster_file: 'Mark as filed'
   elster_refile: 'Mark as filed again'
+  checks_title: 'Check before filing: {n}'
+  check_rate: 'The tax rate of these invoices fits no line, they are not counted. Split them and enter them yourself.'
+  check_zero: '0 % at home or without a client country, not counted. Add the country; exempt revenue goes in Kz 43 or 48, which Andon does not fill.'
+  check_foreign: 'Another country''s VAT is no input VAT here, so it is not in Kz 66.'
+  check_no_country: 'No tax and no vendor country: Andon cannot test § 13b. Add the country to the vendor.'
+  check_tax_on_top: 'Amount equals the bank transaction, but "inclusive tax" is off: Invoice Ninja and Kz 66 count {diff} input VAT too much. Switch it on in Invoice Ninja.'
+  check_refund: 'Refunded: the amounts below are gross and the sum of all refunds of the payment; the lines are net. Day: the payment''s last change in Invoice Ninja, check that the refund belongs to this period. Andon takes nothing off: reduce the revenue''s line here yourself, by the net part.'
   elster_hint: 'If anything in the period changes afterwards, the page warns: a corrected return is due.'
   elster_filed: 'Filed; unchanged since.'
   elster_changed: 'Changed since filing, a correction is due:'

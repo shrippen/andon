@@ -183,6 +183,8 @@ Erwartet: Mit „Bewegung reduzieren“ stehen Balken und Lauflicht still, die Z
 
 **J-C5 USt-Abgleich: Abgabe**
 1. `/vat` → „ELSTER-Kennzahlen“: Werte mit „Kopieren“; „Als gemeldet merken“; danach eine Buchung im Zeitraum ändern → „Berichtigung fällig“ mit den Kennzahlen.
+   - Rechnung zu 0 % an einen EU-Kunden im August, bezahlt im September: Kz 21 steht im August, auch bei Ist-Versteuerung.
+   - „Vor dem Melden prüfen“ unter der Tabelle nennt mit Tag, Name, Nummer und Betrag: Rechnungen mit Steuersatz ohne Kennzahl, 0 % im Inland oder ohne Kundenland, ausländische Umsatzsteuer, Ausgaben ohne Steuer und ohne Land beim Lieferanten, Bankbetrag als Netto gebucht (mit dem Vorsteuer-Überschuss), Erstattungen. Die ersten drei fehlen in den Kennzahlen; ohne solche Buchungen fehlt der Block. Die Demo hat keine: nur gegen echte Daten.
 2. Ausgabe eines ausländischen Lieferanten ohne Steuer steht unter „Reverse Charge“ mit Kz 46/47 oder 84/85.
 3. Überweisung Geschäft → Privat: „Umbuchung … archivieren“ vorgeschlagen, nicht angehakt.
 4. „Doppelte Lieferanten zusammenführen“ → `/vendors`: Gruppe wählen, Prüfen, Schreiben (Demo lehnt ab).

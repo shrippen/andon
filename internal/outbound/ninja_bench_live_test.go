@@ -86,6 +86,41 @@ func TestNinjaVendorLive(t *testing.T) {
 	}
 }
 
+// A refund changes the payment's updated_at: the page takes that day for
+// the refund's, which Invoice Ninja does not send (metrics.CheckRefund).
+func TestNinjaRefundDayLive(t *testing.T) {
+	ninja := live.Target(t, live.Ninja)
+	api := services.NinjaApi{URL: ninja.URL, Token: ninja.Token, Verify: ninja.VerifyTLS}
+	name := live.Name(t)
+
+	client := ninjaKey(ninjaPost(t, api, kindClient, map[string]any{"name": name}))
+	ninjaOwn(t, api, kindClient, client)
+	number, err := outbound.NinjaDraftInvoice(context.Background(), ninja, client, []outbound.NinjaLine{{Product: "andon-test", Notes: name, Quantity: 1, Cost: 10}})
+	if err != nil {
+		t.Fatalf("draft: %v", err)
+	}
+	invoice := ninjaFind(t, api, kindInvoice, client, "number", number)
+	ninjaOwn(t, api, kindInvoice, invoice)
+	ninjaPost(t, api, kindInvoice+"/bulk", map[string]any{"action": "mark_sent", "ids": []string{invoice}})
+	payment := ninjaKey(ninjaPost(t, api, kindPayment, map[string]any{"client_id": client, "amount": 10,
+		"invoices": []map[string]any{{"invoice_id": invoice, "amount": 10}}}))
+	ninjaOwn(t, api, kindPayment, payment)
+	before, _ := ninjaRead(t, api, kindPayment, payment)["updated_at"].(float64)
+
+	time.Sleep(2 * time.Second)
+	live.Change(t, live.Ninja, live.Update, kindPayment, payment)
+	ninjaPost(t, api, kindPayment+"/refund", map[string]any{"id": payment, "amount": 4, "date": time.Now().Format(time.DateOnly),
+		"gateway_refund": false, "send_email": false, "invoices": []map[string]any{{"invoice_id": invoice, "amount": 4}}})
+
+	got := ninjaRead(t, api, kindPayment, payment)
+	if got["refunded"] != 4.0 {
+		t.Errorf("refunded = %v, want 4", got["refunded"])
+	}
+	if after, _ := got["updated_at"].(float64); after <= before {
+		t.Errorf("updated_at stayed %v", before)
+	}
+}
+
 // A first reminder for an invoice of its own client, as the dunning run
 // sends it; Invoice Ninja records it in the invoice's history only.
 func TestNinjaReminderLive(t *testing.T) {

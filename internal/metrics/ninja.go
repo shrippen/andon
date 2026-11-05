@@ -199,11 +199,13 @@ func NinjaOutputVAT(data *sources.NinjaDataset, start, end time.Time, method str
 	return round2(total)
 }
 
-// NinjaInputVAT sums expense VAT in [start, end].
+// NinjaInputVAT sums expense VAT in [start, end], without foreign VAT.
 func NinjaInputVAT(data *sources.NinjaDataset, start, end time.Time) float64 {
+	vendors := vendorsByKey(data)
 	var total float64
 	for _, e := range data.Expenses {
-		if d, ok := ParseDay(e.Date); ok && !d.Before(start) && !d.After(end) {
+		d, ok := ParseDay(e.Date)
+		if ok && !d.Before(start) && !d.After(end) && !foreignVAT(e, vendors[e.VendorKey], data.HomeCountryID) {
 			total += e.Tax
 		}
 	}
