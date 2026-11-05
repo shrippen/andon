@@ -4,7 +4,7 @@ dropping a scan gives the expense its bank day back, an unsorted entry
 also after a reload that put the draft back and a new search; a date
 the user set (bank day clicked, day typed) stays through a reload and
 another scan; a second search keeps the picked hit, also through a
-reload; a picked scan gone meanwhile leaves no scan and the bank day;
+reload and a save while its search runs; a picked scan gone meanwhile leaves no scan and the bank day;
 an unsorted entry cannot be taken before it is
 sorted, and "Später" leaves its label.
 
@@ -20,6 +20,7 @@ Before the fix:
   clicked bank day after another scan: 2026-10-16 (want 2026-10-24)
   scan after a second search: none checked (want 201)
   scan after a second search and a reload: none checked (want 201)
+  scan after a save while its search ran: none checked (want 201)
   scan gone after a reload: none checked, day 2026-10-16 (want "Ohne Beleg", 2026-10-24)
   take enabled while unsorted
   label after later: '' (want 'Noch unsortiert')
@@ -226,6 +227,36 @@ def second_search_reload(page):
     return [] if frame.endswith("/" + other) else [f"frame after a reload: {frame} (want {other})"]
 
 
+def save_during_search(page):
+    """A save while the pick's search still runs keeps the pick in the draft."""
+    k = SCANNED
+    page.click(f'.bench-entry[data-case="{k}"]')
+    bank = page.get_attribute(f'[name="day_{k}"]', "data-bank-day")
+    other = pick_off_bank(page, k, bank)
+    if not other:
+        return [f"demo search has no scan off the bank day {bank}"]
+    page.wait_for_timeout(SAVE_MS)
+
+    held = []
+    page.route("**/vat/scans*", lambda r: held.append(r))
+    page.reload()
+    page.wait_for_selector(f'[name="note_{k}"]', state="attached")
+    page.click(f'.bench-entry[data-case="{k}"]')
+    page.focus(f'[name="note_{k}"]')
+    page.keyboard.type("x")
+    page.wait_for_timeout(SAVE_MS)
+    for r in held:
+        r.continue_()
+    page.unroute("**/vat/scans*")
+    page.wait_for_timeout(RESTORE_MS)
+
+    page.reload()
+    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(RESTORE_MS)
+    picked = page.eval_on_selector_all(f'[name="scan_{k}"]:checked', "els => els.map(e => e.value)")
+    return [] if picked == [other] else [f"scan after a save while its search ran: {picked or 'none checked'} (want {other})"]
+
+
 def scan_gone(page):
     """A picked scan gone meanwhile: no scan is what the desk says and sends."""
     k = SCANNED
@@ -298,6 +329,8 @@ def main():
         wrong += second_search(page)
         discard(page)
         wrong += second_search_reload(page)
+        discard(page)
+        wrong += save_during_search(page)
         discard(page)
         wrong += scan_gone(page)
         discard(page)

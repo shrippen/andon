@@ -3001,16 +3001,44 @@
       if (!none || side.querySelector("input[data-part=scan]:checked")) {
         return;
       }
+
+      // Paperless failed: the pick may be fine, it stays kept. The desk says what it would send.
+      if (found.querySelector(".error")) {
+        benchScansFailed(found);
+        return;
+      }
       none.checked = true;
-      none.dispatchEvent(new Event("change", { bubbles: true }));
       var desk = found.closest("[data-desk]");
-      benchScanDay(benchBlock(desk), none);
+
+      // The radios of an action not shown leave what is shown alone.
+      if (!side.hidden) {
+        none.dispatchEvent(new Event("change", { bubbles: true }));
+        benchScanDay(benchBlock(desk), none);
+      }
 
       // The draft stops waiting for it, or a later search would undo the user's pick.
       if (desk.andonDraft) {
         desk.andonDraft.pending = desk.andonDraft.pending.filter(function (name) { return name !== none.name; });
       }
     });
+  });
+
+  // A search that failed: nothing is picked, so no receipt shows; the
+  // fold opens on the reason.
+  function benchScansFailed(found) {
+    var side = found.closest("aside");
+    benchDoc(side, 0);
+    var fold = found.closest("details");
+    if (fold) {
+      fold.open = true;
+    }
+  }
+  d.addEventListener("htmx:responseError", function (e) {
+    var found = e.detail.target;
+    var side = found && found.matches("[id^=found-][role=radiogroup]") && found.closest("aside");
+    if (side && !side.querySelector("input[data-part=scan]:checked")) {
+      benchScansFailed(found);
+    }
   });
 
   // New hits of a search (htmx) change what the desk would write too;
@@ -3272,6 +3300,12 @@
         out[el.name].push(el.value);
       }
     });
+
+    // What still waits for its field (a search under way) stays as kept.
+    var kept = box.andonDraft;
+    if (kept) {
+      kept.pending.forEach(function (name) { out[name] = kept.vals[name]; });
+    }
     return out;
   }
 
@@ -3345,6 +3379,10 @@
     var form = box && draftForm(box);
     if (!form) {
       return;
+    }
+    // The user's own choice ends the wait for the kept one.
+    if (e.type === "change" && box.andonDraft) {
+      box.andonDraft.pending = box.andonDraft.pending.filter(function (name) { return name !== e.target.name; });
     }
     form.andonDraftDirty = form.andonDraftDirty || {};
     form.andonDraftDirty[box.getAttribute("data-draft-case")] = box;

@@ -538,36 +538,20 @@ func Search(ctx context.Context, d *sql.DB, who *access.Principal, scope, key, v
 	if err != nil {
 		return nil, err
 	}
-	found, err := b.search(ctx, d, who, key, vendor, query)
-	if err != nil || keep == 0 || slices.ContainsFunc(found, func(c receipts.Candidate) bool { return c.Doc.ID == keep }) {
-		return found, err
-	}
-	free, err := receipts.FreeScans(ctx, d, who, b.conn.ID, []int64{keep})
-	if err != nil {
-		return found, err
-	}
-	if c, ok := free[keep]; ok {
-		return append([]receipts.Candidate{c}, found...), nil
-	}
-	return found, nil
-}
-
-// search finds the query's scans for a transaction or an expense's gap.
-func (b book) search(ctx context.Context, d *sql.DB, who *access.Principal, key, vendor, query string) ([]receipts.Candidate, error) {
 	if exp, ok := strings.CutPrefix(key, fillPrefix); ok {
 		j := slices.IndexFunc(b.ninja.Expenses, func(e sources.NinjaExpense) bool { return e.Key == exp })
 		if j < 0 {
 			return nil, nil
 		}
 		e := b.ninja.Expenses[j]
-		return receipts.FindScans(ctx, d, who, b.conn.ID, e.Amount, e.Date, b.vendorName(e.VendorKey), query)
+		return receipts.FindScans(ctx, d, who, b.conn.ID, e.Amount, e.Date, b.vendorName(e.VendorKey), query, keep)
 	}
 	i := slices.IndexFunc(b.ninja.BankTxns, func(t sources.NinjaBankTxn) bool { return t.Key == key })
 	if i < 0 {
 		return nil, nil
 	}
 	t := b.ninja.BankTxns[i]
-	return receipts.FindScans(ctx, d, who, b.conn.ID, t.Amount, t.Date, vendor, query)
+	return receipts.FindScans(ctx, d, who, b.conn.ID, t.Amount, t.Date, vendor, query, keep)
 }
 
 // gapsOf lists what an expense lacks of the parts the page counts.
