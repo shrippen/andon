@@ -2674,33 +2674,29 @@
     }
   }
 
-  // benchScanDay moves the date along with a scan the user picked, unless
-  // they typed another: the scan's day, or without a scan the bank's; a
-  // dropped receipt's date would book its input VAT in the wrong month.
-  function benchScanDay(desk, block, radio) {
+  // benchScanDay moves the date with the scan the user picked: the scan's
+  // day, or without one the bank's (a dropped receipt's date would book
+  // its input VAT in the wrong month). A date the user set stays.
+  function benchScanDay(block, radio) {
     var day = block.querySelector("input[name^=day_]");
-    if (!day) {
+    var kept = block.querySelector("[data-day-kept]");
+    if (!day || !kept || kept.value) {
       return;
     }
-    var was = desk.getAttribute("data-scan-day") || "";
-    var next = radio.getAttribute("data-day") || day.getAttribute("data-bank-day") || "";
-    if (next && benchDayFree(desk, day, was)) {
-      day.value = next;
-      desk.setAttribute("data-scan-day", next);
-    }
+    day.value = radio.getAttribute("data-day") || day.getAttribute("data-bank-day") || "";
   }
 
-  // benchDayFree says whether day is still Andon's to set: empty, the
-  // bank's, or a scan's. A draft put back after a reload brings a scan's
-  // day the desk's own note does not know.
-  function benchDayFree(desk, day, was) {
-    var v = day.value;
-    if (v === "" || v === was || v === day.getAttribute("data-bank-day")) {
-      return true;
+  // benchDayKept notes who owns the date, in the draft too: typed or the
+  // bank's clicked is the user's; the scan's clicked follows the scan again.
+  function benchDayKept(e) {
+    var input = e.target.matches("input[name^=day_]") ? e.target : null;
+    var src = input ? null : e.target.closest("[data-suggest-for^=\"day-\"]");
+    var desk = (input || src) && e.target.closest("[data-desk]");
+    var kept = desk && benchBlock(desk).querySelector("[data-day-kept]");
+    if (!kept) {
+      return;
     }
-    return [].some.call(desk.querySelectorAll("input[data-part=scan][data-day]"), function (r) {
-      return r.getAttribute("data-day") === v;
-    });
+    kept.value = input ? (input.value ? "1" : "") : (src.hasAttribute("data-scan-src") ? "" : "1");
   }
 
   // benchScanFill writes what the picked scan says into the receipt column.
@@ -3071,6 +3067,10 @@
       return;
     }
 
+    if (e.isTrusted && e.target.closest("[data-suggest-for^=\"day-\"] button")) {
+      benchDayKept(e);
+    }
+
     var add = e.target.closest("[data-split-add]");
     if (add) {
       benchSplitAdd(add.closest("[data-split]"));
@@ -3124,6 +3124,9 @@
       var chosen = aside && aside.querySelector("[data-gap=scan]:not([hidden]) input[data-part=scan]:checked");
       benchDoc(aside, (picked && Number(picked.getAttribute("data-doc"))) || (chosen && chosen.value));
     }
+    if (e.isTrusted && e.target.matches("input[name^=day_]")) {
+      benchDayKept(e);
+    }
     var split = e.target.closest("[data-split]");
     if (split) {
       // A ticked invoice is a part, as an expense; untick leaves it out.
@@ -3139,7 +3142,7 @@
 
       // A draft put back holds its own date; only the user's pick moves it.
       if (e.isTrusted) {
-        benchScanDay(desk, benchBlock(desk), e.target);
+        benchScanDay(benchBlock(desk), e.target);
       }
       var num = benchBlock(desk).querySelector("input[data-part=number]");
       var was = desk.getAttribute("data-scan-number") || "";

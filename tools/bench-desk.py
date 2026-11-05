@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Works the VAT desk the way the owner does and checks what it says:
 dropping a scan gives the expense its bank day back, an unsorted entry
-also after a reload that put the draft back; that reload keeps a bank
-day the user clicked; an unsorted entry cannot be taken before it is
+also after a reload that put the draft back and a new search; a date
+the user set (bank day clicked, day typed) stays through a reload and
+another scan; an unsorted entry cannot be taken before it is
 sorted, and "Später" leaves its label.
 
 Usage: start the demo (./start.sh demo, default http://localhost:8080), then
@@ -13,6 +14,8 @@ Before the fix:
   day without a scan: 2026-10-23 (want 2026-10-24)
   day after a reload without a scan: 2026-10-16 (want 2026-10-24)
   bank day after a reload: 2026-10-16 (want 2026-10-24)
+  day after a new search without a scan: 2026-10-16 (want 2026-10-24)
+  clicked bank day after another scan: 2026-10-13 (want 2026-10-24)
   take enabled while unsorted
   label after later: '' (want 'Noch unsortiert')
 
@@ -28,8 +31,10 @@ LOGIN = ("mara@studio-weber.example.test", "demo-password-1")  # internal/servic
 # Demo debits (sources/demo_bank.go): one with a proposed scan, one unsorted.
 SCANNED, UNSORTED = "demo-b-scan", "demo-p-ticket"
 RECEIPT_DAY = "2020-01-02"  # far from any bank day
-QUERY = "Rechnung"
-SAVE_MS = 1500  # andon.js DRAFT_WAIT_MS and the request
+QUERY, OTHER_QUERY = "Rechnung", "Bahn"
+TYPED_DAY = "2026-10-05"
+SWAP_MS = 300  # htmx settles the hits
+SAVE_MS = 3000  # andon.js DRAFT_WAIT_MS, the request and a slow disk
 
 
 def scan_day(page):
@@ -50,10 +55,10 @@ def scan_day(page):
         [k, RECEIPT_DAY],
     )
     none = page.locator(f'[data-desk="{k}"] input[name="scan_{k}"][value=""]')
-    none.check(force=True)  # the proposed scan may be checked already
-    page.locator(f'[data-desk="{k}"] input[data-test-scan]').check(force=True)
+    none.check()  # the proposed scan may be checked already
+    page.locator(f'[data-desk="{k}"] input[data-test-scan]').check()
     took = day.input_value()
-    none.check(force=True)
+    none.check()
     wrong = []
     if took != RECEIPT_DAY:
         wrong.append(f"day with a scan: {took} (want {RECEIPT_DAY})")
@@ -107,6 +112,52 @@ def scan_reload(page):
     page.check(f'[data-desk="{k}"] input[name="scan_{k}"][value=""]')
     got = page.input_value(f'[name="day_{k}"]')
     return [] if got == bank else [f"day after a reload without a scan: {got} (want {bank})"]
+
+
+def search_after_reload(page):
+    """The old hit gone by a new search, its date still gives way."""
+    k = SCANNED
+    page.click(f'.bench-entry[data-case="{k}"]')
+    bank = page.get_attribute(f'[name="day_{k}"]', "data-bank-day")
+    other = pick_off_bank(page, k, bank)
+    if not other:
+        return [f"demo search has no scan off the bank day {bank}"]
+    reload_with(page, k, other)
+    open_scans(page, k)
+    page.fill(f'[name="q_scan_{k}"]', OTHER_QUERY)
+    with page.expect_response(lambda r: "/vat/scans" in r.url):
+        page.click(f'[data-desk="{k}"] [data-scan-search] button')
+    page.wait_for_timeout(SWAP_MS)
+    page.check(f'[data-desk="{k}"] input[name="scan_{k}"][value=""]')
+    got = page.input_value(f'[name="day_{k}"]')
+    return [] if got == bank else [f"day after a new search without a scan: {got} (want {bank})"]
+
+
+def set_day_stays(page):
+    """A clicked bank day or a typed day stays through another scan and a reload."""
+    k = SCANNED
+    page.click(f'.bench-entry[data-case="{k}"]')
+    bank = page.get_attribute(f'[name="day_{k}"]', "data-bank-day")
+    other = pick_off_bank(page, k, bank)
+    if not other:
+        return [f"demo search has no scan off the bank day {bank}"]
+    page.click(f'[data-suggest-for="day-{k}"]:not([data-scan-src]) button')
+    none = f'[data-desk="{k}"] input[name="scan_{k}"][value=""]'
+    page.check(none)
+    page.check(f'#found-scan-{k} input[value="{other}"]')
+    wrong = []
+    got = page.input_value(f'[name="day_{k}"]')
+    if got != bank:
+        wrong.append(f"clicked bank day after another scan: {got} (want {bank})")
+
+    page.fill(f'[name="day_{k}"]', TYPED_DAY)
+    reload_with(page, k, other)
+    open_scans(page, k)
+    page.check(none)
+    got = page.input_value(f'[name="day_{k}"]')
+    if got != TYPED_DAY:
+        wrong.append(f"typed day after a reload without a scan: {got} (want {TYPED_DAY})")
+    return wrong
 
 
 def bank_kept(page):
@@ -163,7 +214,11 @@ def main():
         page.wait_for_load_state("networkidle")
 
         discard(page)  # a failed run leaves its draft
-        wrong = scan_day(page) + scan_reload(page) + bank_kept(page) + unsorted(page)
+        wrong = scan_day(page) + scan_reload(page) + bank_kept(page)
+        discard(page)
+        wrong += search_after_reload(page)
+        discard(page)
+        wrong += set_day_stays(page) + unsorted(page)
 
         page.wait_for_timeout(SAVE_MS)
         discard(page)

@@ -223,7 +223,7 @@
      receipt). An unsorted debit has no action until business or private
      is said. */}}
 {{define "vat_desk"}}{{$c := .C}}{{$p := .P}}{{$k := $c.Txn.Key}}{{$act := $c.Act}}{{if $c.Unsorted}}{{$act = ""}}{{end}}
-<section class="bench-desk" id="case-{{$k}}" data-desk="{{$k}}" data-draft-case="{{$k}}" data-scan-number="{{$c.Number}}" data-scan-day="{{$c.Day}}" aria-label="{{or $c.Txn.Payer $c.Txn.Description}}"{{if not .First}} hidden{{end}}>
+<section class="bench-desk" id="case-{{$k}}" data-desk="{{$k}}" data-draft-case="{{$k}}" data-scan-number="{{$c.Number}}" aria-label="{{or $c.Txn.Payer $c.Txn.Description}}"{{if not .First}} hidden{{end}}>
   <input type="checkbox" name="pick" value="{{$k}}" data-pick hidden{{if $c.Picked}} checked{{end}}>
   <header class="bench-top"><div><h3>{{or $c.Txn.Payer $c.Txn.Description}}</h3>
     <p>{{day $c.Txn.Date}}{{with $c.Txn.Account}} · {{.}}{{end}}{{if $c.Mixed}} · {{t "vatcheck.mixed_account"}}{{else if $c.Private}} · {{t "vatcheck.private_account"}}{{end}}{{with $c.Txn.Description}} · „{{.}}“{{end}}{{with $c.Sure}} · <span title="{{t "vatcheck.sure_twin"}}">{{t "service.sure"}}: {{with .Merchant}}{{.}} · {{end}}{{with .Category}}{{.}}{{end}}{{range .Tags}} #{{.}}{{end}}</span>{{end}}</p></div>
@@ -301,7 +301,7 @@
   <tr><td>{{t "vatcheck.date"}}</td>
     <td>{{if $bank}}{{template "vat_src" dict "For" (print "day-" $k) "Value" $c.Txn.Date "Text" (day $c.Txn.Date) "Pressed" (eq $c.Txn.Date $c.Day)}}{{end}}</td>
     <td{{if and $sc (ne $c.Day $c.Txn.Date)}} data-differs{{end}} data-scan-td="day">{{template "vat_src" dict "For" (print "day-" $k) "Scan" "day" "Value" $c.ScanDay "Text" (day $c.ScanDay) "Pressed" true}}</td><td></td>
-    <td class="compare-to"><input class="input" type="date" id="day-{{$k}}" name="day_{{$k}}" value="{{$c.Day}}" data-bank-day="{{$c.Txn.Date}}" aria-label="{{t "vatcheck.date"}}"></td></tr>
+    <td class="compare-to"><input class="input" type="date" id="day-{{$k}}" name="day_{{$k}}" value="{{$c.Day}}" data-bank-day="{{$c.Txn.Date}}" aria-label="{{t "vatcheck.date"}}"><input type="hidden" name="daykept_{{$k}}" data-day-kept data-draft-keep></td></tr>
   {{if $p.Euer}}<tr><td>{{$p.Euer}}{{template "vat_state" dict "Part" "euer" "Has" ($c.Has "euer")}}</td><td></td><td></td>
     <td>{{template "suggest" dict "For" (print "euer-" $k) "Picks" $d.Suggest.Euer}}</td>
     <td class="compare-to"><select class="select" id="euer-{{$k}}" name="euer_{{$k}}" data-part="euer" aria-label="{{$p.Euer}}"><option value="">{{t "vatcheck.no_euer" "field" $p.Euer}}</option>{{range $p.EuerLines}}<option value="{{.}}"{{if eq . $d.Euer}} selected{{end}}>{{.}}</option>{{end}}</select>{{if $d.Euer}}<small class="muted">{{t (print "vatcheck.origin_" $d.EuerFrom)}}</small>{{end}}</td></tr>{{end}}
