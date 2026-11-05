@@ -295,10 +295,48 @@ func TestEuerLine(t *testing.T) {
 	}
 }
 
+// The expense's date is the receipt's, paid on the booking's day; a
+// share books part of the booking, with its reckoning in the private note
+// (a ticket used half for work). The tax follows the share.
+func TestApplyDayShareNote(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	var w writes
+	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, ninjaFake(t, &w, "1"))
+	receipt := day(7)
+	steps := []workbench.Step{{Case: "b3", Action: string(metrics.ActionCreate), Fields: map[string]string{
+		vatcheck.FieldVendor: "Nordhost Server", vatcheck.FieldTax: "19", vatcheck.FieldDay: receipt,
+		vatcheck.FieldShare: "50", vatcheck.FieldPrivate: "Nutzung 50/50"}}}
+	if _, err := vatcheck.Apply(context.Background(), d, who, scopeOf(conn), steps, ""); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	var body map[string]any
+	for i, seen := range w.list() {
+		if seen == "POST /api/v1/expenses" {
+			body = w.body[i]
+		}
+	}
+	if body["date"] != receipt || body["payment_date"] != day(5) {
+		t.Errorf("date %v, paid %v, want %v and %v", body["date"], body["payment_date"], receipt, day(5))
+	}
+	if body["amount"] != 20.83 || body["private_notes"] != "Nutzung 50/50" {
+		t.Errorf("amount %v, private note %v, want half of 41.65", body["amount"], body["private_notes"])
+	}
+
+	plan, err := vatcheck.Review(context.Background(), d, who, scopeOf(conn), []workbench.Step{{Case: "b3", Action: string(metrics.ActionCreate),
+		Fields: map[string]string{vatcheck.FieldVendor: "Nordhost Server", vatcheck.FieldShare: "150"}}})
+	if err != nil {
+		t.Fatalf("review: %v", err)
+	}
+	if plan.Steps[0].Problem != vatcheck.ProblemShare {
+		t.Errorf("a share above 100 %%: %+v", plan.Steps[0])
+	}
+}
+
 // A new expense carries the invoice number in its field (receipts), the
 // note, whether to bill the client, whether it is paid and whether the
-// amount includes the tax; without them, the defaults: the booking's
-// text, not billed, paid that day, tax included.
+// amount includes the tax; without them, the defaults: no note (its
+// content is the user's word), not billed, paid that day, tax included.
 func TestApplyNewExpenseFields(t *testing.T) {
 	d := testkit.DB(t)
 	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
@@ -314,8 +352,8 @@ func TestApplyNewExpenseFields(t *testing.T) {
 		t.Fatalf("open: %v", err)
 	}
 	i := slices.IndexFunc(p.Cases, func(c vatcheck.Case) bool { return c.Txn.Key == "b2" })
-	if i < 0 || !p.Cases[i].Draft.Bill || p.Cases[i].Note != "KW-56107" || p.Cases[i].Done() != 8 {
-		t.Fatalf("b2 must bill like Kabelwerk's last expense, note its text, have 8 parts (EÜR by label): %+v", p.Cases[i])
+	if i < 0 || !p.Cases[i].Draft.Bill || p.Cases[i].Note != "" || p.Cases[i].Done() != 11 {
+		t.Fatalf("b2 must bill like Kabelwerk's last expense, have no note, have 11 parts (EÜR by label): %+v", p.Cases[i])
 	}
 
 	given := map[string]string{vatcheck.FieldVendor: "Kabelwerk Studiobedarf", vatcheck.FieldTax: "19", vatcheck.FieldNumber: " KW-56107 ",
@@ -343,7 +381,7 @@ func TestApplyNewExpenseFields(t *testing.T) {
 		t.Errorf("b2 body: %v", b2)
 	}
 	b3 := bodies[1]
-	if b3["custom_value1"] != nil || b3["public_notes"] != "Rechnung" || b3["should_be_invoiced"] != false ||
+	if b3["custom_value1"] != nil || b3["public_notes"] != "" || b3["should_be_invoiced"] != false ||
 		b3["payment_date"] != day(5) || b3["uses_inclusive_taxes"] != true || b3["amount"] != 41.65 {
 		t.Errorf("b3 body: %v", b3)
 	}
@@ -367,8 +405,8 @@ func TestFillGaps(t *testing.T) {
 		t.Fatalf("open: %v", err)
 	}
 	i := slices.IndexFunc(p.Cases, func(c vatcheck.Case) bool { return c.Txn.Key == "b1" })
-	if i < 0 || len(p.Cases[i].Parts()) != 9 || p.Cases[i].Done() != 6 || p.Cases[i].Ready() {
-		t.Fatalf("b1 links EX-2, which lacks category, EÜR and number: %+v", p.Cases[i])
+	if i < 0 || len(p.Cases[i].Parts()) != 13 || p.Cases[i].Done() != 9 || p.Cases[i].Ready() {
+		t.Fatalf("b1 links EX-2, which lacks category, EÜR, number and note: %+v", p.Cases[i])
 	}
 	if len(p.Gaps) != 1 || p.Gaps[0].Txn.Key != "x-e3" || p.Gaps[0].Act() != vatcheck.ActionFill || p.Gaps[0].Txn.Payer != "Kabelwerk Studiobedarf" {
 		t.Fatalf("gaps: %+v", p.Gaps)
@@ -702,5 +740,54 @@ func TestEuerFieldByLabel(t *testing.T) {
 	}
 	if p.Euer != "EÜR" || !slices.Equal(p.EuerLines, []string{"Arbeitsmittel", "GWG"}) {
 		t.Fatalf("field %q, lines %v", p.Euer, p.EuerLines)
+	}
+}
+
+// Two cases propose one scan: the second loses it, and with it the
+// receipt's date, or its input VAT lands in the receipt's month.
+func TestTakenScanDropsDay(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, "demo://invoiceninja")
+	testkit.Conn(t, d, who, space, enums.ServicePaperless, "demo://paperless")
+	ctx := context.Background()
+	today := time.Now().UTC()
+
+	var first, second *vatcheck.Case
+	for _, s := range metrics.VATSpans(today, "monthly", 3) {
+		p, err := vatcheck.Open(ctx, d, who, scopeOf(conn), s.Key, today)
+		if err != nil {
+			t.Fatalf("open %s: %v", s.Key, err)
+		}
+		for i := range p.Cases {
+			c := &p.Cases[i]
+			if c.Action != metrics.ActionCreate {
+				continue
+			}
+			if first == nil && c.Scan() != 0 {
+				first = c
+				continue
+			}
+			if first != nil && second == nil && c.Txn.Date != first.ScanDay() {
+				second = c
+			}
+		}
+	}
+	if first == nil || second == nil {
+		t.Fatalf("demo lacks two new expenses, one with a scan: %v %v", first, second)
+	}
+
+	scan, day := strconv.FormatInt(first.Scan(), 10), first.ScanDay()
+	step := func(c *vatcheck.Case) workbench.Step {
+		return workbench.Step{Case: c.Txn.Key, Action: string(metrics.ActionCreate), Fields: map[string]string{
+			vatcheck.FieldVendor: "Zweimal", vatcheck.FieldTax: "19", vatcheck.FieldScan: scan, vatcheck.FieldDay: day}}
+	}
+	plan, err := vatcheck.Review(ctx, d, who, scopeOf(conn), []workbench.Step{step(first), step(second)})
+	if err != nil {
+		t.Fatalf("review: %v", err)
+	}
+	got := plan.Steps[1].Item
+	if got.Scan != 0 || got.Day != second.Txn.Date {
+		t.Errorf("second case: scan %d, day %s, want none and bank day %s", got.Scan, got.Day, second.Txn.Date)
 	}
 }

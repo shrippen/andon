@@ -189,3 +189,34 @@ func TestDropFilled(t *testing.T) {
 		t.Errorf("all filled: %+v", d.Suggest)
 	}
 }
+
+// A vendor's last expense was half its booking, reckoned in a private
+// note: both are offered, neither filled.
+func TestSuggestLastShare(t *testing.T) {
+	n := &sources.NinjaDataset{BankRead: true, Vendors: []sources.NinjaVendor{{Key: "v", Name: "Fernverkehr"}},
+		BankTxns: []sources.NinjaBankTxn{{Key: "t1", Amount: 63, Debit: true}},
+		Expenses: []sources.NinjaExpense{{Key: "e", VendorKey: "v", Date: "2026-09-02", Amount: 31.5, TxnKey: "t1", PrivateNote: "Nutzung 50/50"}}}
+	d := metrics.DraftWith(n, sources.NinjaBankTxn{Payer: "Fernverkehr", Amount: 63, Debit: true}, metrics.BankLearning{})
+	if len(d.Suggest.Share) != 1 || d.Suggest.Share[0].Value != "50" || len(d.Suggest.Private) != 1 || d.Suggest.Private[0].Value != "Nutzung 50/50" {
+		t.Errorf("suggest: %+v", d.Suggest)
+	}
+}
+
+// Only a real share is offered: a net amount with its tax beside it is
+// the whole booking, and so are the parts of a split.
+func TestSuggestLastNoShare(t *testing.T) {
+	vendors := []sources.NinjaVendor{{Key: "v", Name: "Fernverkehr"}}
+	txns := []sources.NinjaBankTxn{{Key: "t1", Amount: 100, Debit: true}}
+	cases := map[string][]sources.NinjaExpense{
+		"net plus tax": {{Key: "e", VendorKey: "v", Date: "2026-09-02", Amount: 84.03, Tax: 15.97, TaxRate: 19, TxnKey: "t1"}},
+		"split": {{Key: "e", VendorKey: "v", Date: "2026-09-02", Amount: 60, Gross: true, TxnKey: "t1"},
+			{Key: "f", VendorKey: "w", Date: "2026-09-01", Amount: 40, Gross: true, TxnKey: "t1"}},
+	}
+	for name, expenses := range cases {
+		n := &sources.NinjaDataset{BankRead: true, Vendors: vendors, BankTxns: txns, Expenses: expenses}
+		d := metrics.DraftWith(n, sources.NinjaBankTxn{Payer: "Fernverkehr", Amount: 100, Debit: true}, metrics.BankLearning{})
+		if len(d.Suggest.Share) != 0 {
+			t.Errorf("%s: suggest %+v", name, d.Suggest.Share)
+		}
+	}
+}

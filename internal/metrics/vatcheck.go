@@ -29,6 +29,7 @@ package metrics
 import (
 	"cmp"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -82,6 +83,8 @@ type DraftSuggest struct {
 	Category []Pick // category keys
 	Tax      []Pick // rates ("19") or "none"
 	Euer     []Pick // EÜR lines
+	Share    []Pick // percent of the booking, from the vendor's last expense
+	Private  []Pick // private note, from the vendor's last expense
 }
 
 // DropFilled drops the suggestions of fields filled after the draft
@@ -105,7 +108,7 @@ func (d *ExpenseDraft) DropFilled() {
 
 // None says whether nothing is suggested.
 func (s DraftSuggest) None() bool {
-	return s.Vendor == nil && s.Category == nil && s.Tax == nil && s.Euer == nil
+	return s.Vendor == nil && s.Category == nil && s.Tax == nil && s.Euer == nil && s.Share == nil && s.Private == nil
 }
 
 // BankCase is one open transaction with what it could be.
@@ -571,6 +574,7 @@ func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.Bank
 		d.CategoryKey, d.TaxName, d.TaxRate, d.TaxKnown, d.From = last.CategoryKey, last.TaxName, last.TaxRate, true, FromHistory
 		d.Bill = last.Billable
 		d.Category = categoryName(n, d.CategoryKey)
+		suggestLast(&d, n, last)
 		return d
 	}
 	if d.Vendor == "" {
@@ -589,6 +593,44 @@ func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.Bank
 	suggestDraft(&d, n, t, sure, l)
 	return d
 }
+
+// suggestLast offers what the vendor's last expense did besides its
+// fields: booked only a share of its booking, with its reckoning in the
+// private note. It changes the amount, so it stays the user's click.
+func suggestLast(d *ExpenseDraft, n *sources.NinjaDataset, last sources.NinjaExpense) {
+	if last.PrivateNote != "" {
+		d.Suggest.Private = []Pick{{Value: last.PrivateNote, Label: last.PrivateNote}}
+	}
+	i := slices.IndexFunc(n.BankTxns, func(t sources.NinjaBankTxn) bool { return t.Key == last.TxnKey })
+	if i < 0 || last.TxnKey == "" || n.BankTxns[i].Amount <= 0 {
+		return
+	}
+
+	// A split's part is no share.
+	parts := 0
+	for _, e := range n.Expenses {
+		if e.TxnKey == last.TxnKey {
+			parts++
+		}
+	}
+	if parts > 1 {
+		return
+	}
+
+	// A net amount counts with its tax.
+	paid := last.Amount
+	if !last.Gross {
+		paid += last.Tax
+	}
+	share := math.Round(paid / n.BankTxns[i].Amount * percentWhole)
+	if share > 0 && share < percentWhole {
+		v := strconv.FormatFloat(share, 'f', -1, 64)
+		d.Suggest.Share = []Pick{{Value: v, Label: v + " %"}}
+	}
+}
+
+// percentWhole is a whole in percent.
+const percentWhole = 100.0
 
 // suggestDraft adds the models' suggestions for the fields the draft
 // left empty: vendor, category, tax. Values no longer set up are left out.

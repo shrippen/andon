@@ -300,7 +300,7 @@ func ScansFor(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID int
 // FindScans searches Paperless for free scans for a new expense of the
 // VAT check: query in title and content, within the year of day; best
 // first. Without receipts set up for that Invoice Ninja it finds none.
-func FindScans(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID int64, amount float64, day, vendor, query string) ([]Candidate, error) {
+func FindScans(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID int64, amount float64, day, vendor, query string, keep int64) ([]Candidate, error) {
 	p, err := openPair(d, who)
 	if errors.Is(err, ErrNoPair) || (err == nil && (p.ninja.ID != ninjaID || !p.mapping.Complete())) {
 		return nil, nil
@@ -309,7 +309,7 @@ func FindScans(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID in
 		return nil, err
 	}
 	year, err := strconv.Atoi(day[:min(len(day), len("2006"))])
-	if err != nil || strings.TrimSpace(query) == "" {
+	if err != nil || (strings.TrimSpace(query) == "" && keep == 0) {
 		return nil, nil
 	}
 	sctx, err := p.sourceCtx(d, who, p.docs)
@@ -317,9 +317,12 @@ func FindScans(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID in
 		return nil, err
 	}
 	e := sources.ReceiptExpense{Amount: amount, Day: day, Vendor: vendor}
-	found, err := sources.PaperlessSearch(ctx, sctx, searchOf(e, SearchInput{Query: query, Year: year}, p.mapping))
-	if err != nil {
-		return nil, FetchError{err.Error()}
+	var found []sources.ReceiptDoc
+	if strings.TrimSpace(query) != "" {
+		found, err = sources.PaperlessSearch(ctx, sctx, searchOf(e, SearchInput{Query: query, Year: year}, p.mapping))
+		if err != nil {
+			return nil, FetchError{err.Error()}
+		}
 	}
 
 	x := p.matcher()
@@ -330,7 +333,26 @@ func FindScans(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID in
 		out = append(out, c)
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Score > out[j].Score })
-	return out[:min(len(out), scansFound)], nil
+	out = out[:min(len(out), scansFound)]
+
+	// A pick comes back first, scored like a hit, whatever the query finds.
+	if keep == 0 || slices.ContainsFunc(out, func(c Candidate) bool { return c.Doc.ID == keep }) {
+		return out, nil
+	}
+	docs, err := p.docsByID(ctx, d, who, []int64{keep})
+	if err != nil {
+		return nil, err
+	}
+	doc, ok := docs[keep]
+	if !ok {
+		return out, nil
+	}
+	for _, free := range p.free([]sources.ReceiptDoc{*doc}) {
+		c := x.score(e, free)
+		c.Number = docNumber(p.mapping, free)
+		out = append([]Candidate{c}, out...)
+	}
+	return out, nil
 }
 
 // FreeScans are the scans of ids still free, read fresh in one request:

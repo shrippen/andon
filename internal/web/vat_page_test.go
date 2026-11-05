@@ -41,8 +41,18 @@ func TestVATPage(t *testing.T) {
 
 	month := studioMonth()
 	page = string(mustGet(t, srv, client, "/vat?span="+month))
+
+	// One heading per receipt side, and no count that contradicts the tally.
+	scanHead := `<div class="h-label">Beleg aus Paperless</div>`
+	if got, sides := strings.Count(page, scanHead), strings.Count(page, `class="bench-side"`); got != sides {
+		t.Fatalf("%d receipt headings on %d sides", got, sides)
+	}
+	if strings.Contains(page, "fertig</div>") {
+		t.Fatal("summary line still counts ready cases")
+	}
+
 	for _, want := range []string{"Offene Umsätze", "Kabelwerk Studiobedarf", `name="act_demo-b-studio"`, "data-vat-bench", `class="bench-entry"`, `data-desk="demo-b-studio"`,
-		`name="note_demo-b-studio"`, "Zahllast", "ELSTER-Kennzahlen", "Vorauszahlung (Zahllast)", "data-copy="} {
+		`name="note_demo-b-studio"`, `class="compare"`, `name="day_demo-b-studio"`, `name="pnote_demo-b-studio"`, `name="share_demo-b-studio"`, "Offen, weil", "Vergibt Invoice Ninja", "Zahllast", "ELSTER-Kennzahlen", "Vorauszahlung (Zahllast)", "data-copy="} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("page lacks %q:\n%s", want, page)
 		}
@@ -172,6 +182,12 @@ func scanSearch(t *testing.T, srv *httptest.Server, client *http.Client, page st
 	if !strings.Contains(found, `name="scan_demo-b-scan"`) || !strings.Contains(found, "/receipts/thumb/") {
 		t.Fatalf("search offers no scan:\n%s", found)
 	}
+
+	// A picked hit comes back by its id, whatever the query now finds.
+	kept := string(mustGet(t, srv, client, "/vat/scans?case=demo-b-scan&q_scan_demo-b-scan=&keep_scan_demo-b-scan=201"))
+	if !strings.Contains(kept, `value="201"`) || !strings.Contains(kept, "342,00") {
+		t.Fatalf("kept scan missing:\n%s", kept)
+	}
 	if none := string(mustGet(t, srv, client, "/vat/scans?case=demo-b-scan&q_scan_demo-b-scan=")); !strings.Contains(none, "Nichts gefunden") {
 		t.Fatalf("empty search:\n%s", none)
 	}
@@ -188,6 +204,31 @@ func scanSearch(t *testing.T, srv *httptest.Server, client *http.Client, page st
 
 // Two Invoice Ninjas: the page asks which to work in, and a pick sticks
 // to the page's links.
+// The desk's frame shows a scan, and an image in it runs nothing.
+func TestVATScanPreview(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	space := string(regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))[1])
+	for _, service := range []string{"invoiceninja", "paperless"} {
+		postForm(t, client, srv.URL+"/connections", url.Values{"csrf": {csrfToken(t, srv, client)}, "space_id": {space},
+			"service": {service}, "name": {service}, "url": {"demo://" + service}, "mode": {"shared"}, "tls": {"verify"}})
+	}
+	page := string(mustGet(t, srv, client, "/vat?span="+studioMonth()))
+	id := regexp.MustCompile(`/receipts/thumb/(\d+)`).FindStringSubmatch(page)
+	if id == nil {
+		t.Skip("no scan on the demo's page")
+	}
+	resp, err := client.Get(srv.URL + "/receipts/preview/" + id[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK || !strings.Contains(resp.Header.Get("Content-Security-Policy"), "sandbox") {
+		t.Fatalf("preview: %d, CSP %q", resp.StatusCode, resp.Header.Get("Content-Security-Policy"))
+	}
+}
+
 func TestVATScopes(t *testing.T) {
 	srv, client, code := newTestServer(t)
 	setupAdmin(t, srv, client, code)

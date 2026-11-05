@@ -5,31 +5,36 @@ import (
 	"strings"
 
 	"andon/internal/metrics"
+	"andon/internal/services/receipts"
 )
 
-// Part is one of the ten things a finished expense has (owner,
-// 27.10.2026). The booking brings amount, currency and date; the rest
-// come from the draft, the scan and the user:
+// Part is one of the fourteen things a finished expense has (owner,
+// 05.11.2026). The booking brings amount and currency, Invoice Ninja the
+// number; the rest come from the draft, the scan and the user:
 //
-//	vendor  category  tax  amount  currency  date  euer  number  scan  note
-//	  ■        ■       ■     ■        ■       ■     □      ■      ■     ■   9 / 10
+//	no  vendor  category  tax  amount  currency  date  euer  invoice  scan  note  bill  paid  gross
+//	■     ■        ■       ■     ■        ■       ■     □       ■      ■     ■     ■     ■     ■   13 / 14
 type Part string
 
 const (
-	PartVendor   Part = "vendor"
-	PartCategory Part = "category"
-	PartTax      Part = "tax"
-	PartAmount   Part = "amount"
-	PartCurrency Part = "currency"
-	PartDate     Part = "date"
-	PartEuer     Part = "euer"
-	PartNumber   Part = "number"
-	PartScan     Part = "scan"
-	PartNote     Part = "note"
+	PartExpenseNo Part = "expense_no"
+	PartBill      Part = "bill"
+	PartPaid      Part = "paid"
+	PartGross     Part = "gross"
+	PartVendor    Part = "vendor"
+	PartCategory  Part = "category"
+	PartTax       Part = "tax"
+	PartAmount    Part = "amount"
+	PartCurrency  Part = "currency"
+	PartDate      Part = "date"
+	PartEuer      Part = "euer"
+	PartNumber    Part = "number"
+	PartScan      Part = "scan"
+	PartNote      Part = "note"
 )
 
 // Parts lists them in the order the page shows them.
-var Parts = []Part{PartVendor, PartCategory, PartTax, PartAmount, PartCurrency, PartDate, PartEuer, PartNumber, PartScan, PartNote}
+var Parts = []Part{PartExpenseNo, PartVendor, PartCategory, PartTax, PartAmount, PartCurrency, PartDate, PartEuer, PartNumber, PartScan, PartNote, PartBill, PartPaid, PartGross}
 
 // partsOf leaves out the parts Invoice Ninja has no field for: the EÜR
 // line and the invoice number are custom fields the user picks, the scan
@@ -89,7 +94,7 @@ func (c Case) Has(p Part) bool {
 	case PartAmount:
 		return c.Act() != ActionReceipt || c.Txn.Amount > 0 // a scan may have none
 	}
-	return true // currency and date: the booking's
+	return true // number, currency, date and the switches: always set
 }
 
 // Gap says whether the expense found or filled lacks part p, for the
@@ -166,18 +171,15 @@ const scanPicked = "high"
 
 // Head counts the open work of the period, for the list's head:
 //
-//	12 open · 3 without a scan · 2 without an EÜR line · 7 / 12 ready
+//	3 without a scan · 2 without an EÜR line
 type Head struct {
-	Open, NoScan, NoEuer, Ready int
+	NoScan, NoEuer int
 }
 
 // Head counts the cases.
 func (p Page) Head() Head {
-	h := Head{Open: len(p.Cases)}
+	h := Head{}
 	for _, c := range p.Cases {
-		if c.Ready() {
-			h.Ready++
-		}
 		if !c.Counts() {
 			continue
 		}
@@ -243,4 +245,141 @@ func (c Case) Picked() bool {
 		return c.Ready()
 	}
 	return false // a receipt: cash or private is the user's word
+}
+
+// Unsorted says whether business or private is still the user's word: a
+// private or mixed account's debit no rule places. No action is chosen.
+func (c Case) Unsorted() bool {
+	return c.Txn.Debit && c.Private && c.Action == metrics.ActionNone && c.Transfer == nil
+}
+
+// Steps of the owner's work on a transaction, as the desk counts them.
+const (
+	StepSort = iota + 1
+	StepExpense
+	StepScan
+	StepFields
+)
+
+// Step is where the case stands: sorted, then its scan, then its fields.
+func (c Case) Step() int {
+	switch {
+	case c.Unsorted():
+		return StepSort
+	case c.Counts() && slices.Contains(c.parts, PartScan) && !c.Has(PartScan):
+		return StepScan
+	}
+	return StepFields
+}
+
+// Why names the texts saying why the case is open and what Andon read:
+// "vatcheck.why_<reason>", with "_detail" for the second line.
+func (c Case) Why() string {
+	const prefix = "vatcheck.why_"
+	switch {
+	case c.Transfer != nil:
+		return prefix + "transfer"
+	case c.Unsorted():
+		return prefix + "unsorted"
+	}
+	switch c.Action {
+	case metrics.ActionSkip:
+		return prefix + "private"
+	case ActionFill:
+		return prefix + "fill"
+	case ActionReceipt:
+		return prefix + "receipt"
+	case metrics.ActionLink:
+		return prefix + "link"
+	case metrics.ActionPayment:
+		return prefix + "payment"
+	case metrics.ActionInvoice:
+		if c.ByNumber {
+			return prefix + "invoice_number"
+		}
+		return prefix + "invoice_name"
+	case metrics.ActionCreate:
+		if c.Draft.From == metrics.FromHistory {
+			return prefix + "create_known"
+		}
+		return prefix + "create_new"
+	}
+	return prefix + "none"
+}
+
+// Day is a new expense's date: the proposed scan's, else the booking's.
+func (c Case) Day() string {
+	if c.Scan() != 0 && c.Scans[0].Doc.Day != "" {
+		return c.Scans[0].Doc.Day
+	}
+	return c.Txn.Date
+}
+
+// ScanDoc is the scan to show: the proposed one, else one the picked
+// expense holds; 0 none.
+func (c Case) ScanDoc() int64 {
+	if id := c.Scan(); id != 0 {
+		return id
+	}
+	if len(c.Expenses) > 0 {
+		return c.DocOf(c.Expenses[0].Key)
+	}
+	return 0
+}
+
+// DocOf is the scan expense key holds, 0 none.
+func (c Case) DocOf(key string) int64 {
+	return c.docs[key]
+}
+
+// ScanOf is the proposed scan, nil none: the desk's receipt column.
+func (c Case) ScanOf() *receipts.Candidate {
+	if c.Scan() == 0 {
+		return nil
+	}
+	return &c.Scans[0]
+}
+
+// Tally counts the period's transactions by where they stand, for the
+// list's head: the owner's measure of a finished month.
+type Tally struct {
+	Done, Open, Unsorted, Private int
+}
+
+// Tally counts the period.
+func (p Page) Tally() Tally {
+	t := Tally{Open: len(p.Cases), Private: len(p.Skipped), Done: p.done}
+	for _, c := range p.Apart {
+		switch {
+		case c.Unsorted():
+			t.Unsorted++
+		case c.Waiting():
+			t.Open++
+		default:
+			t.Private++
+		}
+	}
+	return t
+}
+
+// ScanVendor, ScanDay and ScanTitle are the proposed scan's, "" none.
+func (c Case) ScanVendor() string {
+	if sc := c.ScanOf(); sc != nil {
+		return sc.Doc.Correspondent
+	}
+	return ""
+}
+
+func (c Case) ScanDay() string {
+	if sc := c.ScanOf(); sc != nil {
+		return sc.Doc.Day
+	}
+	return ""
+}
+
+func (c Case) ScanTitle() string {
+	if sc := c.ScanOf(); sc != nil {
+		return sc.Doc.Title
+	}
+	return ""
 }

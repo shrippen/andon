@@ -43,6 +43,8 @@ const (
 	FieldBill     = "bill"  // create: bill the client, On or Off (default)
 	FieldPaid     = "paid"  // create: paid on the booking's day, On (default) or Off
 	FieldGross    = "gross" // create: the amount includes the tax, On (default) or Off
+	FieldShare    = "share" // create: the percent of the booking it books, "" all
+	FieldPrivate  = "pnote" // create: the private note
 
 	// receipt: the scan's amount (editable) and day.
 	FieldAmount = "amount"
@@ -64,7 +66,7 @@ const (
 
 // Fields lists them, for the form.
 var Fields = slices.Concat([]string{FieldExpense, FieldInvoice, FieldPayment, FieldVendor, FieldCategory, FieldTax, FieldScan, FieldEuer,
-	FieldNumber, FieldNote, FieldBill, FieldPaid, FieldGross, FieldFillCategory, FieldFillEuer, FieldFillNumber, FieldFillScan, FieldFillNote, FieldAmount, FieldDay},
+	FieldNumber, FieldNote, FieldBill, FieldPaid, FieldGross, FieldShare, FieldPrivate, FieldFillCategory, FieldFillEuer, FieldFillNumber, FieldFillScan, FieldFillNote, FieldAmount, FieldDay},
 	splitFields())
 
 // noTax is the tax field of an expense without tax.
@@ -78,6 +80,7 @@ const (
 	ProblemFilled   workbench.Problem = "vatcheck.problem_filled"    // nothing left to fill
 	ProblemAmount   workbench.Problem = "vatcheck.problem_amount"    // a receipt's expense needs an amount
 	ProblemDebit    workbench.Problem = "vatcheck.problem_debit"     // an open debit fits the receipt: no cash
+	ProblemShare    workbench.Problem = "vatcheck.problem_share"     // a share is above 0 and up to 100 %
 )
 
 // ErrGone means the transaction is not (or no longer) archived.
@@ -97,13 +100,16 @@ type Item struct {
 	Taxed     bool
 	Tax       float64 // input VAT in the amount
 	Scan      int64
-	ScanTitle string // the scan linked to the expense
-	Euer      string // the EÜR line the expense gets, "" none
-	Number    string // the vendor's invoice number, "" none
-	Note      string // the public note
-	Bill      bool   // bill the client
-	Paid      bool   // paid on the booking's day
-	Gross     bool   // the amount includes the tax
+	ScanTitle string  // the scan linked to the expense
+	Euer      string  // the EÜR line the expense gets, "" none
+	Number    string  // the vendor's invoice number, "" none
+	Note      string  // the public note
+	Bill      bool    // bill the client
+	Paid      bool    // paid on the booking's day
+	Gross     bool    // the amount includes the tax
+	Day       string  // the expense's date: the receipt's, else the booking's
+	Share     float64 // the percent of the booking it books
+	PrivNote  string  // the private note
 
 	// A split: one part per expense, each with its own amount and day
 	// (the invoice's) in Txn; a private part is no expense.
@@ -193,10 +199,17 @@ func scanTitle(ctx context.Context, d *sql.DB, who *access.Principal, connID int
 		return // Paperless unreachable: the scan stays, linking it reports the error
 	}
 	for _, c := range scans {
-		if c.Doc.ID == p.Item.Scan && !taken[c.Doc.ID] {
+		if c.Doc.ID != p.Item.Scan {
+			continue
+		}
+		if !taken[c.Doc.ID] {
 			p.Item.ScanTitle = c.Doc.Title
 			taken[c.Doc.ID] = true
 			return
+		}
+		// Another step has it: its date goes too, unless the user typed another.
+		if p.Item.Day == c.Doc.Day {
+			p.Item.Day = p.Item.Txn.Date
 		}
 	}
 	p.Item.Scan = 0
@@ -272,10 +285,18 @@ func (b book) created(s *workbench.Step, it Item) (Item, workbench.Problem) {
 	if opts := b.euerOptions(); it.Euer != "" && len(opts) > 0 && !slices.Contains(opts, it.Euer) {
 		return it, ProblemEuer
 	}
+	it.Share = fullShare
+	if v := strings.TrimSpace(s.Field(FieldShare)); v != "" {
+		share, err := i18n.ParseNum(v, b.num)
+		if err != nil || share <= 0 || share > fullShare {
+			return it, ProblemShare
+		}
+		it.Share = share
+	}
 	if rate, err := strconv.ParseFloat(s.Field(FieldTax), 64); err == nil {
 		it.TaxRate, it.Taxed = rate, true
 		it.TaxName = b.taxName(rate)
-		it.Tax = math.Round(it.Txn.Amount*rate/(100+rate)*cents) / cents
+		it.Tax = math.Round(it.booked()*rate/(100+rate)*cents) / cents
 	} else {
 		s.Fields[FieldTax] = noTax
 	}
@@ -283,7 +304,15 @@ func (b book) created(s *workbench.Step, it Item) (Item, workbench.Problem) {
 	if b.numberSlot > 0 {
 		it.Number = strings.TrimSpace(s.Field(FieldNumber))
 	}
-	it.Note = cmp.Or(strings.TrimSpace(s.Field(FieldNote)), noteOf(it.Txn))
+	it.Note = strings.TrimSpace(s.Field(FieldNote))
+	it.PrivNote = strings.TrimSpace(s.Field(FieldPrivate))
+	it.Day = it.Txn.Date
+	if day := s.Field(FieldDay); day != "" {
+		if _, ok := metrics.ParseDay(day); !ok {
+			return it, ProblemGone
+		}
+		it.Day = day
+	}
 	it.Bill, it.Paid, it.Gross = s.Field(FieldBill) == On, s.Field(FieldPaid) != Off, s.Field(FieldGross) != Off
 	return it, workbench.ProblemNone
 }
@@ -362,18 +391,28 @@ func (it Item) fills() bool {
 	return it.Category != "" || it.Euer != "" || it.Number != "" || it.Note != "" || it.Scan != 0
 }
 
-// noteOf is a new expense's note without one given: the booking's text,
-// else its payer.
-func noteOf(t sources.NinjaBankTxn) string { return cmp.Or(strings.TrimSpace(t.Description), t.Payer) }
-
 // net is the amount without its tax: what a new expense that does not
 // include the tax carries, so Invoice Ninja's total stays the payment.
 func (it Item) net() float64 {
 	if !it.Taxed {
-		return it.Txn.Amount
+		return it.booked()
 	}
-	return math.Round((it.Txn.Amount-it.Tax)*cents) / cents
+	return math.Round((it.booked()-it.Tax)*cents) / cents
 }
+
+// Booked is what the expense takes of the booking, for the review.
+func (it Item) Booked() float64 { return it.booked() }
+
+// booked is what the expense takes of the booking: its share.
+func (it Item) booked() float64 {
+	if it.Share == 0 {
+		return it.Txn.Amount // a part of a split, whole
+	}
+	return math.Round(it.Txn.Amount*it.Share/fullShare*cents) / cents
+}
+
+// fullShare is a booking booked whole, in percent.
+const fullShare = 100.0
 
 const (
 	amountTol = 0.01
@@ -555,8 +594,11 @@ func (w *writer) expense(ctx context.Context, it Item, cat, paidOn string) (key,
 		}
 		w.made[strings.ToLower(it.Vendor)] = vendor
 	}
-	body := map[string]any{"amount": it.Txn.Amount, "date": it.Txn.Date, "vendor_id": vendor, "public_notes": it.Note,
+	body := map[string]any{"amount": it.booked(), "date": cmp.Or(it.Day, it.Txn.Date), "vendor_id": vendor, "public_notes": it.Note,
 		"transaction_reference": it.Txn.Description, "uses_inclusive_taxes": it.Gross, "should_be_invoiced": it.Bill}
+	if it.PrivNote != "" {
+		body["private_notes"] = it.PrivNote
+	}
 	if !it.Gross {
 		body["amount"] = it.net()
 	}

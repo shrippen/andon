@@ -2602,6 +2602,15 @@
   // without a field there is the booking's own or one the expense has.
   function benchHas(block, p) {
     var f = block.querySelector("[data-part=\"" + p + "\"]");
+    if (p === "scan") {
+      // The scan's radios stand beside the fields, in the desk's side.
+      var desk = block.closest("[data-desk]");
+      var side = desk && desk.querySelector("aside[data-for=\"" + desk.querySelector("input[data-act]").value + "\"]");
+      f = (side && side.querySelector("[data-part=scan]")) || f;
+      if (f && side) {
+        block = side;
+      }
+    }
     var gap = f && f.closest("[data-gap]");
     if (!f || (gap && gap.hidden)) {
       return true;
@@ -2611,6 +2620,107 @@
       return !!(r && r.value);
     }
     return !!f.value.trim();
+  }
+
+  // benchState redraws a comparison row's state as its field fills.
+  function benchState(form, block, p, on) {
+    [].forEach.call(block.querySelectorAll("[data-state-of=\"" + p + "\"]"), function (el) {
+      el.setAttribute("data-state", on ? "ok" : "missing");
+      el.textContent = form.getAttribute(on ? "data-state-ok" : "data-state-missing");
+    });
+  }
+
+  // benchSteps moves the desk's steps: the scan is done once one is picked.
+  function benchSteps(desk, block, act) {
+    var steps = desk.querySelector("[data-steps]");
+    if (!steps) {
+      return;
+    }
+    var items = steps.children;
+    var sorted = act !== "";
+
+    // "Not decided yet" stops being true with the first choice.
+    var why = desk.querySelector("[data-why-unsorted]");
+    if (why) {
+      why.hidden = sorted;
+    }
+
+    var scan = benchCounted[act] && !benchHas(block, "scan") ? 2 : 3;
+    var now = !sorted ? 0 : scan;
+    [].forEach.call(items, function (li, i) {
+      li.classList.toggle("is-done", i < now);
+      if (i === now) {
+        li.setAttribute("aria-current", "step");
+      } else {
+        li.removeAttribute("aria-current");
+      }
+    });
+  }
+
+  // benchDoc shows scan id beside the fields of side, or says there is none.
+  function benchDoc(side, id) {
+    var frame = side && side.querySelector("[data-doc]");
+    if (!frame) {
+      return;
+    }
+    var url = id ? "/receipts/preview/" + id : "";
+    if (url && frame.getAttribute("src") !== url) {
+      frame.setAttribute("src", url);
+    }
+    frame.hidden = !url;
+    var none = side.querySelector("[data-doc-none]");
+    if (none) {
+      none.hidden = !!url;
+    }
+  }
+
+  // benchScanDay moves the date with the scan the user picked: the scan's
+  // day, or without one the bank's (a dropped receipt's date would book
+  // its input VAT in the wrong month). A date the user set stays.
+  function benchScanDay(block, radio) {
+    var day = block.querySelector("input[name^=day_]");
+    var kept = block.querySelector("[data-day-kept]");
+    if (!day || !kept || kept.value) {
+      return;
+    }
+    day.value = radio.getAttribute("data-day") || day.getAttribute("data-bank-day") || "";
+  }
+
+  // benchDayKept notes who owns the date, in the draft too: typed or the
+  // bank's clicked is the user's; the scan's clicked follows the scan again.
+  function benchDayKept(e) {
+    var input = e.target.matches("input[name^=day_]") ? e.target : null;
+    var src = input ? null : e.target.closest("[data-suggest-for^=\"day-\"]");
+    var desk = (input || src) && e.target.closest("[data-desk]");
+    var kept = desk && benchBlock(desk).querySelector("[data-day-kept]");
+    if (!kept) {
+      return;
+    }
+    kept.value = input ? (input.value ? "1" : "") : (src.hasAttribute("data-scan-src") ? "" : "1");
+  }
+
+  // benchScanFill writes what the picked scan says into the receipt column.
+  function benchScanFill(desk, block, radio) {
+    var data = { number: radio.getAttribute("data-number") || "", day: radio.getAttribute("data-day") || "",
+      title: radio.getAttribute("data-title") || "", vendor: radio.getAttribute("data-vendor") || "" };
+    var texts = { number: data.number, day: radio.getAttribute("data-day-text") || "", title: data.title, vendor: data.vendor };
+    [].forEach.call(block.querySelectorAll("[data-scan-src]"), function (line) {
+      var what = line.getAttribute("data-scan-src");
+      var btn = line.querySelector("button");
+      btn.textContent = texts[what] || "";
+      btn.setAttribute("data-value", data[what] || "");
+      line.hidden = !texts[what];
+    });
+    [].forEach.call(block.querySelectorAll("[data-scan-text]"), function (cell) {
+      var what = cell.getAttribute("data-scan-text");
+      cell.textContent = what === "amount" ? radio.getAttribute("data-amount") || "" : data[what] || "";
+    });
+    var day = block.querySelector("input[name^=day_]");
+    var td = block.querySelector("[data-scan-td=day]");
+    if (td && day) {
+      var bank = block.querySelector("[data-suggest-for=\"" + day.id + "\"]:not([data-scan-src]) button");
+      td.toggleAttribute("data-differs", !!(bank && data.day && bank.getAttribute("data-value") !== data.day));
+    }
   }
 
   // benchCounted: actions whose expense the list counts.
@@ -2631,16 +2741,18 @@
     var counted = benchCounted[act];
     var n = 0;
     parts.forEach(function (p, i) {
-      var on = !counted || benchHas(block, p);
+      var on = act !== "" && (!counted || benchHas(block, p));
       if (on) {
         n++;
       }
       if (segs[i]) {
         segs[i].classList.toggle("on", on);
       }
+      benchState(form, block, p, on);
     });
+    benchSteps(desk, block, act);
 
-    var ready = counted ? n === parts.length : act !== "skip";
+    var ready = counted ? n === parts.length : act !== "" && act !== "skip";
     // A split is ready when its parts make the booking.
     var split = desk.querySelector("[data-split]");
     if (act === "split") {
@@ -2648,7 +2760,7 @@
     }
     var take = desk.querySelector("[data-take-next]");
     if (take) {
-      take.disabled = act === "split" && !ready;
+      take.disabled = act === "" || (act === "split" && !ready);
     }
     entry.toggleAttribute("data-ready", ready);
     var bar = entry.querySelector(".progress-segs");
@@ -2658,7 +2770,11 @@
       bar.removeAttribute("data-tier");
     }
     var pressed = desk.querySelector("[data-set-act][aria-pressed=true]");
-    entry.querySelector("[data-act-label]").textContent = pressed ? pressed.textContent : "";
+
+    // Unsorted has no pressed action; its label stays.
+    if (pressed) {
+      entry.querySelector("[data-act-label]").textContent = pressed.textContent;
+    }
     var count = "";
     if (desk.querySelector("input[data-pick]").checked) {
       count = form.getAttribute("data-taken-label");
@@ -2842,6 +2958,89 @@
     }
   }
 
+  // A new search replaces the hits but not the choice: the picked hit
+  // stays, or the desk would show a receipt the expense goes without.
+  d.addEventListener("htmx:beforeSwap", function (e) {
+    var found = e.target.matches && e.target.matches("[id^=found-][role=radiogroup]") ? e.target : null;
+    if (!found) {
+      return;
+    }
+    var radio = found.querySelector("input[type=radio]:checked");
+    found.andonPicked = e.detail.shouldSwap && radio ? radio.closest("label").cloneNode(true) : null;
+  });
+  d.addEventListener("htmx:afterSwap", function (e) {
+    var picked = e.target.andonPicked;
+    if (!picked) {
+      return;
+    }
+    e.target.andonPicked = null;
+    var again = picked.querySelector("input");
+    var same = e.target.querySelector("input[type=radio][value=\"" + CSS.escape(again.value) + "\"]");
+    if (same) {
+      same.checked = true;
+      return;
+    }
+    e.target.insertBefore(picked, e.target.firstChild);
+    again.checked = true;
+  });
+
+  // After hits came (and a draft took its pick from them): a pick that
+  // did not come back is gone, so the desk says and sends "no scan".
+  d.addEventListener("htmx:afterSettle", function (e) {
+    var found = e.target.matches && e.target.matches("[id^=found-][role=radiogroup]") ? e.target : null;
+    if (!found) {
+      return;
+    }
+    var keep = found.parentNode.querySelector("[data-scan-keep]");
+    if (keep) {
+      keep.value = "";
+    }
+    setTimeout(function () {
+      var side = found.closest("aside");
+      var none = side && side.querySelector("input[data-part=scan][value=\"\"]");
+      if (!none || side.querySelector("input[data-part=scan]:checked")) {
+        return;
+      }
+
+      // Paperless failed: the pick may be fine, it stays kept. The desk says what it would send.
+      if (found.querySelector(".error")) {
+        benchScansFailed(found);
+        return;
+      }
+      none.checked = true;
+      var desk = found.closest("[data-desk]");
+
+      // The radios of an action not shown leave what is shown alone.
+      if (!side.hidden) {
+        none.dispatchEvent(new Event("change", { bubbles: true }));
+        benchScanDay(benchBlock(desk), none);
+      }
+
+      // The draft stops waiting for it, or a later search would undo the user's pick.
+      if (desk.andonDraft) {
+        desk.andonDraft.pending = desk.andonDraft.pending.filter(function (name) { return name !== none.name; });
+      }
+    });
+  });
+
+  // A search that failed: nothing is picked, so no receipt shows; the
+  // fold opens on the reason.
+  function benchScansFailed(found) {
+    var side = found.closest("aside");
+    benchDoc(side, 0);
+    var fold = found.closest("details");
+    if (fold) {
+      fold.open = true;
+    }
+  }
+  d.addEventListener("htmx:responseError", function (e) {
+    var found = e.detail.target;
+    var side = found && found.matches("[id^=found-][role=radiogroup]") && found.closest("aside");
+    if (side && !side.querySelector("input[data-part=scan]:checked")) {
+      benchScansFailed(found);
+    }
+  });
+
   // New hits of a search (htmx) change what the desk would write too;
   // a desk's new review leaves the only one on the page.
   d.addEventListener("htmx:afterSwap", function (e) {
@@ -2870,6 +3069,11 @@
     [].forEach.call(desk.querySelectorAll("[data-for]"), function (block) {
       block.hidden = block.getAttribute("data-for") !== act;
     });
+    // The receipt beside the fields, where the action has one.
+    var wrap = desk.querySelector("[data-desk-doc]");
+    if (wrap) {
+      wrap.classList.toggle("bench-doc", !!wrap.querySelector("aside[data-for]:not([hidden])"));
+    }
     // The split's slots come from the server once chosen (/vat/split).
     var later = act === "split" && desk.querySelector("[data-for=split][hx-get]");
     if (later) {
@@ -2890,9 +3094,12 @@
     var k = desk.getAttribute("data-desk");
     ["scan", "xscan"].forEach(function (f) {
       var q = desk.querySelector("input[name=\"q_" + f + "_" + CSS.escape(k) + "\"]");
-      if (e.detail.pending.indexOf(f + "_" + k) >= 0 && q && q.value.trim()) {
-        q.closest("[data-scan-search]").querySelector("button").click();
+      if (e.detail.pending.indexOf(f + "_" + k) < 0 || !q) {
+        return;
       }
+      var row = q.closest("[data-scan-search]");
+      row.querySelector("[data-scan-keep]").value = desk.andonDraft.vals[f + "_" + k][0];
+      row.querySelector("button").click();
     });
   });
 
@@ -2946,6 +3153,10 @@
       return;
     }
 
+    if (e.isTrusted && e.target.closest("[data-suggest-for^=\"day-\"] button")) {
+      benchDayKept(e);
+    }
+
     var add = e.target.closest("[data-split-add]");
     if (add) {
       benchSplitAdd(add.closest("[data-split]"));
@@ -2975,6 +3186,12 @@
     if (none) {
       none.hidden = gaps.length > 0;
     }
+
+    // The scan's radios stand beside the fields: an expense holding one takes none.
+    var pick = desk.querySelector("aside[data-for=link] [data-gap=scan]");
+    if (pick) {
+      pick.hidden = gaps.indexOf("scan") < 0;
+    }
   }
 
   // A field or scan changed: count again; a scan brings its number
@@ -2988,6 +3205,13 @@
     benchStale(desk);
     if (e.type === "change" && e.target.matches("select[name^=exp_]")) {
       benchGaps(desk, e.target);
+      var picked = e.target.options[e.target.selectedIndex];
+      var aside = desk.querySelector("aside[data-for=link]");
+      var chosen = aside && aside.querySelector("[data-gap=scan]:not([hidden]) input[data-part=scan]:checked");
+      benchDoc(aside, (picked && Number(picked.getAttribute("data-doc"))) || (chosen && chosen.value));
+    }
+    if (e.isTrusted && e.target.matches("input[name^=day_]")) {
+      benchDayKept(e);
     }
     var split = e.target.closest("[data-split]");
     if (split) {
@@ -2999,6 +3223,13 @@
       benchSplit(split);
     }
     if (e.type === "change" && e.target.matches("input[data-part=scan]")) {
+      benchDoc(e.target.closest("aside"), e.target.value);
+      benchScanFill(desk, benchBlock(desk), e.target);
+
+      // A draft put back holds its own date; only the user's pick moves it.
+      if (e.isTrusted) {
+        benchScanDay(benchBlock(desk), e.target);
+      }
       var num = benchBlock(desk).querySelector("input[data-part=number]");
       var was = desk.getAttribute("data-scan-number") || "";
       if (num && (num.value === "" || num.value === was) && e.target.getAttribute("data-number")) {
@@ -3069,6 +3300,12 @@
         out[el.name].push(el.value);
       }
     });
+
+    // What still waits for its field (a search under way) stays as kept.
+    var kept = box.andonDraft;
+    if (kept) {
+      kept.pending.forEach(function (name) { out[name] = kept.vals[name]; });
+    }
     return out;
   }
 
@@ -3142,6 +3379,10 @@
     var form = box && draftForm(box);
     if (!form) {
       return;
+    }
+    // The user's own choice ends the wait for the kept one.
+    if (e.type === "change" && box.andonDraft) {
+      box.andonDraft.pending = box.andonDraft.pending.filter(function (name) { return name !== e.target.name; });
     }
     form.andonDraftDirty = form.andonDraftDirty || {};
     form.andonDraftDirty[box.getAttribute("data-draft-case")] = box;

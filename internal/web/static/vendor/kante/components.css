@@ -1177,7 +1177,27 @@ button.list-row{width:100%;border:0;border-bottom:1px solid var(--bg1);backgroun
 .bench-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem}
 @container (max-width:38rem){.bench-cols{grid-template-columns:minmax(0,1fr)}}
 @container (max-width:20rem){.bench-pair{grid-template-columns:minmax(0,1fr)}}
-@media(max-width:60rem){.bench{grid-template-columns:minmax(0,1fr)}.bench-desk{position:static;max-height:none;overflow-y:visible}}
+/* Workbench with a document (1.74): the desk's fields beside the receipt, which stays in view while the fields scroll. .bench.is-wide narrows the list for it. A .compare table sets each field's sources against the value it will hold; a value in a source cell is a .field-suggest-pick, so a click takes it.
+   <div class="bench is-wide">…<section class="bench-desk"><div class="bench-doc"><div class="bench-main">…</div><aside class="bench-side"><iframe class="doc-view" src="…"></iframe></aside></div></section></div> */
+.bench.is-wide{grid-template-columns:minmax(13rem,16rem) minmax(0,1fr)}
+.bench-doc{display:grid;grid-template-columns:minmax(0,1fr) minmax(20rem,36%);gap:1.1rem;align-items:start}
+.bench-main{display:flex;flex-direction:column;gap:1rem;min-width:0;overflow-x:auto}
+.bench-side{position:sticky;top:0;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+.doc-view{display:block;width:100%;height:calc(100dvh - 12rem);min-height:24rem;border:1px solid var(--bg2);background:var(--bg-hard);object-fit:contain}
+.compare{width:100%;border-collapse:collapse;font-size:.84rem}
+.compare th{padding:.35rem .5rem;border-bottom:1px solid var(--bg2);font-family:var(--font-mono);font-size:.66rem;font-weight:400;letter-spacing:.12em;text-transform:uppercase;text-align:left;color:var(--fg3)}
+.compare td{padding:.4rem .5rem;border-bottom:1px solid var(--bg2);vertical-align:top;color:var(--fg2);overflow-wrap:break-word}
+.compare td:first-child{color:var(--fg3);overflow-wrap:normal}
+.compare td.compare-to{min-width:10rem;color:var(--fg0)}
+.compare td.compare-to .input,.compare td.compare-to .select{width:100%;min-height:var(--h-s);padding-block:0;font-size:.8rem}
+.compare .field-suggest{overflow-wrap:break-word}
+.compare td[data-differs] .field-suggest-pick:not([aria-pressed="true"],:hover){color:var(--warn)}
+.compare-state{margin-left:.35rem;font-family:var(--font-mono);font-size:.62rem;letter-spacing:.06em;white-space:nowrap}
+.compare-state[data-state="ok"]{color:var(--aqua)}
+.compare-state[data-state="missing"]{color:var(--warn)}
+.compare-state[data-state="auto"]{color:var(--fg3)}
+@container (max-width:44rem){.bench-doc{grid-template-columns:minmax(0,1fr)}.bench-side{position:static}}
+@media(max-width:60rem){.bench,.bench.is-wide{grid-template-columns:minmax(0,1fr)}.bench-desk{position:static;max-height:none;overflow-y:visible}}
 /* Where a field's value came from, after its label: <span class="field-label">Category<span class="field-origin">last expense</span></span> */
 .field-origin{margin-left:.45rem;font-size:.62rem;letter-spacing:.04em;text-transform:none;color:var(--fg2)}
 .field-origin::before{content:"· "}

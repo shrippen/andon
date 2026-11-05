@@ -16,16 +16,16 @@ func TestCaseParts(t *testing.T) {
 		Draft: metrics.ExpenseDraft{Vendor: "Kabelwerk", CategoryKey: "c1", TaxKnown: true}}, Note: "Stative"}
 
 	c.parts = partsOf(false, false, true)
-	if len(c.Parts()) != 8 || c.Done() != 7 || c.Ready() {
+	if len(c.Parts()) != 12 || c.Done() != 11 || c.Ready() {
 		t.Fatalf("without fields: %d parts, %d done, ready %v", len(c.Parts()), c.Done(), c.Ready())
 	}
 	c.Scans = []receipts.Candidate{{Doc: sources.ReceiptDoc{ID: 7}, Score: 92}}
-	if c.Done() != 8 || !c.Ready() {
+	if c.Done() != 12 || !c.Ready() {
 		t.Fatalf("with a scan: %d done, ready %v", c.Done(), c.Ready())
 	}
 
 	c.parts = partsOf(true, true, true)
-	if c.Done() != 8 || c.Ready() || (Page{Cases: []Case{c}}).Head().NoEuer != 1 {
+	if c.Done() != 12 || c.Ready() || (Page{Cases: []Case{c}}).Head().NoEuer != 1 {
 		t.Fatalf("with EÜR and number fields: %d done, ready %v", c.Done(), c.Ready())
 	}
 
@@ -82,5 +82,27 @@ func TestReceiptAsks(t *testing.T) {
 	c.Txn.Amount = 0
 	if c.Ready() {
 		t.Fatal("ready without an amount")
+	}
+}
+
+// A private transfer side or an expense the model reads as private is
+// not open business work.
+func TestTallyPrivateApart(t *testing.T) {
+	transfer := Case{BankCase: metrics.BankCase{Action: metrics.ActionSkip, Private: true, Transfer: &metrics.Transfer{}}}
+	guessed := Case{BankCase: metrics.BankCase{Action: metrics.ActionSkip, Private: true, Txn: sources.NinjaBankTxn{Debit: true}}}
+	unsorted := Case{BankCase: metrics.BankCase{Action: metrics.ActionNone, Private: true, Txn: sources.NinjaBankTxn{Debit: true}}}
+	proposed := Case{BankCase: metrics.BankCase{Action: metrics.ActionCreate, Private: true, Txn: sources.NinjaBankTxn{Debit: true}}}
+
+	got := Page{Apart: []Case{transfer, guessed, unsorted, proposed}}.Tally()
+	if want := (Tally{Open: 1, Unsorted: 1, Private: 2}); got != want {
+		t.Errorf("tally %+v, want %+v", got, want)
+	}
+}
+
+// A debit the model reads as private is not "nothing fits this income".
+func TestWhyPrivateDebit(t *testing.T) {
+	c := Case{BankCase: metrics.BankCase{Action: metrics.ActionSkip, Private: true, Txn: sources.NinjaBankTxn{Debit: true}}}
+	if got, want := c.Why(), "vatcheck.why_private"; got != want {
+		t.Errorf("why %q, want %q", got, want)
 	}
 }

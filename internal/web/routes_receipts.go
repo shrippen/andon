@@ -9,6 +9,7 @@ package web
 //	GET  /receipts/expenses      manual expense search for one scan (htmx)
 //	GET  /receipts/new-expense   a new expense, filled from a scan (htmx)
 //	GET  /receipts/thumb/{id}    a scan's thumbnail, through Andon (CSP)
+//	GET  /receipts/preview/{id}  a scan to read, in a frame on the VAT desk
 //	POST /receipts/review        every link or new expense, spelled out to confirm
 //	POST /receipts/apply         writes the confirmed picks
 //	POST /receipts/link          undo of an unlink, written at once
@@ -128,6 +129,7 @@ func (d Deps) registerReceiptRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /receipts/review", d.authed(d.handleReceiptReview))
 	mux.HandleFunc("POST /receipts/apply", d.authed(d.handleReceiptApply))
 	mux.HandleFunc("GET /receipts/thumb/{id}", d.authed(d.handleReceiptThumb))
+	mux.HandleFunc("GET /receipts/preview/{id}", d.authed(d.handleReceiptPreview))
 	mux.HandleFunc("POST /receipts/link", d.authed(d.handleReceiptLink))
 	mux.HandleFunc("POST /receipts/unlink", d.authed(d.handleReceiptUnlink))
 	mux.HandleFunc("POST /receipts/ignore", d.authed(d.handleReceiptIgnore))
@@ -367,6 +369,37 @@ func dateOrEmpty(v string) string {
 
 // thumbCache lets the browser keep thumbnails for a while.
 const thumbCache = "private, max-age=300"
+
+// handleReceiptPreview answers a scan for the desk's frame: a PDF or an
+// image only. An image runs nothing in the frame (sandbox, which Chrome's
+// PDF viewer does not bear).
+func (d Deps) handleReceiptPreview(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	body, kind, err := receipts.Preview(r.Context(), d.DB, ctx.Who, id)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	switch {
+	case strings.HasPrefix(kind, "application/pdf"):
+	case strings.HasPrefix(kind, "image/"):
+		w.Header().Set("Content-Security-Policy", imagePreviewCSP)
+	default:
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", kind)
+	w.Header().Set("Cache-Control", thumbCache)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Write(body)
+}
+
+// imagePreviewCSP lets an image in a frame show, and run nothing.
+const imagePreviewCSP = "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; frame-ancestors 'self'"
 
 func (d Deps) handleReceiptThumb(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
