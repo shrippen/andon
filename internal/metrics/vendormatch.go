@@ -9,8 +9,8 @@ import (
 
 // A booking names a vendor by its brand: the name's first long word that
 // tells it apart. Short words are common in any text ("am", "on", "11",
-// "St."), so a name of short words needs all of them, the first at the
-// start of the payer.
+// "St."), so a name of short words needs all of them in the payer, the
+// first at its start.
 //
 //	"Dr. Müller Steuerberatung"    brand mueller  not "Dr. Schmidt"
 //	"Deutsche Bahn AG"             brand bahn     not "Deutsche Kreditbank"
@@ -33,17 +33,16 @@ const (
 // spelledOut writes umlauts as bank feeds do: "müller" ~ "MUeLLER".
 var spelledOut = strings.NewReplacer("ä", "ae", "ö", "oe", "ü", "ue", "ß", "ss")
 
-// vendorWords are the words of a name or booking, lower case.
-func vendorWords(s string) []string {
-	var out []string
-	for _, w := range strings.FieldsFunc(spelledOut.Replace(strings.ToLower(s)), func(r rune) bool {
+// allWords are the words of a name or booking, lower case.
+func allWords(s string) []string {
+	return strings.FieldsFunc(spelledOut.Replace(strings.ToLower(s)), func(r rune) bool {
 		return !(r >= 'a' && r <= 'z' || r >= '0' && r <= '9')
-	}) {
-		if len(w) >= minVendorWord {
-			out = append(out, w)
-		}
-	}
-	return out
+	})
+}
+
+// vendorWords are the words to compare: no lone letters.
+func vendorWords(s string) []string {
+	return slices.DeleteFunc(allWords(s), func(w string) bool { return len(w) < minVendorWord })
 }
 
 // cardName is the word a card feed cut off, after its last "*":
@@ -62,16 +61,12 @@ func cardName(text string) string {
 // bookingText is what a booking says for vendorScore.
 type bookingText struct {
 	words []string
-	first string // the payer's first word
+	payer []string
 	card  string // the word a card feed cut off
 }
 
 func bookingOf(payer, text string) bookingText {
-	b := bookingText{words: vendorWords(text), card: cardName(text)}
-	if w := vendorWords(payer); len(w) > 0 {
-		b.first = w[0]
-	}
-	return b
+	return bookingText{words: vendorWords(text), payer: vendorWords(payer), card: cardName(text)}
 }
 
 // vendorBrand is a name's brand and all its telling words; short says the
@@ -94,6 +89,11 @@ func vendorBrand(name string) (brand string, own []string, short bool) {
 	if brand != "" {
 		return brand, own, false
 	}
+
+	// Short words alone must be the whole name: "Dr. O." is not "Dr.".
+	if slices.ContainsFunc(allWords(name), func(w string) bool { return len(w) < minVendorWord }) {
+		return "", own, true
+	}
 	return shortest, own, true
 }
 
@@ -112,7 +112,7 @@ func vendorScore(name string, b bookingText) int {
 		return len(own)
 	}
 
-	if !slices.Contains(b.words, brand) || short && (b.first != brand || !holdsAll(b.words, own)) {
+	if !slices.Contains(b.words, brand) || short && !shortInPayer(b.payer, brand, own) {
 		return 0
 	}
 	score := 0
@@ -124,19 +124,25 @@ func vendorScore(name string, b bookingText) int {
 	return score
 }
 
-// holdsAll says whether the booking has every telling word of a name made
-// of short words: "Dr. Ott" is not "Dr. Schmidt".
-func holdsAll(booking, own []string) bool {
+// shortInPayer says whether the payer starts with a name of short words
+// and holds the rest of it: "Dr. Ott" is not "Dr. Schmidt", a text may
+// hold any short word.
+func shortInPayer(payer []string, brand string, own []string) bool {
+	if len(payer) == 0 || payer[0] != brand {
+		return false
+	}
 	for _, w := range own {
-		if !plainWords[w] && !slices.Contains(booking, w) {
+		if !plainWords[w] && !slices.Contains(payer, w) {
 			return false
 		}
 	}
 	return true
 }
 
-// namesVendor says whether the text, starting with the payer, names the vendor.
-func namesVendor(name, text string) bool { return vendorScore(name, bookingOf(text, text)) > 0 }
+// namesVendor says whether the booking names the vendor.
+func namesVendor(name, payer, text string) bool {
+	return vendorScore(name, bookingOf(payer, text)) > 0
+}
 
 // vendorOf is the vendor a booking names: its exact name, else the one
 // with the most of its name in the text.

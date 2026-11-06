@@ -424,7 +424,7 @@ func expenseFits(n *sources.NinjaDataset, t sources.NinjaBankTxn, taken map[stri
 		out = append(out, e)
 	}
 	named := func(e sources.NinjaExpense) bool {
-		return namesVendor(names[e.VendorKey], text) || sameThing(t.Payer, e.Notes)
+		return namesVendor(names[e.VendorKey], t.Payer, text) || sameThing(t.Payer, e.Notes)
 	}
 	slices.SortStableFunc(out, func(a, b sources.NinjaExpense) int {
 		if na, nb := named(a), named(b); na != nb {
