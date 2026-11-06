@@ -509,3 +509,38 @@ func TestOpenDebitFits(t *testing.T) {
 		t.Error("far, booked or credited: no fit")
 	}
 }
+
+// TestDraftVendor: the booking names a vendor by its brand, not by a word
+// every company has. Before the fix "OBI GmbH Co. Deutschland KG" took every
+// booking of a GmbH.
+func TestDraftVendor(t *testing.T) {
+	n := &sources.NinjaDataset{Vendors: []sources.NinjaVendor{
+		{Key: "obi", Name: "OBI GmbH Co. Deutschland KG"},
+		{Key: "post", Name: "Deutsche Post"},
+		{Key: "bahn", Name: "Deutsche Bahn AG"},
+		{Key: "hetzner", Name: "Hetzner Online GmbH"},
+		{Key: "reichelt", Name: "Reichelt"},
+		{Key: "ninja", Name: "Invoice Ninja"},
+		{Key: "dm", Name: "DM Drogeriemarkt"},
+	}}
+	for _, c := range []struct{ payer, text, want string }{
+		{"netcup GmbH", "Rechnung nc-1", ""},
+		{"Ageras GmbH", "", ""},
+		{"OBI GmbH", "", "obi"},
+		{"OBI BAUMARKT WEIMAR", "", "obi"},
+		{"Hetzner Online Gmbh", "", "hetzner"},
+		{"Karte", "Hetzner Online GmbH,hetzner.com/", "hetzner"},
+		{"Deutsche Post AG", "", "post"},
+		{"Deutsche Kreditbank AG", "", ""},
+		{"Deutsche Bahn", "", "bahn"},
+		{"Paypal *reicheltele", "", "reichelt"},
+		{"Paypal *invoiceninj", "", "ninja"},
+		{"DM DROGERIE SAGT DANKE", "", "dm"},
+		{"Admiral", "", ""}, // "dm" only as a word
+	} {
+		d := metrics.DraftOf(n, sources.NinjaBankTxn{Payer: c.payer, Description: c.text})
+		if d.VendorKey != c.want {
+			t.Errorf("%q %q: vendor %q (%s), want %q", c.payer, c.text, d.VendorKey, d.Vendor, c.want)
+		}
+	}
+}
