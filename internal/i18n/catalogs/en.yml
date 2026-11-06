@@ -8046,6 +8046,8 @@ learn:
   purpose_euer: 'EUER line'
   purpose_tax: 'Tax rate of new vendors'
   purpose_category: 'Category of new vendors'
+  purpose_share: 'Share of the booking'
+  purpose_note: 'Private note'
   purpose_private: 'Private or business'
   purpose_vendor: 'Vendor from the booking'
   purpose_kimai_task: 'Kimai project and activity'

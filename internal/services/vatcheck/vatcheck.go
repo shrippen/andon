@@ -624,6 +624,7 @@ func (b book) gapCases(ctx context.Context, d *sql.DB, who *access.Principal, s 
 			Draft: metrics.ExpenseDraft{Vendor: vendor, VendorKey: e.VendorKey}}, parts: parts}
 		cs.Draft.Euer, cs.Draft.EuerFrom = euer.GuessExpense(e)
 		cs.Draft.Suggest.Euer = euer.SuggestExpense(e)
+		cs.Draft.Suggest.Category = metrics.SuggestCategory(b.ninja, e, b.learned)
 		b.gapped(&cs)
 		b.propose(ctx, d, who, &cs)
 		out = append(out, cs)
@@ -675,7 +676,7 @@ func (b book) docCases(ctx context.Context, d *sql.DB, who *access.Principal, s 
 		}
 		sc.Score = scanSure
 		txn := docTxn(sc.Doc, sc.Amount)
-		cs := Case{BankCase: metrics.BankCase{Txn: txn, Action: ActionReceipt, Draft: metrics.DraftOf(b.ninja, txn)},
+		cs := Case{BankCase: metrics.BankCase{Txn: txn, Action: ActionReceipt, Draft: metrics.DraftWith(b.ninja, txn, b.learned)},
 			Scans: []receipts.Candidate{sc}, Note: strings.TrimSpace(sc.Doc.Title), parts: parts}
 		cs.Draft.Euer, cs.Draft.EuerFrom = euer.Guess(euerInput(cs.Draft, txn))
 		cs.Draft.Suggest.Euer = euer.Suggest(euerInput(cs.Draft, txn))
