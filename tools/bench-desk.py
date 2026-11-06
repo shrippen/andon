@@ -36,6 +36,7 @@ Before the fix:
   both searches failed: none checked, day 2026-10-16 (want none, 2026-10-29)
   search lost the network: frame shows a receipt not picked
   marks moved the page: [1433, 1433, 543] (want none)
+  firefox: receipt arrived hidden: canvas widths [0, 429] (want 2 drawn)
   take enabled while unsorted
   label after later: '' (want 'Noch unsortiert')
 
@@ -547,15 +548,17 @@ def hidden_pick(page):
     return [] if got == want else [f"column after a reload: {got!r} (want {want!r})"]
 
 
-def receipt_pdf(text):
-    """A one-page PDF with text at a known place, as Paperless serves an OCRed scan."""
+def receipt_pdf(text, blank_first=False):
+    """A PDF with text at a known place, as Paperless serves an OCRed scan; blank_first puts an empty page before it."""
     content = f"BT /F1 18 Tf 72 700 Td ({text}) Tj ET".encode()
+    kids = b"[6 0 R 3 0 R] /Count 2" if blank_first else b"[3 0 R] /Count 1"
     objects = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
-        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Pages /Kids %s >>" % kids,
         b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
         b"<< /Length %d >>\nstream\n%s\nendstream" % (len(content), content),
         b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] >>",
     ]
     out, offsets = b"%PDF-1.4\n", []
     for i, o in enumerate(objects, 1):
@@ -627,6 +630,52 @@ def receipt_marks(page):
     return wrong
 
 
+def receipt_hidden(page):
+    """A receipt arriving in a hidden frame shows when the desk comes back, its mark in view."""
+    k, other_entry = SCANNED, UNSORTED
+    held = []
+    page.route("**/receipts/preview/*", lambda r: held.append(r))
+
+    # A fresh page: a frame drawn before asks for no file.
+    page.reload()
+    page.wait_for_load_state("networkidle")
+    page.click(f'.bench-entry[data-case="{k}"]')
+    bank = page.get_attribute(f'[name="day_{k}"]', "data-bank-day")
+    other = pick_off_bank(page, k, bank)
+    if not other:
+        return [f"demo search has no scan off the bank day {bank}"]
+
+    # Leave once the frame asked for its file.
+    for _ in range(VIEW_MS // SWAP_MS):
+        if held:
+            break
+        page.wait_for_timeout(SWAP_MS)
+    if not held:
+        return ["the frame never asked for its file"]
+    page.click(f'.bench-entry[data-case="{other_entry}"]')
+    page.wait_for_timeout(RESTORE_MS)
+
+    # Page one holds nothing: the marks stand on page two, below the frame's fold.
+    body = receipt_pdf("Rechnung 342,00 EUR vom 16.10.2026", blank_first=True)
+    for r in held:
+        r.fulfill(status=200, content_type="application/pdf", body=body)
+    page.unroute("**/receipts/preview/*")
+    page.wait_for_timeout(RESTORE_MS)
+    page.click(f'.bench-entry[data-case="{k}"]')
+    page.wait_for_timeout(RESTORE_MS)
+
+    frame = reader(page, k)
+    sizes = frame.locator("canvas").evaluate_all("cs => cs.map(c => c.width)")
+    seen = frame.locator(".doc-mark").evaluate_all(
+        """ms => ms.some(m => { var r = m.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })""")
+    wrong = []
+    if len(sizes) != 2 or not all(sizes):
+        wrong.append(f"receipt arrived hidden: canvas widths {sizes} (want 2 drawn)")
+    if not seen:
+        wrong.append("receipt arrived hidden: its mark is out of the frame's view")
+    return wrong
+
+
 def unsorted(page):
     """Nothing to take before a choice; the label stays through "Später"."""
     k = UNSORTED
@@ -640,6 +689,16 @@ def unsorted(page):
     if label.inner_text() != want:
         wrong.append(f"label after later: {label.inner_text()!r} (want {want!r})")
     return wrong
+
+
+def log_in(page, base):
+    """Logs in; under load the page may still be idle before the answer comes."""
+    page.goto(base + "/login")
+    page.fill("#email", LOGIN[0])
+    page.fill("#password", LOGIN[1])
+    page.press("#password", "Enter")
+    page.wait_for_url(lambda url: "/login" not in url)
+    page.wait_for_load_state("networkidle")
 
 
 def discard(page):
@@ -658,11 +717,7 @@ def main():
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": 1600, "height": 1000})
         page.on("pageerror", lambda e: errors.append(str(e)))
-        page.goto(base + "/login")
-        page.fill("#email", LOGIN[0])
-        page.fill("#password", LOGIN[1])
-        page.press("#password", "Enter")
-        page.wait_for_load_state("networkidle")
+        log_in(page, base)
         page.goto(base + "/vat")
         page.wait_for_load_state("networkidle")
 
@@ -709,6 +764,22 @@ def main():
         discard(page)
         wrong += unsorted(page)
 
+        page.wait_for_timeout(SAVE_MS)
+        discard(page)
+        wrong += receipt_hidden(page)
+        page.wait_for_timeout(SAVE_MS)
+        discard(page)
+        browser.close()
+
+        # The reader's frame differs per browser: hidden, Firefox lays nothing out.
+        browser = p.firefox.launch()
+        page = browser.new_page(viewport={"width": 1600, "height": 1000})
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        log_in(page, base)
+        page.goto(base + "/vat")
+        page.wait_for_load_state("networkidle")
+        discard(page)
+        wrong += [f"firefox: {w}" for w in receipt_hidden(page)]
         page.wait_for_timeout(SAVE_MS)
         discard(page)
         browser.close()

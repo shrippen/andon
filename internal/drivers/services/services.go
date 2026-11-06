@@ -421,7 +421,7 @@ func (a ProxmoxApi) Get(ctx context.Context, path string, params url.Values) (an
 
 // maxFile is the largest scan read: a file, unlike an API answer, often
 // exceeds httpclient.MaxBody.
-const maxFile = 20 * httpclient.MaxBody
+const maxFile int64 = 20 * httpclient.MaxBody
 
 // fileTimeout lets a large scan arrive over a slow link.
 const fileTimeout = 2 * time.Minute
@@ -444,8 +444,20 @@ func (a PaperlessApi) Get(ctx context.Context, path string, params url.Values) (
 // Bytes reads a binary answer of /api/<path>, e.g. a document's
 // thumbnail, with its content type.
 func (a PaperlessApi) Bytes(ctx context.Context, path string) ([]byte, string, error) {
-	resp, err := httpclient.Request(ctx, http.MethodGet, joinURL(a.URL, "api/"+path),
-		httpclient.Options{Headers: map[string]string{"Authorization": "Token " + a.Token}, SkipVerify: !a.Verify, Timeout: fileTimeout})
+	return a.read(ctx, path, httpclient.Options{}, httpclient.MaxBody)
+}
+
+// File reads a scan: a file, unlike a thumbnail, often exceeds
+// httpclient.MaxBody and takes its time over a slow link. Cut off, a PDF
+// no longer opens, so a larger one is an error.
+func (a PaperlessApi) File(ctx context.Context, path string) ([]byte, string, error) {
+	return a.read(ctx, path, httpclient.Options{Timeout: fileTimeout}, maxFile)
+}
+
+// read GETs at most limit bytes; Bytes keeps its answer cut off as before.
+func (a PaperlessApi) read(ctx context.Context, path string, opts httpclient.Options, limit int64) ([]byte, string, error) {
+	opts.Headers, opts.SkipVerify = map[string]string{"Authorization": "Token " + a.Token}, !a.Verify
+	resp, err := httpclient.Request(ctx, http.MethodGet, joinURL(a.URL, "api/"+path), opts)
 	if err != nil {
 		return nil, "", ApiError{err.Error()}
 	}
@@ -453,12 +465,15 @@ func (a PaperlessApi) Bytes(ctx context.Context, path string) ([]byte, string, e
 	if resp.StatusCode >= http.StatusBadRequest {
 		return nil, "", ApiError{resp.Status}
 	}
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxFile+1))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, limit+1))
 	if err != nil {
 		return nil, "", ApiError{err.Error()}
 	}
-	if len(body) > maxFile {
-		return nil, "", ApiError{"file too large"} // cut off, a PDF no longer opens
+	if int64(len(body)) > limit {
+		if limit == maxFile {
+			return nil, "", ApiError{"file too large"}
+		}
+		body = body[:limit]
 	}
 	return body, resp.Header.Get("Content-Type"), nil
 }

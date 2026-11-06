@@ -2682,6 +2682,16 @@
     return s ? "#" + s : "";
   }
 
+  // benchDocShown tells a desk's frames they show: a file that came while
+  // they were hidden is drawn now (doc-view.mjs).
+  function benchDocShown(desk) {
+    [].forEach.call(desk.querySelectorAll("aside:not([hidden]) [data-doc]"), function (frame) {
+      if (frame.contentWindow) {
+        frame.contentWindow.postMessage("doc-shown", location.origin);
+      }
+    });
+  }
+
   // benchDoc shows scan id beside the fields of side, or says there is none.
   function benchDoc(side, id) {
     var frame = side && side.querySelector("[data-doc]");
@@ -2821,6 +2831,7 @@
       desk.hidden = desk.getAttribute("data-desk") !== k;
       if (!desk.hidden) {
         shown = desk;
+        benchDocShown(desk);
       }
     });
     [].forEach.call(form.querySelectorAll(".bench-entry"), function (e) {
@@ -3157,6 +3168,7 @@
     if (later) {
       htmx.trigger(later, "andon-split");
     }
+    benchDocShown(desk);
     benchCount(form, desk);
   }
 

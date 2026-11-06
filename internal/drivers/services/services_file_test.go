@@ -12,7 +12,7 @@ import (
 
 // A scan can be larger than an API answer: cut off at MaxBody a PDF no
 // longer opens. Before the fix a 6 MiB file came back with 5 MiB, no error.
-func TestPaperlessBytesWhole(t *testing.T) {
+func TestPaperlessFileWhole(t *testing.T) {
 	file := bytes.Repeat([]byte("x"), httpclient.MaxBody+httpclient.MaxBody/5)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/pdf")
@@ -20,7 +20,7 @@ func TestPaperlessBytesWhole(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	body, kind, err := PaperlessApi{URL: srv.URL, Token: "t", Verify: true}.Bytes(context.Background(), "documents/1/download/")
+	body, kind, err := PaperlessApi{URL: srv.URL, Token: "t", Verify: true}.File(context.Background(), "documents/1/download/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,13 +30,13 @@ func TestPaperlessBytesWhole(t *testing.T) {
 }
 
 // A file above the limit is an error, never a cut-off file.
-func TestPaperlessBytesTooLarge(t *testing.T) {
+func TestPaperlessFileTooLarge(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write(make([]byte, maxFile+1))
 	}))
 	defer srv.Close()
 
-	if body, _, err := (PaperlessApi{URL: srv.URL, Token: "t", Verify: true}).Bytes(context.Background(), "documents/1/download/"); err == nil {
+	if body, _, err := (PaperlessApi{URL: srv.URL, Token: "t", Verify: true}).File(context.Background(), "documents/1/download/"); err == nil {
 		t.Errorf("no error, %d bytes", len(body))
 	}
 }

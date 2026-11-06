@@ -19,6 +19,8 @@ const MIN_NUMBER = 3; // shorter "numbers" are found anywhere
 let zoom = 1;
 let drawn = []; // {box, page, items} per page, for marking again
 let lastWidth = 0;
+let drawLater = false; // the file came while the frame was hidden
+let showLater = false; // likewise, its first mark
 
 // escaped makes text literal in a pattern.
 function escaped(text) {
@@ -114,10 +116,20 @@ function markPage(p, res) {
   });
 }
 
+// inView says whether the frame has a layout: hidden, Firefox answers no
+// sizes at all and a page would draw as nothing.
+function inView() {
+  return pages.clientWidth > 0;
+}
+
 // showMark brings a mark into the frame's view, leaving the desk around
 // the frame where the user is (scrollIntoView would move it too).
 function showMark(mark) {
   if (!mark) {
+    return;
+  }
+  if (!inView()) {
+    showLater = true;
     return;
   }
   const at = mark.getBoundingClientRect().top - pages.getBoundingClientRect().top;
@@ -152,6 +164,10 @@ function failed() {
 
 // drawPage paints a page at the frame's width and zoom.
 async function drawPage(p) {
+  if (!inView()) {
+    drawLater = true;
+    return;
+  }
   const room = pages.clientWidth - 2 * parseFloat(getComputedStyle(pages).paddingLeft);
   const base = p.page.getViewport({ scale: 1 });
   const css = room * zoom;
@@ -259,5 +275,21 @@ root.querySelectorAll("[data-zoom]").forEach((btn) => {
   });
 });
 window.addEventListener("hashchange", markAll);
+
+// The desk says when this frame shows again (andon.js benchDocShown):
+// nothing here sees it, as Firefox reports no new size.
+window.addEventListener("message", async (e) => {
+  if (e.origin !== location.origin || e.data !== "doc-shown" || !inView()) {
+    return;
+  }
+  if (drawLater) {
+    drawLater = false;
+    await drawAll();
+  }
+  if (showLater) {
+    showLater = false;
+    showMark(pages.querySelector(".doc-mark"));
+  }
+});
 new ResizeObserver(resized).observe(pages);
 start();
