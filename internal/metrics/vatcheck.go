@@ -602,7 +602,8 @@ func suggestLast(d *ExpenseDraft, n *sources.NinjaDataset, t sources.NinjaBankTx
 
 	share := ""
 	if b, ok := txnOf(n, last.TxnKey); ok {
-		if s, single := bookedShare(n, last, b); single && s > 0 && s < percentWhole {
+		s, single := bookedShare(n, last, b)
+		if s = math.Round(s); single && s > 0 && s < percentWhole {
 			share = strconv.FormatFloat(s, 'f', -1, 64)
 		}
 	}
@@ -635,7 +636,7 @@ func bookedShare(n *sources.NinjaDataset, e sources.NinjaExpense, t sources.Ninj
 	if !e.Gross {
 		paid += e.Tax
 	}
-	return math.Round(paid / t.Amount * percentWhole), true
+	return paid / t.Amount * percentWhole, true
 }
 
 // percentWhole is a whole in percent.

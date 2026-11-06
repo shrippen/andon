@@ -352,13 +352,17 @@ func TestSuggestPart(t *testing.T) {
 	}
 }
 
-// A share stays what was booked; only rounding next to a round value
-// counts as it: a third is no 35 %.
+// A share stays what was booked. Only a whole-euro rounding of a round
+// share counts as it: 32 € of 63 € is half, 21 € of 100 € is not a fifth.
 func TestShareStaysBooked(t *testing.T) {
 	for _, c := range []struct {
-		booked float64
-		want   string
-	}{{20, "33"}, {40, "67"}, {7.2, "12"}, {58.2, "97"}, {30.6, "51"}} {
+		booked, of float64
+		want       string
+	}{
+		{20, 60, "33"}, {40, 60, "67"}, {7.2, 60, "12"}, {58.2, 60, "97"}, {30.6, 60, "51"},
+		{21, 100, "21"}, {49, 100, "49"}, {210, 1000, "21"}, {1, 100, "1"}, {99, 100, "99"},
+		{32, 63, "50"}, {30.4, 60, "50"}, {26, 51.99, "50"},
+	} {
 		txn := func(key, payer string, amount float64) sources.NinjaBankTxn {
 			return sources.NinjaBankTxn{Key: key, Date: "2026-09-02", Payer: payer, Amount: amount, Debit: true}
 		}
@@ -366,15 +370,11 @@ func TestShareStaysBooked(t *testing.T) {
 			return sources.NinjaExpense{Key: key, Date: "2026-09-02", TxnKey: txn, Amount: amount, Gross: true}
 		}
 		n := &sources.NinjaDataset{BankRead: true,
-			BankTxns: []sources.NinjaBankTxn{txn("t1", "Funknetz Mobilfunk", 60), txn("t2", "Funknetz Mobilfunk", 60), txn("t3", "Serverhof", 10), txn("t4", "Serverhof", 10)},
+			BankTxns: []sources.NinjaBankTxn{txn("t1", "Funknetz Mobilfunk", c.of), txn("t2", "Funknetz Mobilfunk", c.of), txn("t3", "Serverhof", 10), txn("t4", "Serverhof", 10)},
 			Expenses: []sources.NinjaExpense{exp("e1", "t1", c.booked), exp("e2", "t2", c.booked), exp("e3", "t3", 10), exp("e4", "t4", 10)}}
-		want := c.want
-		if want == "51" {
-			want = "50"
-		}
-		d := metrics.DraftWith(n, txn("o", "Funknetz Mobilfunk", 60), shareLearning(n))
-		if len(d.Suggest.Share) != 1 || d.Suggest.Share[0].Value != want {
-			t.Errorf("booked %v of 60: %+v, want %s", c.booked, d.Suggest.Share, want)
+		d := metrics.DraftWith(n, txn("o", "Funknetz Mobilfunk", c.of), shareLearning(n))
+		if len(d.Suggest.Share) != 1 || d.Suggest.Share[0].Value != c.want {
+			t.Errorf("booked %v of %v: %+v, want %s", c.booked, c.of, d.Suggest.Share, c.want)
 		}
 	}
 }
@@ -386,6 +386,15 @@ func TestSuggestCategorySelf(t *testing.T) {
 		Expenses: []sources.NinjaExpense{{Key: "e1", VendorKey: "v", Date: "2026-08-01", CategoryKey: "c"}, {Key: "e2", VendorKey: "v", Date: "2026-09-01"}}}
 	picks := metrics.SuggestCategory(n, n.Expenses[1], metrics.BankLearning{})
 	if len(picks) != 1 || picks[0].Value != "c" {
+		t.Errorf("picks: %+v", picks)
+	}
+}
+
+// An expense without a date still has a category to offer.
+func TestSuggestCategoryNoDate(t *testing.T) {
+	n := &sources.NinjaDataset{Categories: []sources.NinjaCategory{{Key: "c", Name: "Telefon"}},
+		Expenses: []sources.NinjaExpense{{Key: "e1", VendorKey: "v", CategoryKey: "c"}, {Key: "e2", VendorKey: "v", Date: "2026-09-01"}}}
+	if picks := metrics.SuggestCategory(n, n.Expenses[1], metrics.BankLearning{}); len(picks) != 1 {
 		t.Errorf("picks: %+v", picks)
 	}
 }

@@ -155,24 +155,28 @@ func LearnShares(m *bayes.Model, n *sources.NinjaDataset) bool {
 			changed = m.Forget(e.Key) || changed
 			continue
 		}
-		changed = m.Learn(e.Key, shareLabel(share), bankFeatures(t, nil)) || changed
+		changed = m.Learn(e.Key, shareLabel(share, t.Amount), bankFeatures(t, nil)) || changed
 	}
 	return changed
 }
 
-// shareTens: a share next to a round value is that value, cut by rounding
-// cents: 51 % is half, a third stays 33 %.
-const shareTens = 10.0
+// A share booked with its amount rounded to whole euros is the round share
+// it was reckoned from: 32 € of 63 € is half, 21 € of 100 € stays 21 %.
+const (
+	shareTens     = 10.0
+	roundedAmount = 0.5 + 1e-9 // float noise: 32 of 63 is exactly half a euro off
+)
 
-// shareLabel is a share as a label: "50", "33", "whole".
-func shareLabel(share float64) string {
-	if round := math.Round(share/shareTens) * shareTens; math.Abs(share-round) <= 1 {
-		share = round
+// shareLabel is a share of a booking as a label: "50", "33", "whole".
+func shareLabel(share, amount float64) string {
+	round := math.Round(share/shareTens) * shareTens
+	if math.Abs(share-round)*amount/percentWhole > roundedAmount {
+		round = math.Round(share)
 	}
-	if share >= percentWhole || share <= 0 {
+	if round >= percentWhole || round <= 0 {
 		return wholeLabel // above 100: an old booking of the bank's amount as net
 	}
-	return strconv.FormatFloat(share, 'f', -1, 64)
+	return strconv.FormatFloat(round, 'f', -1, 64)
 }
 
 // LearnNotes teaches m which private note a booking's expense carries.
@@ -281,7 +285,7 @@ func SuggestCategory(n *sources.NinjaDataset, e sources.NinjaExpense, l BankLear
 	// The vendor's newest expense that has a category.
 	var last sources.NinjaExpense
 	for _, x := range n.Expenses {
-		if e.VendorKey != "" && x.VendorKey == e.VendorKey && categoryName(n, x.CategoryKey) != "" && x.Date > last.Date {
+		if e.VendorKey != "" && x.VendorKey == e.VendorKey && categoryName(n, x.CategoryKey) != "" && (last.Key == "" || x.Date > last.Date) {
 			last = x
 		}
 	}
