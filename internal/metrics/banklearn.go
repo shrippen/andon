@@ -160,16 +160,19 @@ func LearnShares(m *bayes.Model, n *sources.NinjaDataset) bool {
 	return changed
 }
 
-// shareStep rounds a share to what it was meant as: 51 % is half.
-const shareStep = 5.0
+// shareTens: a share next to a round value is that value, cut by rounding
+// cents: 51 % is half, a third stays 33 %.
+const shareTens = 10.0
 
-// shareLabel is a share as a label: "50", "whole".
+// shareLabel is a share as a label: "50", "33", "whole".
 func shareLabel(share float64) string {
-	step := math.Round(share/shareStep) * shareStep
-	if step >= percentWhole || step <= 0 {
+	if round := math.Round(share/shareTens) * shareTens; math.Abs(share-round) <= 1 {
+		share = round
+	}
+	if share >= percentWhole || share <= 0 {
 		return wholeLabel // above 100: an old booking of the bank's amount as net
 	}
-	return strconv.FormatFloat(step, 'f', -1, 64)
+	return strconv.FormatFloat(share, 'f', -1, 64)
 }
 
 // LearnNotes teaches m which private note a booking's expense carries.
@@ -274,12 +277,18 @@ func SuggestCategory(n *sources.NinjaDataset, e sources.NinjaExpense, l BankLear
 	if len(out) > 0 {
 		return out
 	}
-	if last, ok := lastExpense(n, e.VendorKey); ok {
-		if name := categoryName(n, last.CategoryKey); name != "" {
-			return []Pick{{Value: last.CategoryKey, Label: name}}
+
+	// The vendor's newest expense that has a category.
+	var last sources.NinjaExpense
+	for _, x := range n.Expenses {
+		if e.VendorKey != "" && x.VendorKey == e.VendorKey && categoryName(n, x.CategoryKey) != "" && x.Date > last.Date {
+			last = x
 		}
 	}
-	return nil
+	if last.CategoryKey == "" {
+		return nil
+	}
+	return []Pick{{Value: last.CategoryKey, Label: categoryName(n, last.CategoryKey)}}
 }
 
 // SuggestPart is what the models offer a split's part without a scan:

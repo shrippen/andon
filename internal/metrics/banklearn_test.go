@@ -235,7 +235,7 @@ func shareNinja() *sources.NinjaDataset {
 	return &sources.NinjaDataset{BankRead: true,
 		Vendors:  []sources.NinjaVendor{{Key: "m", Name: "Funknetz"}, {Key: "h", Name: "Serverhof"}, {Key: "z", Name: "Zeitung"}},
 		BankTxns: []sources.NinjaBankTxn{txn("t1", "Funknetz Mobilfunk", 60), txn("t2", "Funknetz Mobilfunk", 62), txn("t3", "Serverhof Miete", 10), txn("t4", "Serverhof Miete", 12), txn("t5", "Altkunde", 40)},
-		Expenses: []sources.NinjaExpense{exp("e1", "m", "t1", 31, "Nutzung 50/50"), exp("e2", "m", "t2", 31, "Nutzung 50/50"), exp("e3", "h", "t3", 10, ""), exp("e4", "h", "t4", 12, ""), exp("e5", "z", "t5", 20, "Altes Abo")}}
+		Expenses: []sources.NinjaExpense{exp("e1", "m", "t1", 30, "Nutzung 50/50"), exp("e2", "m", "t2", 31, "Nutzung 50/50"), exp("e3", "h", "t3", 10, ""), exp("e4", "h", "t4", 12, ""), exp("e5", "z", "t5", 20, "Altes Abo")}}
 }
 
 func shareLearning(n *sources.NinjaDataset) metrics.BankLearning {
@@ -246,7 +246,7 @@ func shareLearning(n *sources.NinjaDataset) metrics.BankLearning {
 }
 
 // The models suggest share and note by the booking's words, of a vendor
-// not known too; "whole" and "no note" are never offered. 51 % counts as half.
+// not known too; "whole" and "no note" are never offered.
 func TestLearnedShareNote(t *testing.T) {
 	n := shareNinja()
 	l := shareLearning(n)
@@ -349,5 +349,43 @@ func TestSuggestPart(t *testing.T) {
 		metrics.BankLearning{Category: bayes.Use{Model: cat, MinP: 0.6}})
 	if len(s.Category) == 0 || s.Category[0].Value != "c1" {
 		t.Errorf("part: %+v", s)
+	}
+}
+
+// A share stays what was booked; only rounding next to a round value
+// counts as it: a third is no 35 %.
+func TestShareStaysBooked(t *testing.T) {
+	for _, c := range []struct {
+		booked float64
+		want   string
+	}{{20, "33"}, {40, "67"}, {7.2, "12"}, {58.2, "97"}, {30.6, "51"}} {
+		txn := func(key, payer string, amount float64) sources.NinjaBankTxn {
+			return sources.NinjaBankTxn{Key: key, Date: "2026-09-02", Payer: payer, Amount: amount, Debit: true}
+		}
+		exp := func(key, txn string, amount float64) sources.NinjaExpense {
+			return sources.NinjaExpense{Key: key, Date: "2026-09-02", TxnKey: txn, Amount: amount, Gross: true}
+		}
+		n := &sources.NinjaDataset{BankRead: true,
+			BankTxns: []sources.NinjaBankTxn{txn("t1", "Funknetz Mobilfunk", 60), txn("t2", "Funknetz Mobilfunk", 60), txn("t3", "Serverhof", 10), txn("t4", "Serverhof", 10)},
+			Expenses: []sources.NinjaExpense{exp("e1", "t1", c.booked), exp("e2", "t2", c.booked), exp("e3", "t3", 10), exp("e4", "t4", 10)}}
+		want := c.want
+		if want == "51" {
+			want = "50"
+		}
+		d := metrics.DraftWith(n, txn("o", "Funknetz Mobilfunk", 60), shareLearning(n))
+		if len(d.Suggest.Share) != 1 || d.Suggest.Share[0].Value != want {
+			t.Errorf("booked %v of 60: %+v, want %s", c.booked, d.Suggest.Share, want)
+		}
+	}
+}
+
+// The expense filled is often its vendor's newest: the vendor's last
+// category is the newest one that has one.
+func TestSuggestCategorySelf(t *testing.T) {
+	n := &sources.NinjaDataset{Categories: []sources.NinjaCategory{{Key: "c", Name: "Telefon"}},
+		Expenses: []sources.NinjaExpense{{Key: "e1", VendorKey: "v", Date: "2026-08-01", CategoryKey: "c"}, {Key: "e2", VendorKey: "v", Date: "2026-09-01"}}}
+	picks := metrics.SuggestCategory(n, n.Expenses[1], metrics.BankLearning{})
+	if len(picks) != 1 || picks[0].Value != "c" {
+		t.Errorf("picks: %+v", picks)
 	}
 }
