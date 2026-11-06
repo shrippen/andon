@@ -44,7 +44,11 @@ func TestBenchDrafts(t *testing.T) {
 				euerField(t, srv, client)
 			}
 
-			page := string(mustGet(t, srv, client, "/"+c.bench))
+			path := "/" + c.bench
+			if c.bench == "week" {
+				path = weekWithCase(t, srv, client)
+			}
+			page := string(mustGet(t, srv, client, path))
 			k := regexp.MustCompile(`data-draft-case="([^"]+)"(?: data-draft-basis="([^"]*)")?`).FindStringSubmatch(page)
 			at := regexp.MustCompile(`data-draft="/bench/` + c.bench + `/draft" data-draft-place="([^"]*)"`).FindStringSubmatch(page)
 			if k == nil || at == nil {
@@ -59,7 +63,7 @@ func TestBenchDrafts(t *testing.T) {
 			if resp.StatusCode != http.StatusNoContent {
 				t.Fatalf("keep: %d", resp.StatusCode)
 			}
-			page = html.UnescapeString(string(mustGet(t, srv, client, "/"+c.bench)))
+			page = html.UnescapeString(string(mustGet(t, srv, client, path)))
 			for _, want := range []string{`"note_` + k[1] + `":["Entwurf"]`, "Zwischenstand geladen: 1 Fälle"} {
 				if !strings.Contains(page, want) {
 					t.Fatalf("page lacks %q:\n%s", want, page)
@@ -67,6 +71,21 @@ func TestBenchDrafts(t *testing.T) {
 			}
 		})
 	}
+}
+
+// weekWithCase is a week holding the demo's visit without a Kimai entry:
+// a weekday back from today, so which week depends on the day the test runs.
+func weekWithCase(t *testing.T, srv *httptest.Server, client *http.Client) string {
+	t.Helper()
+	page := string(mustGet(t, srv, client, "/week"))
+	for _, m := range regexp.MustCompile(`href="(/week\?[^"]*week=[^"]*)"`).FindAllStringSubmatch(page, -1) {
+		link := html.UnescapeString(m[1])
+		if strings.Contains(string(mustGet(t, srv, client, link)), "data-draft-case=") {
+			return link
+		}
+	}
+	t.Fatalf("no week holds a case:\n%s", page)
+	return ""
 }
 
 // euerField picks the demo Invoice Ninja's EÜR field, without which the
