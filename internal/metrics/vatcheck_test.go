@@ -594,6 +594,18 @@ func TestDraftVendorShort(t *testing.T) {
 		{"Obi GmbH", "OBI Markt", "", true},
 		{"Obi GmbH", "Kasse 3 OBI Markt", "", false},
 		{"DM", "DM Filiale 7", "", true},
+		{"Dr. Ott", "Dr. Schmidt Zahnarzt", "", false},
+		{"Dr. Kim", "Dr. Müller", "", false},
+		{"RA Ott", "RA Schmidt", "", false},
+		{"St. Ott", "St. Georg Apotheke", "", false},
+		{"Am See", "Am Markt Bäckerei", "", false},
+		{"La Vie", "La Boheme", "", false},
+		{"Der Bau", "Der Spiegel", "", false},
+		{"The Bay", "The Phone House", "", false},
+		{"www.obi.de", "www.amazon.de", "", false},
+		{"AB Bau", "AB Consulting", "", false},
+		{"Dr. Ott", "Dr. Ott Praxis", "", true},
+		{"AB Bau", "AB Bau Weimar", "", true},
 	} {
 		n := &sources.NinjaDataset{Vendors: []sources.NinjaVendor{{Key: "v", Name: c.vendor}}}
 		d := metrics.DraftOf(n, sources.NinjaBankTxn{Payer: c.payer, Description: c.text})

@@ -9,8 +9,8 @@ import (
 
 // A booking names a vendor by its brand: the name's first long word that
 // tells it apart. Short words are common in any text ("am", "on", "11",
-// "St."), so one is a brand only where the name has nothing else, and
-// then at the start of the payer.
+// "St."), so a name of short words needs all of them, the first at the
+// start of the payer.
 //
 //	"Dr. Müller Steuerberatung"    brand mueller  not "Dr. Schmidt"
 //	"Deutsche Bahn AG"             brand bahn     not "Deutsche Kreditbank"
@@ -112,7 +112,7 @@ func vendorScore(name string, b bookingText) int {
 		return len(own)
 	}
 
-	if short && b.first != brand || !short && !slices.Contains(b.words, brand) {
+	if !slices.Contains(b.words, brand) || short && (b.first != brand || !holdsAll(b.words, own)) {
 		return 0
 	}
 	score := 0
@@ -122,6 +122,17 @@ func vendorScore(name string, b bookingText) int {
 		}
 	}
 	return score
+}
+
+// holdsAll says whether the booking has every telling word of a name made
+// of short words: "Dr. Ott" is not "Dr. Schmidt".
+func holdsAll(booking, own []string) bool {
+	for _, w := range own {
+		if !plainWords[w] && !slices.Contains(booking, w) {
+			return false
+		}
+	}
+	return true
 }
 
 // namesVendor says whether the text, starting with the payer, names the vendor.
