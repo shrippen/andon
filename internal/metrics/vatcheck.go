@@ -424,7 +424,7 @@ func expenseFits(n *sources.NinjaDataset, t sources.NinjaBankTxn, taken map[stri
 		out = append(out, e)
 	}
 	named := func(e sources.NinjaExpense) bool {
-		return sameThing(names[e.VendorKey], text) || sameThing(t.Payer, e.Notes)
+		return namesVendor(names[e.VendorKey], t.Payer, text) || sameThing(t.Payer, e.Notes)
 	}
 	slices.SortStableFunc(out, func(a, b sources.NinjaExpense) int {
 		if na, nb := named(a), named(b); na != nb {
@@ -554,8 +554,8 @@ func DraftWith(n *sources.NinjaDataset, t sources.NinjaBankTxn, l BankLearning) 
 	return draftOf(n, t, nil, l)
 }
 
-// draftOf fills a new expense: a known vendor (its first word is a word
-// of the booking: "Mietwagen Nord" is not "Nordhost") brings its last
+// draftOf fills a new expense: a known vendor (vendorOf: "Mietwagen Nord"
+// is not "Nordhost") brings its last
 // category and tax; otherwise Sure's merchant and category help. The
 // learned models only suggest for what stays empty.
 func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.BankTxn, l BankLearning) ExpenseDraft {
@@ -564,11 +564,8 @@ func draftOf(n *sources.NinjaDataset, t sources.NinjaBankTxn, sure *sources.Bank
 	if sure != nil {
 		text += " " + sure.Merchant
 	}
-	for _, v := range n.Vendors {
-		if strings.EqualFold(v.Name, t.Payer) || sameThing(v.Name, text) {
-			d.Vendor, d.VendorKey = v.Name, v.Key
-			break
-		}
+	if v, ok := vendorOf(n, t.Payer, text); ok {
+		d.Vendor, d.VendorKey = v.Name, v.Key
 	}
 	if last, ok := lastExpense(n, d.VendorKey); ok {
 		d.CategoryKey, d.TaxName, d.TaxRate, d.TaxKnown, d.From = last.CategoryKey, last.TaxName, last.TaxRate, true, FromHistory

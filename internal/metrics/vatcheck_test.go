@@ -509,3 +509,152 @@ func TestOpenDebitFits(t *testing.T) {
 		t.Error("far, booked or credited: no fit")
 	}
 }
+
+// TestDraftVendor: the booking names a vendor by its brand, not by a word
+// every company has. Before the fix "OBI GmbH Co. Deutschland KG" took every
+// booking of a GmbH.
+func TestDraftVendor(t *testing.T) {
+	n := &sources.NinjaDataset{Vendors: []sources.NinjaVendor{
+		{Key: "obi", Name: "OBI GmbH Co. Deutschland KG"},
+		{Key: "post", Name: "Deutsche Post"},
+		{Key: "bahn", Name: "Deutsche Bahn AG"},
+		{Key: "hetzner", Name: "Hetzner Online GmbH"},
+		{Key: "reichelt", Name: "Reichelt"},
+		{Key: "ninja", Name: "Invoice Ninja"},
+		{Key: "dm", Name: "DM Drogeriemarkt"},
+		{Key: "eon", Name: "E.ON Energie Deutschland GmbH"},
+		{Key: "drm", Name: "Dr. Müller Steuerberatung"},
+		{Key: "phone", Name: "The Phone House"},
+		{Key: "www", Name: "www.hetzner-domains.com"},
+		{Key: "anker", Name: "Zum Goldenen Anker"},
+		{Key: "tk", Name: "Telekom"},
+		{Key: "bau", Name: "Bauhaus"},
+	}}
+	for _, c := range []struct{ payer, text, want string }{
+		{"netcup GmbH", "Rechnung nc-1", ""},
+		{"Ageras GmbH", "", ""},
+		{"OBI GmbH", "", "obi"},
+		{"OBI BAUMARKT WEIMAR", "", "obi"},
+		{"Hetzner Online Gmbh", "", "hetzner"},
+		{"Karte", "Hetzner Online GmbH,hetzner.com/", "hetzner"},
+		{"Deutsche Post AG", "", "post"},
+		{"Deutsche Kreditbank AG", "", ""},
+		{"Deutsche Bahn", "", "bahn"},
+		{"Paypal *reicheltele", "", "reichelt"},
+		{"Paypal *invoiceninj", "", "ninja"},
+		{"DM DROGERIE SAGT DANKE", "", ""}, // a short word with a name beside it is no brand: the model suggests
+		{"DM Drogeriemarkt Weimar", "", "dm"},
+		{"Admiral", "", ""}, // "dm" only as a word
+		{"Stripe Payments", "Card payment on 03.11.", ""},
+		{"E.ON Energie", "", "eon"},
+		{"Dr. Schmidt Zahnarzt", "Rechnung", ""},
+		{"Müller Steuerberatung", "", "drm"},
+		{"Musterfirma", "Danke für the invoice", ""},
+		{"www.netcup.de", "", ""},
+		{"Gasthof Zum Löwen", "", ""},
+		{"Bechtle Telekommunikation GmbH", "", ""},
+		{"Cafe Kaffeehaus", "Bauhausstraße 11 Weimar", ""},
+		{"Muellerstrasse Apotheke", "", ""},
+		{"VISA *PAYPAL *reicheltele", "", "reichelt"},
+		{"PayPal Europe", "Paypal *reicheltele", "reichelt"},
+	} {
+		d := metrics.DraftOf(n, sources.NinjaBankTxn{Payer: c.payer, Description: c.text})
+		if d.VendorKey != c.want {
+			t.Errorf("%q %q: vendor %q (%s), want %q", c.payer, c.text, d.VendorKey, d.Vendor, c.want)
+		}
+	}
+}
+
+// A short word is a brand only where the name has nothing else, and then
+// at the start of the payer. Each vendor alone, as a word of another's
+// booking would hide what it matches.
+func TestDraftVendorShort(t *testing.T) {
+	for _, c := range []struct {
+		vendor, payer, text string
+		match               bool
+	}{
+		{"Am Markt Bäckerei", "Rewe", "Zahlung am 03.11.", false},
+		{"On Running", "Stripe", "Card payment on 03.11.", false},
+		{"In Time Logistik", "Rewe", "paid in full", false},
+		{"An der Alster Hotel", "Rewe", "Zahlung an Lieferant", false},
+		{"Im Park Restaurant", "Rewe", "Kauf im Markt", false},
+		{"St. Marien Apotheke", "St. Georg Apotheke", "", false},
+		{"RA Müller", "RA Schmidt", "", false},
+		{"La Piazza", "La Boheme", "", false},
+		{"1&1 Telecom GmbH", "Stripe Payments", "Card payment on 03.11.", false},
+		{"1&1 IONOS SE", "Rewe", "Kauf 11 Stück", false},
+		{"A.T.U Auto-Teile-Unger", "Rewe", "Payment at Rewe", false},
+		{"E.ON Energie Deutschland GmbH", "Stripe Payments", "Card payment on 03.11.", false},
+		{"Müller GmbH", "H. Müller", "", true},
+		{"Müller GmbH", "an H. Müller", "", true},
+		{"Hetzner Online GmbH", "Rechnung 5 Hetzner", "", true},
+		{"Telekom", "Rate 2 Telekom", "", true},
+		{"1&1 Telecom GmbH", "1&1 Telecom", "", true},
+		{"E.ON Energie Deutschland GmbH", "E.ON Energie", "", true},
+		{"Obi GmbH", "OBI Markt", "", true},
+		{"Obi GmbH", "Kasse 3 OBI Markt", "", false},
+		{"DM", "DM Filiale 7", "", true},
+		{"Dr. Ott", "Dr. Schmidt Zahnarzt", "", false},
+		{"Dr. Kim", "Dr. Müller", "", false},
+		{"RA Ott", "RA Schmidt", "", false},
+		{"St. Ott", "St. Georg Apotheke", "", false},
+		{"Am See", "Am Markt Bäckerei", "", false},
+		{"La Vie", "La Boheme", "", false},
+		{"Der Bau", "Der Spiegel", "", false},
+		{"The Bay", "The Phone House", "", false},
+		{"www.obi.de", "www.amazon.de", "", false},
+		{"AB Bau", "AB Consulting", "", false},
+		{"Dr. Ott", "Dr. Schmidt", "Rechnung Frau Ott", false},
+		{"RA Ott", "RA Schmidt", "Az. 12/26 Ott gegen Bau", false},
+		{"AB Bau", "AB Consulting", "Beratung Bau", false},
+		{"Am See", "Am Markt Bäckerei", "Filiale am See", false},
+		{"Bau 24", "Bau Max", "Rechnung 24", false},
+		{"Dr. O.", "Dr. Schmidt", "", false},
+		{"Dr. M. K.", "Dr. Schmidt", "", false},
+		{"J. Ott", "Ott Hydromet", "", false},
+		{"Bau 24", "Bau Max Filiale 24", "", false},
+		{"AB Bau", "AB Consulting Bau", "", false},
+		{"Am See", "Am Markt, Seestr. 1 am See", "", false},
+		{"Dr. Ott", "Dr. Schmidt Ott", "", false},
+		{"RA Ott", "RA Schmidt und Ott", "", false},
+		{"Prof. Ott", "Ott Hydromet", "", false},
+		{"Deutsche Bau", "Bau Max", "", false},
+		{"Café Schmidt", "Schmidt Bau", "", false},
+		{"Caféhaus Müller", "Haus Meier", "", false},
+		{"Koç Bau GmbH", "Koç Market", "", false},
+		{"Koç Bau GmbH", "Laden", "Frau Koç", false},
+		{"Şen Bau", "Şen Market", "", false},
+		{"Thé Bonn", "Thé Paris", "", false},
+		{"ООО Ромашка", "ООО Берёза", "", false},
+		{"Prof. Ott", "Prof. Ott Praxis", "", true},
+		{"Dr. Ott", "Dr. Ott Praxis", "", true},
+		{"AB Bau", "AB Bau Weimar", "", true},
+	} {
+		n := &sources.NinjaDataset{Vendors: []sources.NinjaVendor{{Key: "v", Name: c.vendor}}}
+		d := metrics.DraftOf(n, sources.NinjaBankTxn{Payer: c.payer, Description: c.text})
+		if got := d.VendorKey == "v"; got != c.match {
+			t.Errorf("%q on %q %q: match %v, want %v", c.vendor, c.payer, c.text, got, c.match)
+		}
+	}
+}
+
+// Two vendors share a short brand: the one more of whose name stands in
+// the booking wins, in either order; a plain word it lacks does not count.
+func TestDraftVendorSameBrand(t *testing.T) {
+	for _, c := range []struct{ a, b, payer, want string }{
+		{"UPS Deutschland Germany", "UPS Express", "UPS Express Köln", "b"},
+		{"DHL Deutschland GmbH", "DHL Paket GmbH", "DHL Paket Bonn", "b"},
+		{"OBI GmbH Co. Deutschland KG", "OBI Markt", "OBI Markt Bonn", "b"},
+	} {
+		for _, flip := range []bool{false, true} {
+			vendors := []sources.NinjaVendor{{Key: "a", Name: c.a}, {Key: "b", Name: c.b}}
+			if flip {
+				vendors[0], vendors[1] = vendors[1], vendors[0]
+			}
+			d := metrics.DraftOf(&sources.NinjaDataset{Vendors: vendors}, sources.NinjaBankTxn{Payer: c.payer})
+			if d.VendorKey != c.want {
+				t.Errorf("%q, %q on %q (flip %v): %q", c.a, c.b, c.payer, flip, d.Vendor)
+			}
+		}
+	}
+}
