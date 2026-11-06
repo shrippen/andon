@@ -542,7 +542,8 @@ func TestDraftVendor(t *testing.T) {
 		{"Deutsche Bahn", "", "bahn"},
 		{"Paypal *reicheltele", "", "reichelt"},
 		{"Paypal *invoiceninj", "", "ninja"},
-		{"DM DROGERIE SAGT DANKE", "", "dm"},
+		{"DM DROGERIE SAGT DANKE", "", ""}, // a short word with a name beside it is no brand: the model suggests
+		{"DM Drogeriemarkt Weimar", "", "dm"},
 		{"Admiral", "", ""}, // "dm" only as a word
 		{"Stripe Payments", "Card payment on 03.11.", ""},
 		{"E.ON Energie", "", "eon"},
@@ -554,10 +555,50 @@ func TestDraftVendor(t *testing.T) {
 		{"Bechtle Telekommunikation GmbH", "", ""},
 		{"Cafe Kaffeehaus", "Bauhausstraße 11 Weimar", ""},
 		{"Muellerstrasse Apotheke", "", ""},
+		{"VISA *PAYPAL *reicheltele", "", "reichelt"},
+		{"PayPal Europe", "Paypal *reicheltele", "reichelt"},
 	} {
 		d := metrics.DraftOf(n, sources.NinjaBankTxn{Payer: c.payer, Description: c.text})
 		if d.VendorKey != c.want {
 			t.Errorf("%q %q: vendor %q (%s), want %q", c.payer, c.text, d.VendorKey, d.Vendor, c.want)
+		}
+	}
+}
+
+// A short word is a brand only where the name has nothing else, and then
+// at the start of the payer. Each vendor alone, as a word of another's
+// booking would hide what it matches.
+func TestDraftVendorShort(t *testing.T) {
+	for _, c := range []struct {
+		vendor, payer, text string
+		match               bool
+	}{
+		{"Am Markt Bäckerei", "Rewe", "Zahlung am 03.11.", false},
+		{"On Running", "Stripe", "Card payment on 03.11.", false},
+		{"In Time Logistik", "Rewe", "paid in full", false},
+		{"An der Alster Hotel", "Rewe", "Zahlung an Lieferant", false},
+		{"Im Park Restaurant", "Rewe", "Kauf im Markt", false},
+		{"St. Marien Apotheke", "St. Georg Apotheke", "", false},
+		{"RA Müller", "RA Schmidt", "", false},
+		{"La Piazza", "La Boheme", "", false},
+		{"1&1 Telecom GmbH", "Stripe Payments", "Card payment on 03.11.", false},
+		{"1&1 IONOS SE", "Rewe", "Kauf 11 Stück", false},
+		{"A.T.U Auto-Teile-Unger", "Rewe", "Payment at Rewe", false},
+		{"E.ON Energie Deutschland GmbH", "Stripe Payments", "Card payment on 03.11.", false},
+		{"Müller GmbH", "H. Müller", "", true},
+		{"Müller GmbH", "an H. Müller", "", true},
+		{"Hetzner Online GmbH", "Rechnung 5 Hetzner", "", true},
+		{"Telekom", "Rate 2 Telekom", "", true},
+		{"1&1 Telecom GmbH", "1&1 Telecom", "", true},
+		{"E.ON Energie Deutschland GmbH", "E.ON Energie", "", true},
+		{"Obi GmbH", "OBI Markt", "", true},
+		{"Obi GmbH", "Kasse 3 OBI Markt", "", false},
+		{"DM", "DM Filiale 7", "", true},
+	} {
+		n := &sources.NinjaDataset{Vendors: []sources.NinjaVendor{{Key: "v", Name: c.vendor}}}
+		d := metrics.DraftOf(n, sources.NinjaBankTxn{Payer: c.payer, Description: c.text})
+		if got := d.VendorKey == "v"; got != c.match {
+			t.Errorf("%q on %q %q: match %v, want %v", c.vendor, c.payer, c.text, got, c.match)
 		}
 	}
 }
