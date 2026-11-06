@@ -3010,7 +3010,12 @@
       var side = found.closest("aside");
       var none = side && side.querySelector("input[data-part=scan][value=\"\"]");
       var desk = found.closest("[data-desk]");
-      if (!none || side.querySelector("input[data-part=scan]:checked")) {
+      if (!none) {
+        return;
+      }
+      var block = benchBlockOf(desk, side);
+      if (side.querySelector("input[data-part=scan]:checked")) {
+        benchDayBack(desk, block);
         return;
       }
       if (failed) {
@@ -3019,7 +3024,8 @@
       }
       none.checked = true;
       none.dispatchEvent(new Event("change", { bubbles: true }));
-      benchScanDay(benchBlockOf(desk, side), none);
+      benchDayDecided(desk, block);
+      benchScanDay(block, none);
 
       // The draft stops waiting for it, or a later search would undo the user's pick.
       if (desk.andonDraft) {
@@ -3029,23 +3035,33 @@
   });
 
   // benchDayWaits: the bank day only stands in while the draft's pick waits
-  // for its search, so the draft keeps the pick's day; it comes back with it.
+  // for its search, so the draft holds on to the pick's day.
   function benchDayWaits(desk, block, none) {
     var kept = desk.andonDraft;
     var day = block.querySelector("input[name^=day_]");
     var own = block.querySelector("[data-day-kept]");
-    if (!kept || !day || (own && own.value) || kept.pending.indexOf(none.name) < 0 || kept.pending.indexOf(day.name) >= 0) {
+    if (!kept || !day || !kept.vals[day.name] || (own && own.value) || kept.pending.indexOf(none.name) < 0 || kept.held.indexOf(day.name) >= 0) {
       return;
     }
-    kept.pending.push(day.name);
+    kept.held.push(day.name);
   }
 
-  // benchDayDecided: the user's choice ends the wait for the draft's day.
+  // benchDayBack: the pick came back, and its day with it.
+  function benchDayBack(desk, block) {
+    var kept = desk.andonDraft;
+    var day = block.querySelector("input[name^=day_]");
+    if (kept && day && kept.held.indexOf(day.name) >= 0) {
+      day.value = kept.vals[day.name][0];
+      benchDayDecided(desk, block);
+    }
+  }
+
+  // benchDayDecided: the wait for the draft's day is over.
   function benchDayDecided(desk, block) {
     var kept = desk.andonDraft;
     var day = block.querySelector("input[name^=day_]");
     if (kept && day) {
-      kept.pending = kept.pending.filter(function (name) { return name !== day.name; });
+      kept.held = kept.held.filter(function (name) { return name !== day.name; });
     }
   }
 
@@ -3347,10 +3363,11 @@
       }
     });
 
-    // What still waits for its field (a search under way) stays as kept.
+    // What still waits for its field (a search under way) stays as kept;
+    // held: a field showing a stand-in until then (the desk's date).
     var kept = box.andonDraft;
     if (kept) {
-      kept.pending.forEach(function (name) { out[name] = kept.vals[name]; });
+      kept.pending.concat(kept.held).forEach(function (name) { out[name] = kept.vals[name]; });
     }
     return out;
   }
@@ -3475,7 +3492,7 @@
           return;
         }
         var pending = draftPut(box, cases[k]);
-        box.andonDraft = { vals: cases[k], pending: pending };
+        box.andonDraft = { vals: cases[k], pending: pending, held: [] };
         box.dispatchEvent(new CustomEvent("andon-draft", { bubbles: true, detail: { pending: pending } }));
       });
     });

@@ -31,6 +31,8 @@ Before the fix:
   search says it failed, searched again: [''], day 2026-10-24 (want 201, 2026-10-16)
   search got a 502: no reason in the hits
   saved while failed: ['201'], day 2026-10-24 (want 201, 2026-10-16)
+  review while failed: none checked, day 2026-10-16 (want none, 2026-10-24)
+  both searches failed: none checked, day 2026-10-16 (want none, 2026-10-29)
   search lost the network: frame shows a receipt not picked
   take enabled while unsorted
   label after later: '' (want 'Noch unsortiert')
@@ -374,6 +376,53 @@ def failed_day_waits(page):
     return [] if picked == [other] and got == day else [f"saved while failed: {picked or 'none checked'}, day {got} (want {other}, {day})"]
 
 
+def failed_review(page):
+    """Another swap during a failed search leaves the stand-in; the pick's day comes with the pick."""
+    k = SCANNED
+    bank, other, day = fail_then_save(page, k)
+    if not other:
+        return [f"demo search has no scan off the bank day {bank}"]
+    with page.expect_response(lambda r: "/vat/review" in r.url):
+        page.click(f'[data-desk="{k}"] [hx-target="#one-{k}"]')
+    page.wait_for_timeout(SWAP_MS)
+    wrong = []
+    picked, got = desk_state(page, k)
+    if picked or got != bank:
+        wrong.append(f"review while failed: {picked or 'none checked'}, day {got} (want none, {bank})")
+    page.click(f'[data-desk="{k}"] .callout')
+    healthy_reload(page)
+    picked, got = desk_state(page, k)
+    if picked != [other] or got != day:
+        wrong.append(f"after a review while failed: {picked or 'none checked'}, day {got} (want {other}, {day})")
+    return wrong
+
+
+def failed_both(page):
+    """Both searches failing: the other action's swap leaves the shown stand-in."""
+    k = BOTH
+    page.click(f'.bench-entry[data-case="{k}"]')
+    page.click(f'[data-desk="{k}"] [data-set-act=link]')
+    open_scans(page, k)
+    page.fill(f'[name="q_xscan_{k}"]', QUERY)
+    page.click(f'[data-desk="{k}"] aside[data-for=link] [data-scan-search] button')
+    hits = f'#found-xscan-{k} input[type=radio]'
+    page.wait_for_selector(hits, state="attached")
+    page.locator(hits).last.check()
+    page.click(f'[data-desk="{k}"] [data-set-act=create]')
+    bank = page.get_attribute(f'[name="day_{k}"]', "data-bank-day")
+    other = pick_off_bank(page, k, bank)
+    if not other:
+        return [f"demo search has no scan off the bank day {bank}"]
+    page.wait_for_timeout(SAVE_MS)
+    page.route("**/vat/scans*", lambda r: r.fulfill(status=200, content_type="text/html", body=FAILED_HITS))
+    page.reload()
+    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(RESTORE_MS)
+    page.unroute("**/vat/scans*")
+    picked, got = desk_state(page, k)
+    return [] if not picked and got == bank else [f"both searches failed: {picked or 'none checked'}, day {got} (want none, {bank})"]
+
+
 def failed_no_scan(page):
     """"Ohne Beleg" chosen during a failed search stays, with the bank day."""
     k = SCANNED
@@ -552,6 +601,10 @@ def main():
         wrong += scan_gone(page)
         discard(page)
         wrong += failed_day_waits(page)
+        discard(page)
+        wrong += failed_review(page)
+        discard(page)
+        wrong += failed_both(page)
         discard(page)
         wrong += failed_no_scan(page)
         discard(page)
