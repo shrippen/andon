@@ -7526,6 +7526,7 @@ vatcheck:
   doc_smaller: 'Kleiner'
   doc_larger: 'Größer'
   doc_open: 'In neuem Tab öffnen'
+  doc_more: 'Hier die ersten {shown} von {total} Seiten, der Rest im neuen Tab.'
   doc_failed: 'Beleg konnte nicht geladen werden. Im neuen Tab öffnen.'
   scan_failed: 'Belegsuche fehlgeschlagen. Noch einmal suchen.'
   scan_score: 'Treffer'

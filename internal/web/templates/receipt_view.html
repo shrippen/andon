@@ -7,7 +7,7 @@
   <title>{{t "vatcheck.scan_title"}}</title>
   {{template "style" .}}
 </head>
-<body class="doc-reader" data-file="/receipts/preview/{{.ID}}" data-pdfjs="{{asset "vendor/pdfjs/pdf.min.mjs"}}" data-worker="{{asset "vendor/pdfjs/pdf.worker.min.mjs"}}" data-base="/static/vendor/pdfjs/" data-failed="{{t "vatcheck.doc_failed"}}">
+<body class="doc-reader" data-file="/receipts/preview/{{.ID}}" data-pdfjs="{{asset "vendor/pdfjs/pdf.min.mjs"}}" data-worker="{{asset "vendor/pdfjs/pdf.worker.min.mjs"}}" data-base="/static/vendor/pdfjs/" data-failed="{{t "vatcheck.doc_failed"}}" data-more="{{t "vatcheck.doc_more" "shown" "#shown" "total" "#total"}}">
   <div class="doc-reader-bar">
     <button type="button" class="btn btn-outline btn-sm" data-zoom="-1" aria-label="{{t "vatcheck.doc_smaller"}}" title="{{t "vatcheck.doc_smaller"}}">−</button>
     <button type="button" class="btn btn-outline btn-sm" data-zoom="1" aria-label="{{t "vatcheck.doc_larger"}}" title="{{t "vatcheck.doc_larger"}}">+</button>

@@ -35,6 +35,7 @@ Before the fix:
   review while failed: none checked, day 2026-10-16 (want none, 2026-10-24)
   both searches failed: none checked, day 2026-10-16 (want none, 2026-10-29)
   search lost the network: frame shows a receipt not picked
+  marks moved the page: [1433, 1433, 543] (want none)
   take enabled while unsorted
   label after later: '' (want 'Noch unsortiert')
 
@@ -594,11 +595,17 @@ def receipt_marks(page):
     wrong = []
     if not other:
         return [f"demo search has no scan off the bank day {bank}"]
+
+    # The frame's scrolling stays in the frame: a slow receipt must not move the fields.
+    page.evaluate("[window, ...document.querySelectorAll('*')].forEach(e => e.scrollTo && e.scrollTo({ top: 0, behavior: 'instant' }))")
     radio = f'#found-scan-{k} input[value="{other}"]'
     want = (page.get_attribute(radio, "data-amount"), page.get_attribute(radio, "data-day"))
     if want != ("342,00", "2026-10-16"):
         return [f"demo scan {other} changed: {want}, the test's PDF names 342,00 and 2026-10-16"]
     state, marks, painted = marked(page, k)
+    moved = page.evaluate("[window, ...document.querySelectorAll('*')].map(e => e === window ? scrollY : e.scrollTop).filter(Boolean)")
+    if moved:
+        wrong.append(f"marks moved the page: {moved} (want none)")
     if state != "done" or marks < 2 or not painted:
         wrong.append(f"receipt in the frame: state {state}, marks {marks}, painted {painted} (want done, at least 2, True)")
 

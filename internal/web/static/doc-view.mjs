@@ -114,10 +114,20 @@ function markPage(p, res) {
   });
 }
 
+// showMark brings a mark into the frame's view, leaving the desk around
+// the frame where the user is (scrollIntoView would move it too).
+function showMark(mark) {
+  if (!mark) {
+    return;
+  }
+  const at = mark.getBoundingClientRect().top - pages.getBoundingClientRect().top;
+  pages.scrollTop += at - pages.clientHeight / 2;
+}
+
 function markAll() {
   const res = patterns();
   drawn.forEach((p) => markPage(p, res));
-  pages.querySelector(".doc-mark")?.scrollIntoView({ block: "center" });
+  showMark(pages.querySelector(".doc-mark"));
   root.setAttribute("data-marks", String(pages.querySelectorAll(".doc-mark").length));
 }
 
@@ -180,6 +190,12 @@ async function showPdf(data) {
     if (n === 1) {
       root.setAttribute("data-state", "shown"); // the first page counts: the rest may take a while
     }
+  }
+  if (doc.numPages > MAX_PAGES) {
+    const more = document.createElement("p");
+    more.className = "small muted";
+    more.textContent = root.getAttribute("data-more").replace("#shown", MAX_PAGES).replace("#total", doc.numPages);
+    pages.appendChild(more);
   }
   markAll();
   root.setAttribute("data-state", "done");

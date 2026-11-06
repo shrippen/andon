@@ -241,6 +241,19 @@ func TestReceiptView(t *testing.T) {
 			t.Errorf("view lacks %q:\n%s", want, page)
 		}
 	}
+
+	// pdf.js decodes scans in WebAssembly, there and nowhere else.
+	for path, want := range map[string]bool{"/receipts/view/201": true, "/static/vendor/pdfjs/pdf.worker.min.mjs": true, "/vat": false, "/static/andon.js": false} {
+		resp, err := client.Get(srv.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if got := strings.Contains(resp.Header.Get("Content-Security-Policy"), "'wasm-unsafe-eval'"); got != want {
+			t.Errorf("%s: wasm allowed %v, want %v", path, got, want)
+		}
+	}
+
 	for _, path := range []string{"/static/doc-view.mjs", "/static/vendor/pdfjs/pdf.min.mjs"} {
 		resp, err := client.Get(srv.URL + path)
 		if err != nil {

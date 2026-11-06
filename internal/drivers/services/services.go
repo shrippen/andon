@@ -423,6 +423,9 @@ func (a ProxmoxApi) Get(ctx context.Context, path string, params url.Values) (an
 // exceeds httpclient.MaxBody.
 const maxFile = 20 * httpclient.MaxBody
 
+// fileTimeout lets a large scan arrive over a slow link.
+const fileTimeout = 2 * time.Minute
+
 type PaperlessApi struct {
 	URL    string
 	Token  string
@@ -442,7 +445,7 @@ func (a PaperlessApi) Get(ctx context.Context, path string, params url.Values) (
 // thumbnail, with its content type.
 func (a PaperlessApi) Bytes(ctx context.Context, path string) ([]byte, string, error) {
 	resp, err := httpclient.Request(ctx, http.MethodGet, joinURL(a.URL, "api/"+path),
-		httpclient.Options{Headers: map[string]string{"Authorization": "Token " + a.Token}, SkipVerify: !a.Verify})
+		httpclient.Options{Headers: map[string]string{"Authorization": "Token " + a.Token}, SkipVerify: !a.Verify, Timeout: fileTimeout})
 	if err != nil {
 		return nil, "", ApiError{err.Error()}
 	}
