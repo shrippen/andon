@@ -161,16 +161,18 @@ func LearnShares(m *bayes.Model, n *sources.NinjaDataset) bool {
 }
 
 // A share booked with its amount rounded to whole euros is the round share
-// it was reckoned from: 32 € of 63 € is half, 21 € of 100 € stays 21 %.
+// it was reckoned from: 32 € of 63 € is half, 21 € of 100 € stays 21 %, a
+// third of 12 € stays 33 %.
 const (
 	shareTens     = 10.0
+	roundedPoints = 2.0
 	roundedAmount = 0.5 + 1e-9 // float noise: 32 of 63 is exactly half a euro off
 )
 
 // shareLabel is a share of a booking as a label: "50", "33", "whole".
 func shareLabel(share, amount float64) string {
 	round := math.Round(share/shareTens) * shareTens
-	if math.Abs(share-round)*amount/percentWhole > roundedAmount {
+	if off := math.Abs(share - round); off > roundedPoints || off*amount/percentWhole > roundedAmount {
 		round = math.Round(share)
 	}
 	if round >= percentWhole || round <= 0 {

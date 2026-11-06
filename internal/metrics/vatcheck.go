@@ -29,7 +29,6 @@ package metrics
 import (
 	"cmp"
 	"fmt"
-	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -603,8 +602,8 @@ func suggestLast(d *ExpenseDraft, n *sources.NinjaDataset, t sources.NinjaBankTx
 	share := ""
 	if b, ok := txnOf(n, last.TxnKey); ok {
 		s, single := bookedShare(n, last, b)
-		if s = math.Round(s); single && s > 0 && s < percentWhole {
-			share = strconv.FormatFloat(s, 'f', -1, 64)
+		if label := shareLabel(s, b.Amount); single && label != wholeLabel {
+			share = label
 		}
 	}
 	d.Suggest.Share = suggestShare(l, t, sure, share)

@@ -362,6 +362,7 @@ func TestShareStaysBooked(t *testing.T) {
 		{20, 60, "33"}, {40, 60, "67"}, {7.2, 60, "12"}, {58.2, 60, "97"}, {30.6, 60, "51"},
 		{21, 100, "21"}, {49, 100, "49"}, {210, 1000, "21"}, {1, 100, "1"}, {99, 100, "99"},
 		{32, 63, "50"}, {30.4, 60, "50"}, {26, 51.99, "50"},
+		{4, 12, "33"}, {5, 15, "33"}, {2, 8, "25"}, {2.5, 10, "25"}, {9.5, 10, "95"},
 	} {
 		txn := func(key, payer string, amount float64) sources.NinjaBankTxn {
 			return sources.NinjaBankTxn{Key: key, Date: "2026-09-02", Payer: payer, Amount: amount, Debit: true}
@@ -396,5 +397,16 @@ func TestSuggestCategoryNoDate(t *testing.T) {
 		Expenses: []sources.NinjaExpense{{Key: "e1", VendorKey: "v", CategoryKey: "c"}, {Key: "e2", VendorKey: "v", Date: "2026-09-01"}}}
 	if picks := metrics.SuggestCategory(n, n.Expenses[1], metrics.BankLearning{}); len(picks) != 1 {
 		t.Errorf("picks: %+v", picks)
+	}
+}
+
+// The vendor's last expense counts like the model: rounded euros are the round share.
+func TestLastShareRounded(t *testing.T) {
+	n := &sources.NinjaDataset{BankRead: true, Vendors: []sources.NinjaVendor{{Key: "v", Name: "Fernverkehr"}},
+		BankTxns: []sources.NinjaBankTxn{{Key: "t1", Amount: 63, Debit: true}},
+		Expenses: []sources.NinjaExpense{{Key: "e", VendorKey: "v", Date: "2026-09-02", Amount: 32, Gross: true, TxnKey: "t1"}}}
+	d := metrics.DraftWith(n, sources.NinjaBankTxn{Payer: "Fernverkehr", Amount: 63, Debit: true}, metrics.BankLearning{})
+	if len(d.Suggest.Share) != 1 || d.Suggest.Share[0].Value != "50" {
+		t.Errorf("share: %+v", d.Suggest.Share)
 	}
 }
