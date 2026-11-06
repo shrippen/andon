@@ -621,6 +621,11 @@ func TestDraftVendorShort(t *testing.T) {
 		{"Deutsche Bau", "Bau Max", "", false},
 		{"Café Schmidt", "Schmidt Bau", "", false},
 		{"Caféhaus Müller", "Haus Meier", "", false},
+		{"Koç Bau GmbH", "Koç Market", "", false},
+		{"Koç Bau GmbH", "Laden", "Frau Koç", false},
+		{"Şen Bau", "Şen Market", "", false},
+		{"Thé Bonn", "Thé Paris", "", false},
+		{"ООО Ромашка", "ООО Берёза", "", false},
 		{"Prof. Ott", "Prof. Ott Praxis", "", true},
 		{"Dr. Ott", "Dr. Ott Praxis", "", true},
 		{"AB Bau", "AB Bau Weimar", "", true},
@@ -629,6 +634,27 @@ func TestDraftVendorShort(t *testing.T) {
 		d := metrics.DraftOf(n, sources.NinjaBankTxn{Payer: c.payer, Description: c.text})
 		if got := d.VendorKey == "v"; got != c.match {
 			t.Errorf("%q on %q %q: match %v, want %v", c.vendor, c.payer, c.text, got, c.match)
+		}
+	}
+}
+
+// Two vendors share a short brand: the one more of whose name stands in
+// the booking wins, in either order; a plain word it lacks does not count.
+func TestDraftVendorSameBrand(t *testing.T) {
+	for _, c := range []struct{ a, b, payer, want string }{
+		{"UPS Deutschland Germany", "UPS Express", "UPS Express Köln", "b"},
+		{"DHL Deutschland GmbH", "DHL Paket GmbH", "DHL Paket Bonn", "b"},
+		{"OBI GmbH Co. Deutschland KG", "OBI Markt", "OBI Markt Bonn", "b"},
+	} {
+		for _, flip := range []bool{false, true} {
+			vendors := []sources.NinjaVendor{{Key: "a", Name: c.a}, {Key: "b", Name: c.b}}
+			if flip {
+				vendors[0], vendors[1] = vendors[1], vendors[0]
+			}
+			d := metrics.DraftOf(&sources.NinjaDataset{Vendors: vendors}, sources.NinjaBankTxn{Payer: c.payer})
+			if d.VendorKey != c.want {
+				t.Errorf("%q, %q on %q (flip %v): %q", c.a, c.b, c.payer, flip, d.Vendor)
+			}
 		}
 	}
 }

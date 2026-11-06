@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"andon/internal/sources"
 )
@@ -40,9 +41,12 @@ func allWords(s string) []string {
 	})
 }
 
+// loneLetter says whether a word is one character.
+func loneLetter(w string) bool { return utf8.RuneCountInString(w) < minVendorWord }
+
 // vendorWords are the words to compare: no lone letters.
 func vendorWords(s string) []string {
-	return slices.DeleteFunc(allWords(s), func(w string) bool { return len(w) < minVendorWord })
+	return slices.DeleteFunc(allWords(s), loneLetter)
 }
 
 // cardName is the word a card feed cut off, after its last "*":
@@ -80,7 +84,7 @@ func vendorBrand(name string) (brand string, own []string, short bool) {
 		own = append(own, w)
 		switch {
 		case plainWords[w]:
-		case len(w) >= minNameLen && brand == "":
+		case utf8.RuneCountInString(w) >= minNameLen && brand == "":
 			brand = w
 		case shortest == "":
 			shortest = w
@@ -91,7 +95,7 @@ func vendorBrand(name string) (brand string, own []string, short bool) {
 	}
 
 	// Short words alone must be the whole name: "Dr. O." is not "Dr.".
-	if slices.ContainsFunc(allWords(name), func(w string) bool { return len(w) < minVendorWord }) {
+	if slices.ContainsFunc(allWords(name), loneLetter) {
 		return "", own, true
 	}
 	return shortest, own, true
@@ -112,13 +116,7 @@ func vendorScore(name string, b bookingText) int {
 		return len(own)
 	}
 
-	if short {
-		if !opensPayer(b.payer, own) {
-			return 0
-		}
-		return len(own)
-	}
-	if !slices.Contains(b.words, brand) {
+	if short && !opensPayer(b.payer, own) || !short && !slices.Contains(b.words, brand) {
 		return 0
 	}
 	score := 0
