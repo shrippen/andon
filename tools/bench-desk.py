@@ -30,6 +30,7 @@ Before the fix:
   search says it failed: none checked, day 2026-10-16 (want none, 2026-10-24)
   search says it failed, searched again: [''], day 2026-10-24 (want 201, 2026-10-16)
   search got a 502: no reason in the hits
+  saved while failed: ['201'], day 2026-10-24 (want 201, 2026-10-16)
   search lost the network: frame shows a receipt not picked
   take enabled while unsorted
   label after later: '' (want 'Noch unsortiert')
@@ -336,6 +337,68 @@ def failed_search(page, name, answer):
     return wrong
 
 
+def fail_then_save(page, k):
+    """Picks off the bank day, fails the search after a reload; (bank, scan, its day)."""
+    page.click(f'.bench-entry[data-case="{k}"]')
+    bank = page.get_attribute(f'[name="day_{k}"]', "data-bank-day")
+    other = pick_off_bank(page, k, bank)
+    if not other:
+        return bank, None, None
+    day = page.get_attribute(f'#found-scan-{k} input[value="{other}"]', "data-day")
+    page.wait_for_timeout(SAVE_MS)
+    page.route("**/vat/scans*", lambda r: r.fulfill(status=502, body=""))
+    page.reload()
+    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(RESTORE_MS)
+    page.click(f'.bench-entry[data-case="{k}"]')
+    return bank, other, day
+
+
+def healthy_reload(page):
+    page.unroute("**/vat/scans*")
+    page.wait_for_timeout(SAVE_MS)
+    page.reload()
+    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(RESTORE_MS)
+
+
+def failed_day_waits(page):
+    """A save during a failed search keeps the pick's day, not the stand-in."""
+    k = SCANNED
+    bank, other, day = fail_then_save(page, k)
+    if not other:
+        return [f"demo search has no scan off the bank day {bank}"]
+    page.click(f'[data-desk="{k}"] .callout')
+    healthy_reload(page)
+    picked, got = desk_state(page, k)
+    return [] if picked == [other] and got == day else [f"saved while failed: {picked or 'none checked'}, day {got} (want {other}, {day})"]
+
+
+def failed_no_scan(page):
+    """"Ohne Beleg" chosen during a failed search stays, with the bank day."""
+    k = SCANNED
+    bank, other, _ = fail_then_save(page, k)
+    if not other:
+        return [f"demo search has no scan off the bank day {bank}"]
+    open_scans(page, k)
+    page.check(f'[data-desk="{k}"] input[name="scan_{k}"][value=""]')
+    healthy_reload(page)
+    picked, got = desk_state(page, k)
+    return [] if picked == [""] and got == bank else [f"no scan while failed: {picked or 'none checked'}, day {got} (want \"Ohne Beleg\", {bank})"]
+
+
+def failed_set_day(page):
+    """The bank day clicked during a failed search is the user's: it stays."""
+    k = SCANNED
+    bank, other, _ = fail_then_save(page, k)
+    if not other:
+        return [f"demo search has no scan off the bank day {bank}"]
+    page.click(f'[data-suggest-for="day-{k}"]:not([data-scan-src]) button')
+    healthy_reload(page)
+    picked, got = desk_state(page, k)
+    return [] if picked == [other] and got == bank else [f"bank day set while failed: {picked or 'none checked'}, day {got} (want {other}, {bank})"]
+
+
 def hidden_gone(page):
     """A pick gone from the action not shown gives its own date way."""
     k = BOTH
@@ -487,6 +550,12 @@ def main():
         wrong += save_during_search(page)
         discard(page)
         wrong += scan_gone(page)
+        discard(page)
+        wrong += failed_day_waits(page)
+        discard(page)
+        wrong += failed_no_scan(page)
+        discard(page)
+        wrong += failed_set_day(page)
         discard(page)
         wrong += hidden_gone(page)
         discard(page)

@@ -2704,6 +2704,7 @@
       return;
     }
     kept.value = input ? (input.value ? "1" : "") : (src.hasAttribute("data-scan-src") ? "" : "1");
+    benchDayDecided(desk, benchBlock(desk));
   }
 
   // benchScanFill writes what the picked scan says into the receipt column.
@@ -3009,24 +3010,13 @@
       var side = found.closest("aside");
       var none = side && side.querySelector("input[data-part=scan][value=\"\"]");
       var desk = found.closest("[data-desk]");
-      var picked = side && side.querySelector("input[data-part=scan]:checked");
-
-      // Back after a failure: the bank day stood in for the pick's.
-      if (picked) {
-        if (found.andonFailed) {
-          benchScanDay(benchBlockOf(desk, side), picked);
-        }
-        found.andonFailed = false;
-        return;
-      }
-      if (!none) {
+      if (!none || side.querySelector("input[data-part=scan]:checked")) {
         return;
       }
       if (failed) {
         benchScansFailed(found);
         return;
       }
-      found.andonFailed = false;
       none.checked = true;
       none.dispatchEvent(new Event("change", { bubbles: true }));
       benchScanDay(benchBlockOf(desk, side), none);
@@ -3037,6 +3027,27 @@
       }
     });
   });
+
+  // benchDayWaits: the bank day only stands in while the draft's pick waits
+  // for its search, so the draft keeps the pick's day; it comes back with it.
+  function benchDayWaits(desk, block, none) {
+    var kept = desk.andonDraft;
+    var day = block.querySelector("input[name^=day_]");
+    var own = block.querySelector("[data-day-kept]");
+    if (!kept || !day || (own && own.value) || kept.pending.indexOf(none.name) < 0 || kept.pending.indexOf(day.name) >= 0) {
+      return;
+    }
+    kept.pending.push(day.name);
+  }
+
+  // benchDayDecided: the user's choice ends the wait for the draft's day.
+  function benchDayDecided(desk, block) {
+    var kept = desk.andonDraft;
+    var day = block.querySelector("input[name^=day_]");
+    if (kept && day) {
+      kept.pending = kept.pending.filter(function (name) { return name !== day.name; });
+    }
+  }
 
   // A search that failed: nothing is picked, so the desk shows and sends
   // no receipt and the bank day; the fold opens on the reason. The draft
@@ -3049,7 +3060,7 @@
     benchDoc(side, 0);
     benchScanFill(desk, block, none);
     benchScanDay(block, none);
-    found.andonFailed = true;
+    benchDayWaits(desk, block, none);
 
     // Paperless names its error; a lost answer has no text of its own.
     if (!found.querySelector(".error")) {
@@ -3263,6 +3274,7 @@
       // A draft put back holds its own date; only the user's pick moves it.
       if (e.isTrusted) {
         benchScanDay(own, e.target);
+        benchDayDecided(desk, own);
       }
       var num = own.querySelector("input[data-part=number]");
       var was = desk.getAttribute("data-scan-number") || "";
