@@ -7522,6 +7522,7 @@ vatcheck:
   scan_find: 'Search'
   scan_found: 'Scans found'
   scan_none: 'Nothing found.'
+  scan_failed: 'Receipt search failed. Search again.'
   scan_score: 'Score'
   from_booking: 'From the transaction'
   currency: 'Currency'

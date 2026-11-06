@@ -429,7 +429,7 @@
   <input class="input" type="search" name="q_{{$f}}_{{$k}}" placeholder="{{t "vatcheck.scan_search"}}" aria-label="{{t "vatcheck.scan_search"}}">
   <button type="button" class="btn btn-outline btn-sm" hx-get="/vat/scans" hx-vals='{"case": "{{$k}}", "scope": "{{.P.Scope}}", "field": "{{$f}}"}' hx-include="[name='q_{{$f}}_{{$k}}'],[name='keep_{{$f}}_{{$k}}'],[name='vendor_{{$k}}']" hx-target="#found-{{$f}}-{{$k}}">{{t "vatcheck.scan_find"}}</button>
 </div>
-<div class="picks" id="found-{{$f}}-{{$k}}" role="radiogroup" aria-label="{{t "vatcheck.scan_found"}}"></div>{{end}}
+<div class="picks" id="found-{{$f}}-{{$k}}" role="radiogroup" aria-label="{{t "vatcheck.scan_found"}}" data-failed="{{t "vatcheck.scan_failed"}}"></div>{{end}}
 
 {{/* A scan to pick for a new expense: preview, title, day and score. */}}
 {{define "vat_pick"}}{{$s := .S}}
