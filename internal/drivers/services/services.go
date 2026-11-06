@@ -419,6 +419,10 @@ func (a ProxmoxApi) Get(ctx context.Context, path string, params url.Values) (an
 
 // ── Paperless-ngx ──
 
+// maxFile is the largest scan read: a file, unlike an API answer, often
+// exceeds httpclient.MaxBody.
+const maxFile = 20 * httpclient.MaxBody
+
 type PaperlessApi struct {
 	URL    string
 	Token  string
@@ -446,9 +450,12 @@ func (a PaperlessApi) Bytes(ctx context.Context, path string) ([]byte, string, e
 	if resp.StatusCode >= http.StatusBadRequest {
 		return nil, "", ApiError{resp.Status}
 	}
-	body, err := io.ReadAll(io.LimitReader(resp.Body, httpclient.MaxBody))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxFile+1))
 	if err != nil {
 		return nil, "", ApiError{err.Error()}
+	}
+	if len(body) > maxFile {
+		return nil, "", ApiError{"file too large"} // cut off, a PDF no longer opens
 	}
 	return body, resp.Header.Get("Content-Type"), nil
 }
