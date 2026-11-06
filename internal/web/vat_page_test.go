@@ -229,6 +229,30 @@ func TestVATScanPreview(t *testing.T) {
 	}
 }
 
+// The desk's frame shows Andon's reader: the file, pdf.js and the module
+// served, the CSP letting them load.
+func TestReceiptView(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+	page := string(mustGet(t, srv, client, "/receipts/view/201"))
+	for _, want := range []string{`class="doc-reader"`, `data-file="/receipts/preview/201"`, "vendor/pdfjs/pdf.min.mjs", "vendor/pdfjs/pdf.worker.min.mjs", "doc-view.mjs"} {
+		if !strings.Contains(page, want) {
+			t.Errorf("view lacks %q:\n%s", want, page)
+		}
+	}
+	for _, path := range []string{"/static/doc-view.mjs", "/static/vendor/pdfjs/pdf.min.mjs"} {
+		resp, err := client.Get(srv.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK || !strings.HasPrefix(resp.Header.Get("Content-Type"), "text/javascript") {
+			t.Errorf("%s: %d %s", path, resp.StatusCode, resp.Header.Get("Content-Type"))
+		}
+	}
+}
+
 func TestVATScopes(t *testing.T) {
 	srv, client, code := newTestServer(t)
 	setupAdmin(t, srv, client, code)

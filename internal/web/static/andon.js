@@ -2664,13 +2664,31 @@
     });
   }
 
+  // benchDocMarks is what the frame marks on scan id: the values of its
+  // picked radio, as doc-view.mjs reads them from the hash.
+  function benchDocMarks(side, id) {
+    var radio = side.querySelector("input[data-part=scan][value=\"" + CSS.escape(String(id)) + "\"]:checked");
+    if (!radio) {
+      return "";
+    }
+    var q = new URLSearchParams();
+    [["a", "data-amount"], ["d", "data-day"], ["n", "data-number"]].forEach(function (m) {
+      var v = radio.getAttribute(m[1]);
+      if (v) {
+        q.set(m[0], v);
+      }
+    });
+    var s = q.toString();
+    return s ? "#" + s : "";
+  }
+
   // benchDoc shows scan id beside the fields of side, or says there is none.
   function benchDoc(side, id) {
     var frame = side && side.querySelector("[data-doc]");
     if (!frame) {
       return;
     }
-    var url = id ? "/receipts/preview/" + id : "";
+    var url = id ? "/receipts/view/" + id + benchDocMarks(side, id) : "";
     if (url && frame.getAttribute("src") !== url) {
       frame.setAttribute("src", url);
     }
