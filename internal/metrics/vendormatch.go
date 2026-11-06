@@ -3,14 +3,14 @@ package metrics
 import (
 	"slices"
 	"strings"
+	"unicode"
 
 	"andon/internal/sources"
 )
 
 // A booking names a vendor by its brand: the name's first long word that
 // tells it apart. Short words are common in any text ("am", "on", "11",
-// "St."), so a name of short words needs all of them in the payer, the
-// first at its start.
+// "St."), so a name of short words must open the payer, word by word.
 //
 //	"Dr. Müller Steuerberatung"    brand mueller  not "Dr. Schmidt"
 //	"Deutsche Bahn AG"             brand bahn     not "Deutsche Kreditbank"
@@ -36,7 +36,7 @@ var spelledOut = strings.NewReplacer("ä", "ae", "ö", "oe", "ü", "ue", "ß", "
 // allWords are the words of a name or booking, lower case.
 func allWords(s string) []string {
 	return strings.FieldsFunc(spelledOut.Replace(strings.ToLower(s)), func(r rune) bool {
-		return !(r >= 'a' && r <= 'z' || r >= '0' && r <= '9')
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
 	})
 }
 
@@ -112,7 +112,13 @@ func vendorScore(name string, b bookingText) int {
 		return len(own)
 	}
 
-	if !slices.Contains(b.words, brand) || short && !shortInPayer(b.payer, brand, own) {
+	if short {
+		if !opensPayer(b.payer, own) {
+			return 0
+		}
+		return len(own)
+	}
+	if !slices.Contains(b.words, brand) {
 		return 0
 	}
 	score := 0
@@ -124,19 +130,14 @@ func vendorScore(name string, b bookingText) int {
 	return score
 }
 
-// shortInPayer says whether the payer starts with a name of short words
-// and holds the rest of it: "Dr. Ott" is not "Dr. Schmidt", a text may
-// hold any short word.
-func shortInPayer(payer []string, brand string, own []string) bool {
-	if len(payer) == 0 || payer[0] != brand {
-		return false
+// opensPayer says whether the payer starts with a name of short words,
+// its last plain words aside ("OBI GmbH Co. Deutschland KG" is "OBI"):
+// "Dr. Ott" is not "Dr. Schmidt Ott".
+func opensPayer(payer, own []string) bool {
+	for len(own) > 0 && plainWords[own[len(own)-1]] {
+		own = own[:len(own)-1]
 	}
-	for _, w := range own {
-		if !plainWords[w] && !slices.Contains(payer, w) {
-			return false
-		}
-	}
-	return true
+	return len(own) > 0 && len(payer) >= len(own) && slices.Equal(payer[:len(own)], own)
 }
 
 // namesVendor says whether the booking names the vendor.
