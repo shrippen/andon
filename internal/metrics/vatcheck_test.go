@@ -522,6 +522,13 @@ func TestDraftVendor(t *testing.T) {
 		{Key: "reichelt", Name: "Reichelt"},
 		{Key: "ninja", Name: "Invoice Ninja"},
 		{Key: "dm", Name: "DM Drogeriemarkt"},
+		{Key: "eon", Name: "E.ON Energie Deutschland GmbH"},
+		{Key: "drm", Name: "Dr. Müller Steuerberatung"},
+		{Key: "phone", Name: "The Phone House"},
+		{Key: "www", Name: "www.hetzner-domains.com"},
+		{Key: "anker", Name: "Zum Goldenen Anker"},
+		{Key: "tk", Name: "Telekom"},
+		{Key: "bau", Name: "Bauhaus"},
 	}}
 	for _, c := range []struct{ payer, text, want string }{
 		{"netcup GmbH", "Rechnung nc-1", ""},
@@ -537,6 +544,16 @@ func TestDraftVendor(t *testing.T) {
 		{"Paypal *invoiceninj", "", "ninja"},
 		{"DM DROGERIE SAGT DANKE", "", "dm"},
 		{"Admiral", "", ""}, // "dm" only as a word
+		{"Stripe Payments", "Card payment on 03.11.", ""},
+		{"E.ON Energie", "", "eon"},
+		{"Dr. Schmidt Zahnarzt", "Rechnung", ""},
+		{"Müller Steuerberatung", "", "drm"},
+		{"Musterfirma", "Danke für the invoice", ""},
+		{"www.netcup.de", "", ""},
+		{"Gasthof Zum Löwen", "", ""},
+		{"Bechtle Telekommunikation GmbH", "", ""},
+		{"Cafe Kaffeehaus", "Bauhausstraße 11 Weimar", ""},
+		{"Muellerstrasse Apotheke", "", ""},
 	} {
 		d := metrics.DraftOf(n, sources.NinjaBankTxn{Payer: c.payer, Description: c.text})
 		if d.VendorKey != c.want {
