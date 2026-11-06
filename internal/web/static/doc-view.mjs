@@ -15,12 +15,15 @@ const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 4;
 const MAX_PAGES = 30; // a receipt is short; a long file is read in the new tab
 const MIN_NUMBER = 3; // shorter "numbers" are found anywhere
+const SHOWN_POLL_MS = 150; // how long a receipt may stay blank once its frame shows
 
 let zoom = 1;
 let drawn = []; // {box, page, items} per page, for marking again
 let lastWidth = 0;
 let drawLater = false; // the file came while the frame was hidden
 let showLater = false; // likewise, its first mark
+let shownPoll = 0; // looks for the frame showing while something waits for it
+let catchingUp = false; // a look is still drawing
 
 // escaped makes text literal in a pattern.
 function escaped(text) {
@@ -122,6 +125,35 @@ function inView() {
   return pages.clientWidth > 0;
 }
 
+// whenShown does what waited for the frame to show. Nothing tells the
+// frame: Firefox reports no new size, and the desk shows it on many paths.
+// So it looks, only while something waits. Hidden again while drawing,
+// pages wait anew, and the mark waits for them: it needs their heights.
+function whenShown() {
+  if (shownPoll) {
+    return;
+  }
+  shownPoll = setInterval(async () => {
+    if (catchingUp || !inView()) {
+      return;
+    }
+    catchingUp = true;
+    if (drawLater) {
+      drawLater = false;
+      await drawAll();
+    }
+    if (showLater && !drawLater) {
+      showLater = false;
+      showMark(pages.querySelector(".doc-mark"));
+    }
+    catchingUp = false;
+    if (!drawLater && !showLater) {
+      clearInterval(shownPoll);
+      shownPoll = 0;
+    }
+  }, SHOWN_POLL_MS);
+}
+
 // showMark brings a mark into the frame's view, leaving the desk around
 // the frame where the user is (scrollIntoView would move it too).
 function showMark(mark) {
@@ -130,6 +162,7 @@ function showMark(mark) {
   }
   if (!inView()) {
     showLater = true;
+    whenShown();
     return;
   }
   const at = mark.getBoundingClientRect().top - pages.getBoundingClientRect().top;
@@ -166,6 +199,7 @@ function failed() {
 async function drawPage(p) {
   if (!inView()) {
     drawLater = true;
+    whenShown();
     return;
   }
   const room = pages.clientWidth - 2 * parseFloat(getComputedStyle(pages).paddingLeft);
@@ -276,20 +310,5 @@ root.querySelectorAll("[data-zoom]").forEach((btn) => {
 });
 window.addEventListener("hashchange", markAll);
 
-// The desk says when this frame shows again (andon.js benchDocShown):
-// nothing here sees it, as Firefox reports no new size.
-window.addEventListener("message", async (e) => {
-  if (e.origin !== location.origin || e.data !== "doc-shown" || !inView()) {
-    return;
-  }
-  if (drawLater) {
-    drawLater = false;
-    await drawAll();
-  }
-  if (showLater) {
-    showLater = false;
-    showMark(pages.querySelector(".doc-mark"));
-  }
-});
 new ResizeObserver(resized).observe(pages);
 start();

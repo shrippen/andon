@@ -36,7 +36,9 @@ Before the fix:
   both searches failed: none checked, day 2026-10-16 (want none, 2026-10-29)
   search lost the network: frame shows a receipt not picked
   marks moved the page: [1433, 1433, 543] (want none)
-  firefox: receipt arrived hidden: canvas widths [0, 429] (want 2 drawn)
+  firefox: receipt arrived unpicked: canvas widths [] (want 4 drawn)
+  firefox: receipt back while drawing: canvas widths [429, 429] (want 4 drawn)
+  receipt back while drawing: its mark is out of the frame's view
   take enabled while unsorted
   label after later: '' (want 'Noch unsortiert')
 
@@ -59,6 +61,10 @@ FAILED_HITS = '<p class="error small">Paperless</p>'  # vat_found on a fetch err
 VIEW_MS = 15000  # the first load of pdf.js and its worker
 SWAP_MS = 300  # htmx settles the hits
 RESTORE_MS = 1500  # a draft's search back after a reload
+RECEIPT_TEXT = "Rechnung 342,00 EUR vom 16.10.2026"  # the demo scan's amount and day
+DEEP_BLANKS = 3  # pages before the marks: they stand below the frame's fold
+SLOW_PAGE_OPS = 400000  # a page that takes its time to draw
+FLICKER_MS = 50  # shorter than a slow page's drawing
 SAVE_MS = 3000  # andon.js DRAFT_WAIT_MS, the request and a slow disk
 
 
@@ -548,18 +554,19 @@ def hidden_pick(page):
     return [] if got == want else [f"column after a reload: {got!r} (want {want!r})"]
 
 
-def receipt_pdf(text, blank_first=False):
-    """A PDF with text at a known place, as Paperless serves an OCRed scan; blank_first puts an empty page before it."""
+def receipt_pdf(text, blanks=0, ops=0):
+    """A PDF with text at a known place, as Paperless serves an OCRed scan; blanks empty pages before it, each ops paint operations long."""
     content = f"BT /F1 18 Tf 72 700 Td ({text}) Tj ET".encode()
-    kids = b"[6 0 R 3 0 R] /Count 2" if blank_first else b"[3 0 R] /Count 1"
+    filler = b"0 0 1 1 re f\n" * ops
+    kids = [b"%d 0 R" % (7 + n) for n in range(blanks)] + [b"3 0 R"]
     objects = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
-        b"<< /Type /Pages /Kids %s >>" % kids,
+        b"<< /Type /Pages /Kids [%s] /Count %d >>" % (b" ".join(kids), len(kids)),
         b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
         b"<< /Length %d >>\nstream\n%s\nendstream" % (len(content), content),
         b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] >>",
-    ]
+        b"<< /Length %d >>\nstream\n%s\nendstream" % (len(filler), filler),
+    ] + [b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 6 0 R >>"] * blanks
     out, offsets = b"%PDF-1.4\n", []
     for i, o in enumerate(objects, 1):
         offsets.append(len(out))
@@ -591,7 +598,7 @@ def receipt_marks(page):
     """A PDF is drawn in the frame, with the picked scan's amount and day marked, and marks follow the pick."""
     k = SCANNED
     page.route("**/receipts/preview/*", lambda r: r.fulfill(status=200, content_type="application/pdf",
-        body=receipt_pdf("Rechnung 342,00 EUR vom 16.10.2026")))
+        body=receipt_pdf(RECEIPT_TEXT)))
     page.click(f'.bench-entry[data-case="{k}"]')
     bank = page.get_attribute(f'[name="day_{k}"]', "data-bank-day")
     other = pick_off_bank(page, k, bank)
@@ -630,9 +637,8 @@ def receipt_marks(page):
     return wrong
 
 
-def receipt_hidden(page):
-    """A receipt arriving in a hidden frame shows when the desk comes back, its mark in view."""
-    k, other_entry = SCANNED, UNSORTED
+def receipt_held(page, k):
+    """A fresh desk whose frame asked for its file and waits; (requests held, error)."""
     held = []
     page.route("**/receipts/preview/*", lambda r: held.append(r))
 
@@ -643,36 +649,107 @@ def receipt_hidden(page):
     bank = page.get_attribute(f'[name="day_{k}"]', "data-bank-day")
     other = pick_off_bank(page, k, bank)
     if not other:
-        return [f"demo search has no scan off the bank day {bank}"]
+        return held, f"demo search has no scan off the bank day {bank}"
 
-    # Leave once the frame asked for its file.
+    # The scan shown before the pick asks too; only the picked one counts.
     for _ in range(VIEW_MS // SWAP_MS):
-        if held:
-            break
+        if any(r.request.url.endswith(f"/receipts/preview/{other}") for r in held):
+            return held, None
         page.wait_for_timeout(SWAP_MS)
-    if not held:
-        return ["the frame never asked for its file"]
-    page.click(f'.bench-entry[data-case="{other_entry}"]')
-    page.wait_for_timeout(RESTORE_MS)
+    return held, "the frame never asked for its file"
 
-    # Page one holds nothing: the marks stand on page two, below the frame's fold.
-    body = receipt_pdf("Rechnung 342,00 EUR vom 16.10.2026", blank_first=True)
+
+def receipt_send(page, k, held, body):
+    """Lets the file through and waits until the frame is done with it, as far as it can be."""
     for r in held:
         r.fulfill(status=200, content_type="application/pdf", body=body)
     page.unroute("**/receipts/preview/*")
-    page.wait_for_timeout(RESTORE_MS)
-    page.click(f'.bench-entry[data-case="{k}"]')
-    page.wait_for_timeout(RESTORE_MS)
+    reader(page, k).locator("body[data-state=done]").wait_for(state="attached", timeout=VIEW_MS)
 
+
+def receipt_shown(page, k, how, pages):
+    """Waits for all pages drawn; what is wrong with the frame: the page count or a mark out of view."""
     frame = reader(page, k)
-    sizes = frame.locator("canvas").evaluate_all("cs => cs.map(c => c.width)")
+    sizes = []
+    for _ in range(VIEW_MS // SWAP_MS):
+        sizes = frame.locator("canvas").evaluate_all("cs => cs.map(c => c.width)")
+        if len(sizes) == pages and all(sizes):
+            break
+        page.wait_for_timeout(SWAP_MS)
+    page.wait_for_timeout(SWAP_MS)
     seen = frame.locator(".doc-mark").evaluate_all(
         """ms => ms.some(m => { var r = m.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })""")
     wrong = []
-    if len(sizes) != 2 or not all(sizes):
-        wrong.append(f"receipt arrived hidden: canvas widths {sizes} (want 2 drawn)")
+    if len(sizes) != pages or not all(sizes):
+        wrong.append(f"{how}: canvas widths {sizes} (want {pages} drawn)")
     if not seen:
-        wrong.append("receipt arrived hidden: its mark is out of the frame's view")
+        wrong.append(f"{how}: its mark is out of the frame's view")
+    return wrong
+
+
+def receipt_hidden(page):
+    """A receipt arriving while the desk shows another case shows on the way back, its mark in view."""
+    k = SCANNED
+    held, error = receipt_held(page, k)
+    if error:
+        return [error]
+    page.click(f'.bench-entry[data-case="{UNSORTED}"]')
+    page.wait_for_timeout(SWAP_MS)
+
+    # The marks stand on the last page, well below the frame's fold.
+    receipt_send(page, k, held, receipt_pdf(RECEIPT_TEXT, blanks=DEEP_BLANKS))
+    page.click(f'.bench-entry[data-case="{k}"]')
+    return receipt_shown(page, k, "receipt arrived on another desk", DEEP_BLANKS + 1)
+
+
+def receipt_unpicked(page):
+    """A receipt arriving after "no receipt" was picked shows when it is picked again: same src, no new load."""
+    k = SCANNED
+    held, error = receipt_held(page, k)
+    if error:
+        return [error]
+    side = f'[data-desk="{k}"] aside:not([hidden])'
+    chosen = page.get_attribute(f"{side} input[data-part=scan]:checked", "value")
+    page.check(f'{side} input[data-part=scan][value=""]')
+    page.wait_for_timeout(SWAP_MS)
+
+    receipt_send(page, k, held, receipt_pdf(RECEIPT_TEXT, blanks=DEEP_BLANKS))
+    page.check(f'{side} input[data-part=scan][value="{chosen}"]')
+    return receipt_shown(page, k, "receipt arrived unpicked", DEEP_BLANKS + 1)
+
+
+def receipt_flicker(page):
+    """Back, away and back while slow pages draw: every page drawn, the mark in view."""
+    k = SCANNED
+    held, error = receipt_held(page, k)
+    if error:
+        return [error]
+    page.click(f'.bench-entry[data-case="{UNSORTED}"]')
+    page.wait_for_timeout(SWAP_MS)
+
+    receipt_send(page, k, held, receipt_pdf(RECEIPT_TEXT, blanks=DEEP_BLANKS, ops=SLOW_PAGE_OPS))
+    page.evaluate(
+        """async ([k, other, ms]) => {
+          var go = c => document.querySelector(`.bench-entry[data-case="${c}"]`).click();
+          var pause = () => new Promise(r => setTimeout(r, ms));
+          go(k);
+          await pause();
+          go(other);
+          await pause();
+          go(k);
+        }""",
+        [k, UNSORTED, FLICKER_MS],
+    )
+    return receipt_shown(page, k, "receipt back while drawing", DEEP_BLANKS + 1)
+
+
+def hidden_frame(page):
+    """Every way a frame can show again, each from a clean desk."""
+    wrong = []
+    for step in (receipt_hidden, receipt_unpicked, receipt_flicker):
+        wrong += step(page)
+        page.wait_for_timeout(SAVE_MS)
+        discard(page)
     return wrong
 
 
@@ -766,7 +843,7 @@ def main():
 
         page.wait_for_timeout(SAVE_MS)
         discard(page)
-        wrong += receipt_hidden(page)
+        wrong += hidden_frame(page)
         page.wait_for_timeout(SAVE_MS)
         discard(page)
         browser.close()
@@ -779,7 +856,7 @@ def main():
         page.goto(base + "/vat")
         page.wait_for_load_state("networkidle")
         discard(page)
-        wrong += [f"firefox: {w}" for w in receipt_hidden(page)]
+        wrong += [f"firefox: {w}" for w in hidden_frame(page)]
         page.wait_for_timeout(SAVE_MS)
         discard(page)
         browser.close()
