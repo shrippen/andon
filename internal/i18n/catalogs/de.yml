@@ -7523,6 +7523,7 @@ vatcheck:
   scan_find: 'Suchen'
   scan_found: 'Gefundene Belege'
   scan_none: 'Nichts gefunden.'
+  scan_failed: 'Belegsuche fehlgeschlagen. Noch einmal suchen.'
   scan_score: 'Treffer'
   from_booking: 'Aus dem Umsatz'
   currency: 'Währung'
