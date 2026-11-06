@@ -372,14 +372,14 @@
         <label class="field"><span class="field-label">{{t "vatcheck.vendor"}}{{if $d.VendorKey}}<span class="field-origin">{{t "vatcheck.origin_known"}}</span>{{else if $d.Vendor}}<span class="field-origin">{{t "vatcheck.origin_new"}}</span>{{end}}</span>
           <input class="input" name="{{$f}}vendor_{{$k}}" value="{{$d.Vendor}}" list="vat-vendors" data-split-vendor></label>
         <div class="bench-pair">
-          <label class="field"><span class="field-label">{{t "vatcheck.category"}}</span>
-            <select class="select" name="{{$f}}cat_{{$k}}"><option value="">{{t "vatcheck.no_category"}}</option>{{range $p.Ledger.Categories}}<option value="{{.Key}}"{{if eq .Key $d.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>
+          <div class="field"><label class="field-label" for="{{$f}}cat-{{$k}}">{{t "vatcheck.category"}}</label>
+            <select class="select" id="{{$f}}cat-{{$k}}" name="{{$f}}cat_{{$k}}"><option value="">{{t "vatcheck.no_category"}}</option>{{range $p.Ledger.Categories}}<option value="{{.Key}}"{{if eq .Key $d.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select>{{template "suggest" dict "For" (print $f "cat-" $k) "Picks" $d.Suggest.Category}}</div>
           {{if $p.Euer}}<div class="field"><label class="field-label" for="{{$f}}euer-{{$k}}">{{$p.Euer}}</label>
             <select class="select" id="{{$f}}euer-{{$k}}" name="{{$f}}euer_{{$k}}"><option value="">{{t "vatcheck.no_euer" "field" $p.Euer}}</option>{{range $p.EuerLines}}<option value="{{.}}"{{if eq . $d.Euer}} selected{{end}}>{{.}}</option>{{end}}</select>{{template "suggest" dict "For" (print $f "euer-" $k) "Picks" $d.Suggest.Euer}}</div>{{end}}
         </div>
         <div class="bench-pair">
-          <label class="field"><span class="field-label">{{t "vatcheck.tax"}}</span>
-            <select class="select" name="{{$f}}tax_{{$k}}">{{if not $d.TaxKnown}}<option value="" selected>{{t "vatcheck.tax_pick"}}</option>{{end}}<option value="none">{{t "vatcheck.no_tax"}}</option>{{range $p.Ledger.TaxRates}}<option value="{{.Rate}}"{{if and $d.TaxKnown (eq .Rate $d.TaxRate)}} selected{{end}}>{{.Name}} {{num .Rate 0}} %</option>{{end}}</select></label>
+          <div class="field"><label class="field-label" for="{{$f}}tax-{{$k}}">{{t "vatcheck.tax"}}</label>
+            <select class="select" id="{{$f}}tax-{{$k}}" name="{{$f}}tax_{{$k}}">{{if not $d.TaxKnown}}<option value="" selected>{{t "vatcheck.tax_pick"}}</option>{{end}}<option value="none">{{t "vatcheck.no_tax"}}</option>{{range $p.Ledger.TaxRates}}<option value="{{.Rate}}"{{if and $d.TaxKnown (eq .Rate $d.TaxRate)}} selected{{end}}>{{.Name}} {{num .Rate 0}} %</option>{{end}}</select>{{template "suggest" dict "For" (print $f "tax-" $k) "Picks" $d.Suggest.Tax}}</div>
           {{if $p.Number}}<label class="field"><span class="field-label">{{or $p.NumberOf (t "vatcheck.number")}}</span>
             <input class="input" name="{{$f}}num_{{$k}}" value="{{$s.Number}}"></label>{{end}}
         </div>
@@ -399,7 +399,8 @@
   <div class="table-wrap"><table class="compare">
     <thead><tr><th>{{t "vatcheck.col_field"}}</th><th>{{t "vatcheck.col_scan"}}</th><th>{{t "vatcheck.col_suggest"}}</th><th>{{t "vatcheck.col_value"}}</th></tr></thead>
     <tbody>
-    {{if $c.Offers "category"}}<tr data-gap="category"{{if not ($c.Gap "category")}} hidden{{end}}><td>{{t "vatcheck.category"}}{{template "vat_state" dict "Part" "category" "Has" ($c.Has "category")}}</td><td></td><td></td>
+    {{if $c.Offers "category"}}<tr data-gap="category"{{if not ($c.Gap "category")}} hidden{{end}}><td>{{t "vatcheck.category"}}{{template "vat_state" dict "Part" "category" "Has" ($c.Has "category")}}</td><td></td>
+      <td>{{template "suggest" dict "For" (print "xcat-" $k) "Picks" $d.Suggest.Category}}</td>
       <td class="compare-to"><select class="select" id="xcat-{{$k}}" name="xcat_{{$k}}" data-part="category" aria-label="{{t "vatcheck.category"}}"><option value="">{{t "vatcheck.no_category"}}</option>{{range $p.Ledger.Categories}}<option value="{{.Key}}"{{if eq .Key $d.CategoryKey}} selected{{end}}>{{.Name}}</option>{{end}}</select></td></tr>{{end}}
     {{if and $p.Euer ($c.Offers "euer")}}<tr data-gap="euer"{{if not ($c.Gap "euer")}} hidden{{end}}><td>{{$p.Euer}}{{template "vat_state" dict "Part" "euer" "Has" ($c.Has "euer")}}</td><td></td>
       <td>{{template "suggest" dict "For" (print "xeuer-" $k) "Picks" $d.Suggest.Euer}}</td>

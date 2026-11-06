@@ -8047,6 +8047,8 @@ learn:
   purpose_euer: 'EÜR-Zeile'
   purpose_tax: 'Steuersatz neuer Lieferanten'
   purpose_category: 'Kategorie neuer Lieferanten'
+  purpose_share: 'Anteil der Buchung'
+  purpose_note: 'Private Notiz'
   purpose_private: 'Privat oder geschäftlich'
   purpose_vendor: 'Lieferant aus dem Umsatz'
   purpose_kimai_task: 'Kimai-Projekt und -Tätigkeit'

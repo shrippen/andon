@@ -144,7 +144,7 @@ func (b book) splitOf(c *Case, pool []receipts.Candidate, euer metrics.EuerGuess
 		if !fits(sc.Amount, sc.Doc.Day) {
 			continue
 		}
-		p := SplitPart{Scan: sc, Draft: metrics.DraftOf(b.ninja, docTxn(sc.Doc, sc.Amount)), Amount: sc.Amount, Day: sc.Doc.Day,
+		p := SplitPart{Scan: sc, Draft: metrics.DraftWith(b.ninja, docTxn(sc.Doc, sc.Amount), b.learned), Amount: sc.Amount, Day: sc.Doc.Day,
 			Note: strings.TrimSpace(sc.Doc.Title), Order: names(sc.Doc, orders)}
 		p.Draft.Euer, p.Draft.EuerFrom = euer.Guess(euerInput(p.Draft, docTxn(sc.Doc, sc.Amount)))
 		p.Draft.Suggest.Euer = euer.Suggest(euerInput(p.Draft, docTxn(sc.Doc, sc.Amount)))
@@ -182,7 +182,7 @@ func (b book) splitOf(c *Case, pool []receipts.Candidate, euer metrics.EuerGuess
 		}
 	}
 	for len(parts) < maxParts {
-		parts = append(parts, SplitPart{Day: c.Txn.Date})
+		parts = append(parts, SplitPart{Day: c.Txn.Date, Draft: metrics.ExpenseDraft{Suggest: metrics.SuggestPart(b.ninja, c.Txn, b.learned)}})
 	}
 	c.Split = parts
 	if hits > 1 && math.Abs(sum-c.Txn.Amount) <= amountTol && (c.Action == metrics.ActionCreate || c.Action == metrics.ActionNone) {

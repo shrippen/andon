@@ -20,6 +20,8 @@ func init() {
 		metrics.PurposePrivate:  metrics.LearnPrivate,
 		metrics.PurposeCategory: metrics.LearnCategories,
 		metrics.PurposeTax:      metrics.LearnTaxes,
+		metrics.PurposeShare:    metrics.LearnShares,
+		metrics.PurposeNote:     metrics.LearnNotes,
 	} {
 		learn.Register(learn.Purpose{Key: key, Service: enums.ServiceInvoiceNinja, Teach: ninjaTeach(teach)})
 	}
@@ -49,5 +51,7 @@ func bankLearning(d *sql.DB, who *access.Principal, conn *model.Connection, n *s
 		Private:  use(metrics.PurposePrivate, metrics.LearnPrivate),
 		Category: use(metrics.PurposeCategory, metrics.LearnCategories),
 		Tax:      use(metrics.PurposeTax, metrics.LearnTaxes),
+		Share:    use(metrics.PurposeShare, metrics.LearnShares),
+		Note:     use(metrics.PurposeNote, metrics.LearnNotes),
 	}
 }

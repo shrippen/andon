@@ -1,6 +1,7 @@
 package metrics_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -218,5 +219,194 @@ func TestSuggestLastNoShare(t *testing.T) {
 		if len(d.Suggest.Share) != 0 {
 			t.Errorf("%s: suggest %+v", name, d.Suggest.Share)
 		}
+	}
+}
+
+// shareNinja: the phone bill is booked at half with its reckoning, the
+// hoster whole without a note; a third vendor's last expense went half
+// although nothing of its booking is known to the models.
+func shareNinja() *sources.NinjaDataset {
+	txn := func(key, payer string, amount float64) sources.NinjaBankTxn {
+		return sources.NinjaBankTxn{Key: key, Date: "2026-09-02", Payer: payer, Amount: amount, Debit: true}
+	}
+	exp := func(key, vendor, txn string, amount float64, note string) sources.NinjaExpense {
+		return sources.NinjaExpense{Key: key, VendorKey: vendor, Date: "2026-09-02", TxnKey: txn, Amount: amount, Gross: true, PrivateNote: note}
+	}
+	return &sources.NinjaDataset{BankRead: true,
+		Vendors:  []sources.NinjaVendor{{Key: "m", Name: "Funknetz"}, {Key: "h", Name: "Serverhof"}, {Key: "z", Name: "Zeitung"}},
+		BankTxns: []sources.NinjaBankTxn{txn("t1", "Funknetz Mobilfunk", 60), txn("t2", "Funknetz Mobilfunk", 62), txn("t3", "Serverhof Miete", 10), txn("t4", "Serverhof Miete", 12), txn("t5", "Altkunde", 40)},
+		Expenses: []sources.NinjaExpense{exp("e1", "m", "t1", 30, "Nutzung 50/50"), exp("e2", "m", "t2", 31, "Nutzung 50/50"), exp("e3", "h", "t3", 10, ""), exp("e4", "h", "t4", 12, ""), exp("e5", "z", "t5", 20, "Altes Abo")}}
+}
+
+func shareLearning(n *sources.NinjaDataset) metrics.BankLearning {
+	share, note := bayes.New(), bayes.New()
+	metrics.LearnShares(share, n)
+	metrics.LearnNotes(note, n)
+	return metrics.BankLearning{Share: bayes.Use{Model: share, MinP: 0.6}, Note: bayes.Use{Model: note, MinP: 0.6}}
+}
+
+// The models suggest share and note by the booking's words, of a vendor
+// not known too; "whole" and "no note" are never offered.
+func TestLearnedShareNote(t *testing.T) {
+	n := shareNinja()
+	l := shareLearning(n)
+
+	d := metrics.DraftWith(n, sources.NinjaBankTxn{Payer: "Mobilfunk Rechnung", Amount: 70, Debit: true}, l)
+	if len(d.Suggest.Share) == 0 || d.Suggest.Share[0].Value != "50" || d.Suggest.Share[0].Label != "50 %" {
+		t.Errorf("share: %+v", d.Suggest.Share)
+	}
+	if len(d.Suggest.Private) == 0 || d.Suggest.Private[0].Value != "Nutzung 50/50" {
+		t.Errorf("note: %+v", d.Suggest.Private)
+	}
+
+	d = metrics.DraftWith(n, sources.NinjaBankTxn{Payer: "Serverhof Miete", Amount: 11, Debit: true}, l)
+	if d.Suggest.Share != nil || d.Suggest.Private != nil {
+		t.Errorf("a whole booking got %+v and %+v", d.Suggest.Share, d.Suggest.Private)
+	}
+}
+
+// While the models know nothing of the booking, the vendor's last expense
+// speaks; when they have answered "whole", it does not.
+func TestLastStandsIn(t *testing.T) {
+	n := shareNinja()
+	l := shareLearning(n)
+
+	d := metrics.DraftWith(n, sources.NinjaBankTxn{Payer: "Zeitung", Amount: 40, Debit: true}, l)
+	if len(d.Suggest.Share) != 1 || d.Suggest.Share[0].Value != "50" || len(d.Suggest.Private) != 1 || d.Suggest.Private[0].Value != "Altes Abo" {
+		t.Errorf("standing in: %+v", d.Suggest)
+	}
+
+	d = metrics.DraftWith(n, sources.NinjaBankTxn{Payer: "Serverhof Miete", Amount: 11, Debit: true}, l)
+	if d.Suggest.Share != nil {
+		t.Errorf("model said whole: %+v", d.Suggest.Share)
+	}
+}
+
+// A note no expense holds any more is not offered: the model keeps its
+// hash only. No note text reaches the stored model.
+func TestNoteGoneNotOffered(t *testing.T) {
+	n := shareNinja()
+	l := shareLearning(n)
+	raw, err := l.Note.Model.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(raw), "Nutzung") {
+		t.Fatalf("model stores the note: %s", raw)
+	}
+
+	for i := range n.Expenses {
+		n.Expenses[i].PrivateNote = ""
+	}
+	d := metrics.DraftWith(n, sources.NinjaBankTxn{Payer: "Mobilfunk Rechnung", Amount: 70, Debit: true}, l)
+	if d.Suggest.Private != nil {
+		t.Errorf("gone note offered: %+v", d.Suggest.Private)
+	}
+}
+
+// A split's part teaches no share; an unlinked expense is forgotten.
+func TestLearnSharesParts(t *testing.T) {
+	n := shareNinja()
+	m := bayes.New()
+	metrics.LearnShares(m, n)
+	before := m.Stats().Examples
+
+	n.Expenses = append(n.Expenses, sources.NinjaExpense{Key: "e6", TxnKey: "t1", Amount: 29, Gross: true})
+	metrics.LearnShares(m, n)
+	if got := m.Stats().Examples; got != before-1 {
+		t.Errorf("a split's parts stayed: %d examples, had %d", got, before)
+	}
+}
+
+// An expense lacking its category gets the model's by its booking, else
+// the vendor's last one.
+func TestSuggestCategory(t *testing.T) {
+	n := learnedNinja()
+	m := bayes.New()
+	metrics.LearnCategories(m, n)
+	l := metrics.BankLearning{Category: bayes.Use{Model: m, MinP: 0.6}}
+
+	picks := metrics.SuggestCategory(n, sources.NinjaExpense{Key: "x", TxnKey: "o1"}, l)
+	if len(picks) == 0 || picks[0].Value != "c1" {
+		t.Errorf("by the booking: %+v", picks)
+	}
+	picks = metrics.SuggestCategory(n, sources.NinjaExpense{Key: "x", VendorKey: "v2"}, metrics.BankLearning{})
+	if len(picks) != 1 || picks[0].Value != "c2" {
+		t.Errorf("by the vendor's last: %+v", picks)
+	}
+	if picks := metrics.SuggestCategory(n, sources.NinjaExpense{Key: "x"}, metrics.BankLearning{}); picks != nil {
+		t.Errorf("from nothing: %+v", picks)
+	}
+}
+
+// A split's blank part takes category and tax suggestions from the booking,
+// also where its vendor is known and would fill them on a whole expense.
+func TestSuggestPart(t *testing.T) {
+	n := learnedNinja()
+	cat := bayes.New()
+	metrics.LearnCategories(cat, n)
+	s := metrics.SuggestPart(n, sources.NinjaBankTxn{Payer: "AMZN Mktp DE*QQ11WW", Description: "Amazon Marketplace", Amount: 24.99, Debit: true},
+		metrics.BankLearning{Category: bayes.Use{Model: cat, MinP: 0.6}})
+	if len(s.Category) == 0 || s.Category[0].Value != "c1" {
+		t.Errorf("part: %+v", s)
+	}
+}
+
+// A share stays what was booked. Only a whole-euro rounding of a round
+// share counts as it: 32 € of 63 € is half, 21 € of 100 € is not a fifth.
+func TestShareStaysBooked(t *testing.T) {
+	for _, c := range []struct {
+		booked, of float64
+		want       string
+	}{
+		{20, 60, "33"}, {40, 60, "67"}, {7.2, 60, "12"}, {58.2, 60, "97"}, {30.6, 60, "51"},
+		{21, 100, "21"}, {49, 100, "49"}, {210, 1000, "21"}, {1, 100, "1"}, {99, 100, "99"},
+		{32, 63, "50"}, {30.4, 60, "50"}, {26, 51.99, "50"},
+		{4, 12, "33"}, {5, 15, "33"}, {2, 8, "25"}, {2.5, 10, "25"}, {9.5, 10, "95"},
+	} {
+		txn := func(key, payer string, amount float64) sources.NinjaBankTxn {
+			return sources.NinjaBankTxn{Key: key, Date: "2026-09-02", Payer: payer, Amount: amount, Debit: true}
+		}
+		exp := func(key, txn string, amount float64) sources.NinjaExpense {
+			return sources.NinjaExpense{Key: key, Date: "2026-09-02", TxnKey: txn, Amount: amount, Gross: true}
+		}
+		n := &sources.NinjaDataset{BankRead: true,
+			BankTxns: []sources.NinjaBankTxn{txn("t1", "Funknetz Mobilfunk", c.of), txn("t2", "Funknetz Mobilfunk", c.of), txn("t3", "Serverhof", 10), txn("t4", "Serverhof", 10)},
+			Expenses: []sources.NinjaExpense{exp("e1", "t1", c.booked), exp("e2", "t2", c.booked), exp("e3", "t3", 10), exp("e4", "t4", 10)}}
+		d := metrics.DraftWith(n, txn("o", "Funknetz Mobilfunk", c.of), shareLearning(n))
+		if len(d.Suggest.Share) != 1 || d.Suggest.Share[0].Value != c.want {
+			t.Errorf("booked %v of %v: %+v, want %s", c.booked, c.of, d.Suggest.Share, c.want)
+		}
+	}
+}
+
+// The expense filled is often its vendor's newest: the vendor's last
+// category is the newest one that has one.
+func TestSuggestCategorySelf(t *testing.T) {
+	n := &sources.NinjaDataset{Categories: []sources.NinjaCategory{{Key: "c", Name: "Telefon"}},
+		Expenses: []sources.NinjaExpense{{Key: "e1", VendorKey: "v", Date: "2026-08-01", CategoryKey: "c"}, {Key: "e2", VendorKey: "v", Date: "2026-09-01"}}}
+	picks := metrics.SuggestCategory(n, n.Expenses[1], metrics.BankLearning{})
+	if len(picks) != 1 || picks[0].Value != "c" {
+		t.Errorf("picks: %+v", picks)
+	}
+}
+
+// An expense without a date still has a category to offer.
+func TestSuggestCategoryNoDate(t *testing.T) {
+	n := &sources.NinjaDataset{Categories: []sources.NinjaCategory{{Key: "c", Name: "Telefon"}},
+		Expenses: []sources.NinjaExpense{{Key: "e1", VendorKey: "v", CategoryKey: "c"}, {Key: "e2", VendorKey: "v", Date: "2026-09-01"}}}
+	if picks := metrics.SuggestCategory(n, n.Expenses[1], metrics.BankLearning{}); len(picks) != 1 {
+		t.Errorf("picks: %+v", picks)
+	}
+}
+
+// The vendor's last expense counts like the model: rounded euros are the round share.
+func TestLastShareRounded(t *testing.T) {
+	n := &sources.NinjaDataset{BankRead: true, Vendors: []sources.NinjaVendor{{Key: "v", Name: "Fernverkehr"}},
+		BankTxns: []sources.NinjaBankTxn{{Key: "t1", Amount: 63, Debit: true}},
+		Expenses: []sources.NinjaExpense{{Key: "e", VendorKey: "v", Date: "2026-09-02", Amount: 32, Gross: true, TxnKey: "t1"}}}
+	d := metrics.DraftWith(n, sources.NinjaBankTxn{Payer: "Fernverkehr", Amount: 63, Debit: true}, metrics.BankLearning{})
+	if len(d.Suggest.Share) != 1 || d.Suggest.Share[0].Value != "50" {
+		t.Errorf("share: %+v", d.Suggest.Share)
 	}
 }
