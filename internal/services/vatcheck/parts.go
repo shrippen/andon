@@ -1,7 +1,9 @@
 package vatcheck
 
 import (
+	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 
 	"andon/internal/metrics"
@@ -338,6 +340,29 @@ func (c Case) ScanOf() *receipts.Candidate {
 		return nil
 	}
 	return &c.Scans[0]
+}
+
+// DocMarks is what the frame marks on the proposed scan: the hash
+// doc-view.mjs reads. A pick on the page sets it anew (andon.js benchDocMarks).
+func (c Case) DocMarks() string {
+	sc := c.ScanOf()
+	if sc == nil {
+		return ""
+	}
+	q := url.Values{}
+	if sc.Amount != 0 {
+		q.Set("a", strconv.FormatFloat(sc.Amount, 'f', 2, 64))
+	}
+	if sc.Doc.Day != "" {
+		q.Set("d", sc.Doc.Day)
+	}
+	if sc.Number != "" {
+		q.Set("n", sc.Number)
+	}
+	if len(q) == 0 {
+		return ""
+	}
+	return "#" + q.Encode()
 }
 
 // Tally counts the period's transactions by where they stand, for the

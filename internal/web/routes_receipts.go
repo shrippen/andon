@@ -9,7 +9,8 @@ package web
 //	GET  /receipts/expenses      manual expense search for one scan (htmx)
 //	GET  /receipts/new-expense   a new expense, filled from a scan (htmx)
 //	GET  /receipts/thumb/{id}    a scan's thumbnail, through Andon (CSP)
-//	GET  /receipts/preview/{id}  a scan to read, in a frame on the VAT desk
+//	GET  /receipts/preview/{id}  a scan's file
+//	GET  /receipts/view/{id}     a scan to read, in a frame on the VAT desk (doc-view.mjs)
 //	POST /receipts/review        every link or new expense, spelled out to confirm
 //	POST /receipts/apply         writes the confirmed picks
 //	POST /receipts/link          undo of an unlink, written at once
@@ -130,6 +131,7 @@ func (d Deps) registerReceiptRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /receipts/apply", d.authed(d.handleReceiptApply))
 	mux.HandleFunc("GET /receipts/thumb/{id}", d.authed(d.handleReceiptThumb))
 	mux.HandleFunc("GET /receipts/preview/{id}", d.authed(d.handleReceiptPreview))
+	mux.HandleFunc("GET /receipts/view/{id}", d.authed(d.handleReceiptView))
 	mux.HandleFunc("POST /receipts/link", d.authed(d.handleReceiptLink))
 	mux.HandleFunc("POST /receipts/unlink", d.authed(d.handleReceiptUnlink))
 	mux.HandleFunc("POST /receipts/ignore", d.authed(d.handleReceiptIgnore))
@@ -370,9 +372,20 @@ func dateOrEmpty(v string) string {
 // thumbCache lets the browser keep thumbnails for a while.
 const thumbCache = "private, max-age=300"
 
-// handleReceiptPreview answers a scan for the desk's frame: a PDF or an
-// image only. An image runs nothing in the frame (sandbox, which Chrome's
-// PDF viewer does not bear).
+// handleReceiptView is the page the desk's frame shows: it reads the file
+// from handleReceiptPreview and draws it itself, to mark what the fields hold.
+func (d Deps) handleReceiptView(w http.ResponseWriter, r *http.Request, ctx Ctx) {
+	id, err := pathID(r, "id")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	_ = d.Page(w, ctx, "receipt_view", http.StatusOK, map[string]any{"Partial": true, "ID": id})
+}
+
+// handleReceiptPreview answers a scan's file: a PDF or an image only; the
+// new tab opens it too. An image runs nothing there (sandbox, which
+// Chrome's PDF viewer does not bear).
 func (d Deps) handleReceiptPreview(w http.ResponseWriter, r *http.Request, ctx Ctx) {
 	id, err := pathID(r, "id")
 	if err != nil {

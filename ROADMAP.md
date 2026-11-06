@@ -118,6 +118,7 @@ Das Projekt ist vollständig von Python auf **Go** umgestellt (Zielplattform: Ra
 | HTTP | eigener Client mit Egress-Schutz beim Verbindungsaufbau (`internal/drivers/httpclient`) | Timeouts, geteilte Verbindungen, keine Umgehung über Weiterleitungen |
 | Zeitplan | eigener Scheduler (`internal/services/scheduler`) | ein Ticker je Job, Fehler und Panics isoliert |
 | Editor | SortableJS und CodeMirror 5 (vorgebaut, im Repo) | Drag & Drop ohne Framework und ohne Build-Kette |
+| Belege auf `/vat` | pdf.js (vorgebaut, im Repo, `vendor/pdfjs`) | Der PDF-Viewer des Browsers kann nichts markieren und unterscheidet sich je Browser |
 | Diagramme | SVG aus den Templates, Farben aus den Theme-Tokens | keine Build-Kette, kein Diagramm-Paket |
 | KI (optional) | `anthropic-sdk-go` | Wochenzusammenfassung, „Was tun?“, Rechnungen in Mails lesen |
 

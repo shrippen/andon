@@ -38,10 +38,22 @@ func (d Deps) csp(path string) string {
 	if origin := system.OriginOf(system.MapSource(d.DB)); origin != "" {
 		connect += " " + origin + " " + mapAssets
 	}
-	return "default-src 'self'; script-src 'self'; style-src " + styles + "; " +
+	// The receipt reader's pdf.js decodes scans in WebAssembly; it allows
+	// compiling Wasm, not eval, and only where pdf.js runs.
+	scripts := "'self'"
+	if strings.HasPrefix(path, readerPrefix) || strings.HasPrefix(path, pdfjsPrefix) {
+		scripts += " 'wasm-unsafe-eval'"
+	}
+	return "default-src 'self'; script-src " + scripts + "; style-src " + styles + "; " +
 		"img-src 'self' data:; font-src 'self'; connect-src " + connect + "; object-src 'none'; " +
 		"frame-src " + frames + "; frame-ancestors " + ancestors + "; base-uri 'self'; form-action 'self'"
 }
+
+// Where pdf.js runs: the receipt's page and its worker.
+const (
+	readerPrefix = "/receipts/view/"
+	pdfjsPrefix  = "/static/vendor/pdfjs/"
+)
 
 // mapAssets serves the map's glyphs and sprites.
 const mapAssets = "https://protomaps.github.io"

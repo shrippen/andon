@@ -463,7 +463,7 @@ func PaperlessFile(ctx context.Context, sctx Ctx, id int64) ([]byte, string, err
 	if err != nil {
 		return nil, "", err
 	}
-	body, kind, err := api.Bytes(ctx, "documents/"+strconv.FormatInt(id, 10)+"/download/")
+	body, kind, err := api.File(ctx, "documents/"+strconv.FormatInt(id, 10)+"/download/")
 	if err != nil {
 		return nil, "", fetchError(err)
 	}

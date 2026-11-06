@@ -1,0 +1,19 @@
+{{/* A receipt to read in a frame of the VAT desk: pages drawn and marked
+     by doc-view.mjs; the hash says what to mark. */}}
+{{define "receipt_view"}}<!doctype html>
+<html lang="{{.Ctx.Locale}}">
+<head>
+  <meta charset="utf-8">
+  <title>{{t "vatcheck.scan_title"}}</title>
+  {{template "style" .}}
+</head>
+<body class="doc-reader" data-file="/receipts/preview/{{.ID}}" data-pdfjs="{{asset "vendor/pdfjs/pdf.min.mjs"}}" data-worker="{{asset "vendor/pdfjs/pdf.worker.min.mjs"}}" data-base="/static/vendor/pdfjs/" data-failed="{{t "vatcheck.doc_failed"}}" data-more="{{t "vatcheck.doc_more" "shown" "#shown" "total" "#total"}}">
+  <div class="doc-reader-bar">
+    <button type="button" class="btn btn-outline btn-sm" data-zoom="-1" aria-label="{{t "vatcheck.doc_smaller"}}" title="{{t "vatcheck.doc_smaller"}}">−</button>
+    <button type="button" class="btn btn-outline btn-sm" data-zoom="1" aria-label="{{t "vatcheck.doc_larger"}}" title="{{t "vatcheck.doc_larger"}}">+</button>
+    <a class="btn btn-quiet btn-sm" href="/receipts/preview/{{.ID}}" target="_blank" rel="noopener">{{t "vatcheck.doc_open"}}</a>
+  </div>
+  <div class="doc-pages" data-pages></div>
+  <script type="module" src="{{asset "doc-view.mjs"}}"></script>
+</body>
+</html>{{end}}

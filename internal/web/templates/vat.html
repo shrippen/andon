@@ -263,7 +263,7 @@
 {{define "vat_doc"}}{{$c := .C}}{{$doc := $c.ScanDoc}}
 <div class="h-label">{{t "vatcheck.scan_title"}}</div>
 {{if not .Fixed}}{{if .Pick}}<details class="fold" data-gap="scan"{{if and (eq .Field "xscan") (not ($c.Gap "scan"))}} hidden{{end}}{{if not $doc}} open{{end}}><summary><span>{{t "vatcheck.scan_others"}}</span><span class="count">{{len $c.Scans}}</span></summary><div class="body">{{template "vat_scans" dict "C" $c "P" .P "Field" .Field}}</div></details>{{end}}{{end}}
-<iframe class="doc-view" data-doc title="{{t "vatcheck.scan_title"}}" loading="lazy" referrerpolicy="no-referrer"{{if $doc}} src="/receipts/preview/{{$doc}}"{{else}} hidden{{end}}></iframe>
+<iframe class="doc-view" data-doc title="{{t "vatcheck.scan_title"}}" loading="lazy" referrerpolicy="no-referrer"{{if $doc}} src="/receipts/view/{{$doc}}{{$c.DocMarks}}"{{else}} hidden{{end}}></iframe>
 <p class="small muted" data-doc-none{{if $doc}} hidden{{end}}>{{t "vatcheck.scan_none_yet"}}</p>
 {{if .Fixed}}<div class="picks">{{range $c.Scans}}{{template "vat_pick" dict "S" . "K" $c.Txn.Key "Field" "scan" "Checked" true}}{{end}}</div>{{end}}{{end}}
 
