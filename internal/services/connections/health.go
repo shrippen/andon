@@ -218,16 +218,12 @@ func Strips(d *sql.DB, who *access.Principal, days int, now time.Time) ([]Strip,
 		if err != nil {
 			return err
 		}
-		healths, err := data.HealthAll(tx, since, now.Format(time.DateOnly))
-		if err != nil {
-			return err
-		}
+		// Without health or tiles a strip still shows its days, as before.
+		healths, _ := data.HealthAll(tx, since, now.Format(time.DateOnly))
 		tiles := map[int64]map[int64]int{} // space → connection → widgets
 		for _, c := range list {
-			if tiles[c.SpaceID] == nil {
-				if tiles[c.SpaceID], err = tilesOf(tx, c.SpaceID); err != nil {
-					return err
-				}
+			if _, ok := tiles[c.SpaceID]; !ok {
+				tiles[c.SpaceID], _ = tilesOf(tx, c.SpaceID)
 			}
 			out = append(out, stripOf(c, first, days, byConn[c.ID], healths[c.ID], tiles[c.SpaceID][c.ID]))
 		}

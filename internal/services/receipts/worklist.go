@@ -297,8 +297,8 @@ func PairOf(d *sql.DB, who *access.Principal, ninjaID int64) (*Pair, error) {
 	return &Pair{p: p, d: d, who: who}, nil
 }
 
-// ScanSlot is the custom field holding an expense's scan, 0 without a
-// pair (ScanSlotOf).
+// ScanSlot is the custom field of the pair's Invoice Ninja that holds an
+// expense's scan, 0 without a pair: then the VAT check offers no scans.
 func (x *Pair) ScanSlot() int {
 	if x == nil {
 		return 0
