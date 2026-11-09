@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 )
 
 // TestBenchDraft: a case kept by the VAT page comes back on its next
@@ -22,7 +23,10 @@ func TestBenchDraft(t *testing.T) {
 			"service": {service}, "name": {service}, "url": {"demo://" + service}, "mode": {"shared"}, "tls": {"verify"}})
 	}
 
-	page := string(mustGet(t, srv, client, "/vat"))
+	// The month of demo-b-studio (8 days ago): /vat alone shows last
+	// month until the 10th, without the case on the 9th and 10th.
+	vat := "/vat?span=" + time.Now().UTC().AddDate(0, 0, -8).Format("2006-01")
+	page := string(mustGet(t, srv, client, vat))
 	m := regexp.MustCompile(`data-draft-place="([^"]*)"`).FindStringSubmatch(page)
 	if m == nil || !strings.Contains(page, `data-draft-case="demo-b-studio"`) {
 		t.Fatalf("page lacks the draft's hooks:\n%s", page)
@@ -53,7 +57,7 @@ func TestBenchDraft(t *testing.T) {
 		}
 	}
 
-	page = html.UnescapeString(string(mustGet(t, srv, client, "/vat")))
+	page = html.UnescapeString(string(mustGet(t, srv, client, vat)))
 	for _, want := range []string{`"vendor_demo-b-studio":["Lichtwerk"]`, "Zwischenstand geladen: 1 Fälle"} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("page lacks %q:\n%s", want, page)
@@ -64,7 +68,7 @@ func TestBenchDraft(t *testing.T) {
 	if loc := resp.Header.Get("Location"); resp.StatusCode != http.StatusSeeOther || !strings.Contains(loc, "/vat?note=workbench.draft_dropped") {
 		t.Fatalf("drop: %d %s", resp.StatusCode, loc)
 	}
-	if page := string(mustGet(t, srv, client, "/vat")); strings.Contains(page, "Lichtwerk") {
+	if page := string(mustGet(t, srv, client, vat)); strings.Contains(page, "Lichtwerk") {
 		t.Fatal("dropped draft back")
 	}
 }

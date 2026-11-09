@@ -753,24 +753,31 @@ func TestTakenScanDropsDay(t *testing.T) {
 	ctx := context.Background()
 	today := time.Now().UTC()
 
-	var first, second *vatcheck.Case
+	// New expenses of all three months: the one with a scan may come in
+	// an older month than the other (on 9 November: October's).
+	var created []*vatcheck.Case
 	for _, s := range metrics.VATSpans(today, "monthly", 3) {
 		p, err := vatcheck.Open(ctx, d, who, scopeOf(conn), s.Key, today)
 		if err != nil {
 			t.Fatalf("open %s: %v", s.Key, err)
 		}
 		for i := range p.Cases {
-			c := &p.Cases[i]
-			if c.Action != metrics.ActionCreate {
-				continue
+			if p.Cases[i].Action == metrics.ActionCreate {
+				created = append(created, &p.Cases[i])
 			}
-			if first == nil && c.Scan() != 0 {
-				first = c
-				continue
-			}
-			if first != nil && second == nil && c.Txn.Date != first.ScanDay() {
-				second = c
-			}
+		}
+	}
+	var first, second *vatcheck.Case
+	for _, c := range created {
+		if c.Scan() != 0 {
+			first = c
+			break
+		}
+	}
+	for _, c := range created {
+		if first != nil && c != first && c.Txn.Date != first.ScanDay() {
+			second = c
+			break
 		}
 	}
 	if first == nil || second == nil {
