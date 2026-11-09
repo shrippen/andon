@@ -23,9 +23,11 @@ const settle = 5 * time.Second
 // returned, e.g. to show a listing costs the same few queries for 1 or
 // 40 connections.
 type Record struct {
-	mu    sync.Mutex
-	stmts []string
-	rows  int
+	mu       sync.Mutex
+	stmts    []string
+	rows     int
+	prepared map[string]map[*sqlite3.Stmt]bool // SQL → statements that ran it
+	compiles int
 }
 
 // Statements are the SQL texts run, in order.
@@ -42,14 +44,47 @@ func (r *Record) Rows() int {
 	return r.rows
 }
 
-func (r *Record) add(evt sqlite3.TraceEvent, _, sql any) error {
+// Prepared counts the distinct prepared statements that ran query: 1
+// when every run reused the first.
+func (r *Record) Prepared(query string) int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return len(r.prepared[query])
+}
+
+// Compiles counts the SELECTs SQLite compiled, again after an expiry
+// too: 1 for a query run thrice from a kept statement.
+func (r *Record) Compiles() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.compiles
+}
+
+// authorize counts compiled SELECTs; SQLite asks it while compiling.
+func (r *Record) authorize(action sqlite3.AuthorizerActionCode, _, _, _, _ string) sqlite3.AuthorizerReturnCode {
+	if action == sqlite3.AUTH_SELECT {
+		r.mu.Lock()
+		r.compiles++
+		r.mu.Unlock()
+	}
+	return sqlite3.AUTH_OK
+}
+
+func (r *Record) add(evt sqlite3.TraceEvent, stmt, sql any) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if evt == sqlite3.TRACE_ROW {
 		r.rows++
 		return nil
 	}
-	r.stmts = append(r.stmts, fmt.Sprint(sql))
+	text := fmt.Sprint(sql)
+	r.stmts = append(r.stmts, text)
+	if s, ok := stmt.(*sqlite3.Stmt); ok {
+		if r.prepared[text] == nil {
+			r.prepared[text] = map[*sqlite3.Stmt]bool{}
+		}
+		r.prepared[text][s] = true
+	}
 	return nil
 }
 
@@ -72,9 +107,13 @@ func Trace(t testing.TB, d *sql.DB) *Record {
 	}
 	defer c.Close()
 
-	r := &Record{}
+	r := &Record{prepared: map[string]map[*sqlite3.Stmt]bool{}}
 	err = c.Raw(func(dc any) error {
-		return dc.(interface{ Raw() *sqlite3.Conn }).Raw().Trace(sqlite3.TRACE_STMT|sqlite3.TRACE_ROW, r.add)
+		raw := dc.(interface{ Raw() *sqlite3.Conn }).Raw()
+		if err := raw.SetAuthorizer(r.authorize); err != nil {
+			return err
+		}
+		return raw.Trace(sqlite3.TRACE_STMT|sqlite3.TRACE_ROW, r.add)
 	})
 	if err != nil {
 		t.Fatalf("trace: %v", err)

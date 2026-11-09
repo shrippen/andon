@@ -34,8 +34,9 @@ func WithTx(d *sql.DB, fn func(*sql.Tx) error) error {
 	return tx.Commit()
 }
 
-// readOnly begins a deferred, query-only transaction: it never takes the
-// write lock, so it runs next to a writer (WAL).
+// readOnly begins a deferred, read-only transaction (writes are refused
+// when prepared, stmtcache.go): it never takes the write lock, so it runs
+// next to a writer (WAL).
 var readOnly = &sql.TxOptions{ReadOnly: true}
 
 // WithRead runs fn on one consistent read-only snapshot; any write fails.

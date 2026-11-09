@@ -60,7 +60,7 @@ func OpenReadOnly(live *sql.DB, path string) (*sql.DB, error) {
 	if key == nil {
 		return nil, ErrKey
 	}
-	return sql.Open(driverName, dsn(path, key, "&mode=ro"))
+	return openDB(dsn(path, key, "&mode=ro"))
 }
 
 func keyOf(d *sql.DB) []byte { return handleOf(d).key }
