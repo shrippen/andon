@@ -268,3 +268,31 @@ func TestOffDaysAndBookedMinutes(t *testing.T) {
 		t.Fatalf("booked: %v", m)
 	}
 }
+
+// TestClassifyScales: a ride looks only at the Kimai times near it, not
+// at all of them. Ten years of daily rides against eight sheets a day
+// (107 M pairs: 4 s; the demo's 0.8 M took 44 ms per tile) stay fast.
+func TestClassifyScales(t *testing.T) {
+	const days = 3650
+	start := at("08:00")
+	kimai := &sources.KimaiDataset{}
+	var rides []metrics.Ride
+	for d := range days {
+		day := start.AddDate(0, 0, d)
+		for h := range 8 {
+			from := day.Add(time.Duration(h) * time.Hour)
+			kimai.Timesheets = append(kimai.Timesheets, sources.KimaiSheet{Begin: from.Format(time.RFC3339),
+				End: from.Add(50 * time.Minute).Format(time.RFC3339), CustomerID: int64(h)})
+		}
+		rides = append(rides, metrics.Ride{Start: day.Add(10 * time.Minute), End: day.Add(40 * time.Minute), KM: 5})
+	}
+
+	began := time.Now()
+	out := metrics.Classify(rides, metrics.BookOf(&sources.DawarichDataset{}, kimai, nil), kimai, metrics.BaseHome, nil, start.AddDate(0, 0, days))
+	if took := time.Since(began); took > time.Second {
+		t.Errorf("classifying %d rides against %d sheets took %s", len(rides), len(kimai.Timesheets), took)
+	}
+	if out[0].Reason != metrics.ReasonKimai || out[len(out)-1].CustomerID != 0 {
+		t.Errorf("rides: first %+v, last %+v", out[0], out[len(out)-1])
+	}
+}

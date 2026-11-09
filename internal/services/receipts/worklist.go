@@ -269,6 +269,24 @@ const scansOffered = 3
 // Nothing when the user's receipts pair is another Invoice Ninja or its
 // fields are not chosen: the link could not be written.
 func ScansFor(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID int64, amount float64, day, vendor string) ([]Candidate, error) {
+	x, err := PairOf(d, who, ninjaID)
+	if x == nil {
+		return nil, err
+	}
+	return x.ScansFor(ctx, amount, day, vendor)
+}
+
+// Pair is who's receipts pair for one Invoice Ninja, opened once for a
+// page that asks it per case (the VAT check: ~16 openings took 200 ms).
+type Pair struct {
+	p   pair
+	d   *sql.DB
+	who *access.Principal
+}
+
+// PairOf opens who's receipts pair; nil when it is another Invoice Ninja
+// than ninjaID or its fields are not chosen: no link could be written.
+func PairOf(d *sql.DB, who *access.Principal, ninjaID int64) (*Pair, error) {
 	p, err := openPair(d, who)
 	if errors.Is(err, ErrNoPair) || (err == nil && (p.ninja.ID != ninjaID || !p.mapping.Complete())) {
 		return nil, nil
@@ -276,6 +294,24 @@ func ScansFor(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID int
 	if err != nil {
 		return nil, err
 	}
+	return &Pair{p: p, d: d, who: who}, nil
+}
+
+// ScanSlot is the custom field of the pair's Invoice Ninja that holds an
+// expense's scan, 0 without a pair: then the VAT check offers no scans.
+func (x *Pair) ScanSlot() int {
+	if x == nil {
+		return 0
+	}
+	return x.p.mapping.LinkSlot
+}
+
+// ScansFor: see the function ScansFor; nothing without a pair.
+func (x *Pair) ScansFor(ctx context.Context, amount float64, day, vendor string) ([]Candidate, error) {
+	if x == nil {
+		return nil, nil
+	}
+	p, d, who := x.p, x.d, x.who
 	year, err := strconv.Atoi(day[:min(len(day), len("2006"))])
 	if err != nil {
 		return nil, nil
@@ -285,10 +321,10 @@ func ScansFor(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID int
 		return nil, err
 	}
 
-	x, e := p.matcher(), sources.ReceiptExpense{Amount: amount, Day: day, Vendor: vendor}
+	m, e := p.matcher(), sources.ReceiptExpense{Amount: amount, Day: day, Vendor: vendor}
 	var out []Candidate
 	for _, doc := range p.free(docs.Docs) {
-		if c := x.score(e, doc); c.Score >= levelMid {
+		if c := m.score(e, doc); c.Score >= levelMid {
 			c.Number = docNumber(p.mapping, doc)
 			out = append(out, c)
 		}
@@ -396,13 +432,19 @@ func docNumber(m Mapping, doc sources.ReceiptDoc) string {
 // for an expense of their own (the VAT check's "receipts without an
 // expense"). Nothing for another Invoice Ninja than the pair's.
 func Unbooked(ctx context.Context, d *sql.DB, who *access.Principal, ninjaID int64, from, to time.Time) ([]Candidate, error) {
-	p, err := openPair(d, who)
-	if errors.Is(err, ErrNoPair) || (err == nil && (p.ninja.ID != ninjaID || !p.mapping.Complete())) {
-		return nil, nil
-	}
-	if err != nil {
+	x, err := PairOf(d, who, ninjaID)
+	if x == nil {
 		return nil, err
 	}
+	return x.Unbooked(ctx, from, to)
+}
+
+// Unbooked: see the function Unbooked; nothing without a pair.
+func (x *Pair) Unbooked(ctx context.Context, from, to time.Time) ([]Candidate, error) {
+	if x == nil {
+		return nil, nil
+	}
+	p, d, who := x.p, x.d, x.who
 	set, err := p.docSet(ctx, d, who, from.Year())
 	if err != nil {
 		return nil, err

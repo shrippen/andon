@@ -175,6 +175,7 @@ type book struct {
 	// numberSlot is the invoice number's custom field (receipts), 0 none;
 	// scanSlot the scan's, 0 without Paperless paired.
 	numberSlot, scanSlot int
+	pair                 *receipts.Pair // nil without scans, opened once per page
 	num                  enums.Notation // how the user types amounts
 	learned              metrics.BankLearning
 }
@@ -476,7 +477,8 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, scope string, f
 	b.conn = b.scope.Conn(enums.ServiceInvoiceNinja)
 	b.cats = sources.CategoriesOf(b.conn.Options)
 	b.numberSlot = receipts.InvoiceSlotOf(b.conn)
-	b.scanSlot = receipts.ScanSlotOf(d, who, b.conn.ID)
+	b.pair, _ = receipts.PairOf(d, who, b.conn.ID)
+	b.scanSlot = b.pair.ScanSlot()
 	for _, service := range need.Optional {
 		if b.bankConn == nil {
 			b.bankConn = b.scope.Conn(service)
@@ -600,7 +602,7 @@ func (b book) propose(ctx context.Context, d *sql.DB, who *access.Principal, cs 
 	if !cs.Counts() || b.scanSlot == 0 || !wants {
 		return
 	}
-	cs.Scans, _ = receipts.ScansFor(ctx, d, who, b.conn.ID, cs.Txn.Amount, cs.Txn.Date, cs.Draft.Vendor)
+	cs.Scans, _ = b.pair.ScansFor(ctx, cs.Txn.Amount, cs.Txn.Date, cs.Draft.Vendor)
 	if cs.Scan() != 0 && b.numberSlot > 0 {
 		cs.Number = cs.Scans[0].Number
 	}
@@ -668,7 +670,7 @@ func (b book) docCases(ctx context.Context, d *sql.DB, who *access.Principal, s 
 	if b.scanSlot == 0 {
 		return nil
 	}
-	scans, _ := receipts.Unbooked(ctx, d, who, b.conn.ID, s.Start, s.End)
+	scans, _ := b.pair.Unbooked(ctx, s.Start, s.End)
 	var out []Case
 	for _, sc := range scans {
 		if taken[sc.Doc.ID] || metrics.OpenDebitFits(b.ninja, sc.Amount, sc.Doc.Day) {

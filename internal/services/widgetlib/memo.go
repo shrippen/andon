@@ -4,28 +4,49 @@ import (
 	"context"
 	"database/sql"
 	"sync"
+	"time"
 
 	"andon/internal/db"
+	"andon/internal/enums"
+	"andon/internal/metrics"
 	"andon/internal/model"
 	"andon/internal/repos/content"
 	"andon/internal/services/access"
 	"andon/internal/services/hints"
+	"andon/internal/services/history"
+	"andon/internal/services/verbund"
 	"andon/internal/widgets"
 )
 
 // memo shares lookups among the tiles of one render: each link tile
 // looked up every space's connections for its host, each tile with a
 // connection loaded all open hints for its badge, each down-links tile
-// every link of its space. A 240-tile board repeated them per tile.
+// every link of its space, each tile with a peer all Verbünde and
+// connections, each history tile the space's samples and events. A
+// 240-tile board repeated them per tile.
 //
 //	boards.Fragments ─ WithMemo(ctx) ─► Load × tiles ─► memo (once per key)
 //
 // Tiles load in parallel, hence the lock. A nil memo looks everything up.
 type memo struct {
-	mu     sync.Mutex
-	conns  map[int64][]*model.Connection // by space
-	badges map[int64]hints.Badge         // by connection, nil until loaded
-	down   map[int64][]widgets.DownLink  // by space
+	mu       sync.Mutex
+	conns    map[int64][]*model.Connection // by space
+	badges   map[int64]hints.Badge         // by connection, nil until loaded
+	down     map[int64][]widgets.DownLink  // by space
+	partners map[peerKey]peers
+	pasts    map[int64]*metrics.History // by space
+}
+
+// peerKey is who asks for which service (peerConnections).
+type peerKey struct {
+	at      verbund.Asker
+	service enums.ServiceType
+}
+
+// peers is the answer to a peerKey, its error included (ambiguous).
+type peers struct {
+	conns []*model.Connection
+	err   error
 }
 
 type memoKey struct{}
@@ -33,7 +54,8 @@ type memoKey struct{}
 // WithMemo marks ctx as one render of many tiles for the same viewer:
 // Loads that share it look shared data up once.
 func WithMemo(ctx context.Context) context.Context {
-	return context.WithValue(ctx, memoKey{}, &memo{conns: map[int64][]*model.Connection{}, down: map[int64][]widgets.DownLink{}})
+	return context.WithValue(ctx, memoKey{}, &memo{conns: map[int64][]*model.Connection{}, down: map[int64][]widgets.DownLink{},
+		partners: map[peerKey]peers{}, pasts: map[int64]*metrics.History{}})
 }
 
 func memoOf(ctx context.Context) *memo {
@@ -96,4 +118,40 @@ func (m *memo) linksDown(ctx context.Context, d *sql.DB, who *access.Principal, 
 	}
 	m.down[spaceID] = links
 	return links, nil
+}
+
+// peers are the connections of service a tile asks for (peerConnections).
+func (m *memo) peers(q db.Queryer, who *access.Principal, at verbund.Asker, service enums.ServiceType) ([]*model.Connection, error) {
+	if m == nil {
+		return peerConnections(q, who, at, service)
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	key := peerKey{at: at, service: service}
+	if p, ok := m.partners[key]; ok {
+		return p.conns, p.err
+	}
+	conns, err := peerConnections(q, who, at, service)
+	m.partners[key] = peers{conns: conns, err: err}
+	return conns, err
+}
+
+// history is a space's recorded history (history.Load).
+func (m *memo) history(d *sql.DB, spaceID int64, now time.Time) (*metrics.History, error) {
+	if m == nil {
+		return history.Load(d, spaceID, 0, now)
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if h, ok := m.pasts[spaceID]; ok {
+		return h, nil
+	}
+	h, err := history.Load(d, spaceID, 0, now)
+	if err != nil {
+		return nil, err
+	}
+	m.pasts[spaceID] = h
+	return h, nil
 }
