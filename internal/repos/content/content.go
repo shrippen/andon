@@ -390,6 +390,26 @@ func Credential(q db.Queryer, connID int64, h model.Holder) (*model.Credential, 
 	return c, err
 }
 
+// HolderCredentials returns one holder's logins by connection id.
+func HolderCredentials(q db.Queryer, h model.Holder) (map[int64]*model.Credential, error) {
+	where, id := holderWhere(h)
+	rows, err := q.Query("SELECT "+credCols+" FROM credentials WHERE "+where, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := map[int64]*model.Credential{}
+	for rows.Next() {
+		c, err := scanCredential(rows)
+		if err != nil {
+			return nil, err
+		}
+		out[c.ConnectionID] = c
+	}
+	return out, rows.Err()
+}
+
 // Credentials returns every login to a connection.
 func Credentials(q db.Queryer, connID int64) ([]*model.Credential, error) {
 	rows, err := q.Query("SELECT "+credCols+" FROM credentials WHERE connection_id = ? ORDER BY id", connID)

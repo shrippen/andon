@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -313,5 +315,111 @@ func TestCreateRefusesUnknownService(t *testing.T) {
 		enums.CredentialShared, "x", connections.TLSVerify, nil)
 	if !errors.Is(err, connections.ErrUnknownService) {
 		t.Fatalf("err = %v, want ErrUnknownService", err)
+	}
+}
+
+// TestListingQueries: the listing reads all connections, their logins
+// and health in a fixed number of statements, not a few per connection
+// (each /vat case listed them: 280 ms for the demo).
+func TestListingQueries(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c")
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+	add := func(n int) {
+		for range n {
+			if _, err := connections.Create(d, who, space.ID, enums.ServiceKimai, "Kimai", "https://kimai.example/",
+				enums.CredentialPersonal, "token", connections.TLSVerify, nil); err != nil {
+				t.Fatalf("create: %v", err)
+			}
+		}
+	}
+	cost := func() int {
+		count := dbtest.Statements(t, d)
+		if _, err := connections.Listing(d, who, enums.RightUse); err != nil {
+			t.Fatalf("listing: %v", err)
+		}
+		return count()
+	}
+
+	add(1)
+	one := cost()
+	add(19)
+	if many := cost(); many != one {
+		t.Errorf("listing 20 connections: %d statements, 1 connection: %d", many, one)
+	}
+}
+
+// TestListingMatchesGet: the listing reads health and logins in bulk;
+// each row says what Get says of it (fetches, today, errors, own login).
+func TestListingMatchesGet(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c")
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+	now := time.Now().UTC()
+	for i, mode := range []enums.CredentialMode{enums.CredentialShared, enums.CredentialPersonal, enums.CredentialShared} {
+		id, err := connections.Create(d, who, space.ID, enums.ServiceKimai, "Kimai", "https://kimai.example/",
+			mode, "tok", connections.TLSVerify, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// 0: none, 1: two days with a failure, 2: one good fetch today.
+		for day := range i * 2 {
+			data.RecordFetch(d, id, now.AddDate(0, 0, -day), 20, "")
+			data.RecordFetch(d, id, now.AddDate(0, 0, -day).Add(time.Minute), 40, fmt.Sprintf("HTTP 50%d", day))
+		}
+	}
+
+	list, err := connections.Listing(d, who, enums.RightUse)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(list) != 3 {
+		t.Fatalf("listing: %d connections, want 3", len(list))
+	}
+	for _, v := range list {
+		one, err := connections.Get(d, who, v.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(v, one) {
+			t.Errorf("connection %d\nlisting %+v\nget     %+v", v.ID, v, one)
+		}
+	}
+}
+
+// TestStripsQueries: the health strips of all connections cost the same
+// statements for 1 or 20 connections (admin settings took 89 ms in the
+// demo: each strip loaded all widgets of its space again).
+func TestStripsQueries(t *testing.T) {
+	d := openTestDB(t)
+	u := addUser(t, d, "a@b.c")
+	who, _ := access.Load(d, u.ID)
+	space, _ := content.PersonalSpace(d, u.ID)
+	now := time.Now().UTC()
+	add := func(n int) {
+		for range n {
+			id, err := connections.Create(d, who, space.ID, enums.ServiceKimai, "Kimai", "https://kimai.example/",
+				enums.CredentialShared, "token", connections.TLSVerify, nil)
+			if err != nil {
+				t.Fatalf("create: %v", err)
+			}
+			data.RecordFetch(d, id, now, 20, "")
+		}
+	}
+	cost := func() int {
+		count := dbtest.Statements(t, d)
+		if _, err := connections.Strips(d, who, 7, now); err != nil {
+			t.Fatalf("strips: %v", err)
+		}
+		return count()
+	}
+
+	add(1)
+	one := cost()
+	add(19)
+	if many := cost(); many != one {
+		t.Errorf("strips of 20 connections: %d statements, 1 connection: %d", many, one)
 	}
 }

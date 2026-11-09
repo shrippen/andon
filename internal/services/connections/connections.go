@@ -99,11 +99,9 @@ func rightOf(q db.Queryer, who *access.Principal, conn *model.Connection) (enums
 	return access.Right(who, enums.ResourceConnection, conn.ID, space, nil), nil
 }
 
-func viewOf(q db.Queryer, who *access.Principal, conn *model.Connection, granted enums.Right) (View, error) {
-	cred, err := content.Credential(q, conn.ID, model.UserHolder(who.UserID))
-	if err != nil {
-		return View{}, err
-	}
+// viewOf builds the view of conn from who's login to it (nil none) and
+// its health.
+func viewOf(q db.Queryer, who *access.Principal, conn *model.Connection, granted enums.Right, cred *model.Credential, health Health) (View, error) {
 	space, err := access.SpaceOf(q, who, conn.SpaceID)
 	if err != nil {
 		return View{}, err
@@ -111,10 +109,6 @@ func viewOf(q db.Queryer, who *access.Principal, conn *model.Connection, granted
 	var level enums.SpaceKind
 	if space != nil {
 		level = space.Kind
-	}
-	health, err := healthOf(q, conn.ID, time.Now().UTC())
-	if err != nil {
-		return View{}, err
 	}
 	secretAt := conn.SecretAt
 	if conn.CredentialMode == enums.CredentialPersonal {
@@ -162,6 +156,16 @@ func Listing(d *sql.DB, who *access.Principal, minimum enums.Right) ([]View, err
 			return err
 		}
 
+		// Logins and health of all connections at once, not per row.
+		creds, err := content.HolderCredentials(tx, model.UserHolder(who.UserID))
+		if err != nil {
+			return err
+		}
+		healths, err := healthAll(tx, time.Now().UTC())
+		if err != nil {
+			return err
+		}
+
 		for _, conn := range found {
 			granted, err := rightOf(tx, who, conn)
 			if err != nil {
@@ -170,7 +174,7 @@ func Listing(d *sql.DB, who *access.Principal, minimum enums.Right) ([]View, err
 			if granted < minimum {
 				continue
 			}
-			v, err := viewOf(tx, who, conn, granted)
+			v, err := viewOf(tx, who, conn, granted, creds[conn.ID], healths[conn.ID])
 			if err != nil {
 				return err
 			}
@@ -215,7 +219,15 @@ func Get(d *sql.DB, who *access.Principal, connID int64) (View, error) {
 		if err := access.Need(granted, enums.RightUse); err != nil {
 			return err
 		}
-		out, err = viewOf(tx, who, conn, granted)
+		cred, err := content.Credential(tx, conn.ID, model.UserHolder(who.UserID))
+		if err != nil {
+			return err
+		}
+		health, err := healthOf(tx, conn.ID, time.Now().UTC())
+		if err != nil {
+			return err
+		}
+		out, err = viewOf(tx, who, conn, granted, cred, health)
 		return err
 	})
 	return out, err

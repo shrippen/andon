@@ -13,6 +13,7 @@ type ConnHealth struct {
 	LastOKAt   string // db time, "" = never
 	LastFailAt string // db time, "" = never
 	LastError  string // of the newest day with a failure
+	Today      int    // fetches of the last day (HealthAll)
 }
 
 // RecordFetch adds one fetch outcome to today's row.
@@ -49,6 +50,30 @@ func HealthSince(q db.Queryer, connID int64, since string) (ConnHealth, error) {
 	return h, err
 }
 
+// HealthAll sums every connection's rows from since on, plus its
+// fetches of today, in one query (a listing needs them all).
+func HealthAll(q db.Queryer, since, today string) (map[int64]ConnHealth, error) {
+	rows, err := q.Query(`SELECT connection_id, SUM(ok), SUM(fail), SUM(ms_sum), MAX(last_ok_at), MAX(last_fail_at),
+			SUM(CASE WHEN day = ?2 THEN ok + fail ELSE 0 END),
+			COALESCE((SELECT e.last_error FROM conn_stats e WHERE e.connection_id = s.connection_id AND e.day >= ?1 AND e.last_error != '' ORDER BY e.day DESC LIMIT 1), '')
+		FROM conn_stats s WHERE day >= ?1 GROUP BY connection_id`, since, today)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := map[int64]ConnHealth{}
+	for rows.Next() {
+		var id int64
+		var h ConnHealth
+		if err := rows.Scan(&id, &h.OK, &h.Fail, &h.MsSum, &h.LastOKAt, &h.LastFailAt, &h.Today, &h.LastError); err != nil {
+			return nil, err
+		}
+		out[id] = h
+	}
+	return out, rows.Err()
+}
+
 // PruneConnStats drops rows before a day.
 func PruneConnStats(q db.Queryer, before string) error {
 	_, err := q.Exec("DELETE FROM conn_stats WHERE day < ?", before)
@@ -59,6 +84,27 @@ func PruneConnStats(q db.Queryer, before string) error {
 type ConnDay struct {
 	Day      string
 	OK, Fail int
+}
+
+// DaysAll lists every connection's days from since on by id, oldest
+// first; days without fetches are missing.
+func DaysAll(q db.Queryer, since string) (map[int64][]ConnDay, error) {
+	rows, err := q.Query("SELECT connection_id, day, ok, fail FROM conn_stats WHERE day >= ? ORDER BY connection_id, day", since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := map[int64][]ConnDay{}
+	for rows.Next() {
+		var id int64
+		var c ConnDay
+		if err := rows.Scan(&id, &c.Day, &c.OK, &c.Fail); err != nil {
+			return nil, err
+		}
+		out[id] = append(out[id], c)
+	}
+	return out, rows.Err()
 }
 
 // DaysSince lists a connection's days from since on, oldest first; days

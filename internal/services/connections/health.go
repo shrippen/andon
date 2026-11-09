@@ -75,12 +75,29 @@ func healthOf(q db.Queryer, connID int64, now time.Time) (Health, error) {
 	if err != nil {
 		return Health{}, err
 	}
-	today, err := data.Fetches(q, connID, now.Format(time.DateOnly))
-	if err != nil {
+	if raw.Today, err = data.Fetches(q, connID, now.Format(time.DateOnly)); err != nil {
 		return Health{}, err
 	}
+	return healthFrom(raw), nil
+}
 
-	h := Health{Fetches: raw.OK + raw.Fail, LastError: raw.LastError, Today: today}
+// healthAll is every connection's health by id, in one query.
+func healthAll(q db.Queryer, now time.Time) (map[int64]Health, error) {
+	since := now.AddDate(0, 0, -healthDays+1).Format(time.DateOnly)
+	raw, err := data.HealthAll(q, since, now.Format(time.DateOnly))
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[int64]Health, len(raw))
+	for id, r := range raw {
+		out[id] = healthFrom(r)
+	}
+	return out, nil
+}
+
+// healthFrom turns summed fetch outcomes into a Health.
+func healthFrom(raw data.ConnHealth) Health {
+	h := Health{Fetches: raw.OK + raw.Fail, LastError: raw.LastError, Today: raw.Today}
 	if h.Fetches > 0 {
 		h.FailPct = raw.Fail * 100 / h.Fetches
 		h.AvgMS = int(raw.MsSum / int64(h.Fetches))
@@ -91,7 +108,7 @@ func healthOf(q db.Queryer, connID int64, now time.Time) (Health, error) {
 	if raw.LastFailAt != "" {
 		h.LastFail, _ = db.ParseTime(raw.LastFailAt)
 	}
-	return h, nil
+	return h
 }
 
 // SetHygiene stores a token's expiry ("" = unknown) and the daily fetch
@@ -192,15 +209,27 @@ func Strips(d *sql.DB, who *access.Principal, days int, now time.Time) ([]Strip,
 		return nil, err
 	}
 	first := now.AddDate(0, 0, -days+1)
+	since := first.Format(time.DateOnly)
 
+	// Days, health and tiles of all connections at once, not per strip.
 	var out []Strip
 	err = db.WithRead(d, func(tx *sql.Tx) error {
+		byConn, err := data.DaysAll(tx, since)
+		if err != nil {
+			return err
+		}
+		healths, err := data.HealthAll(tx, since, now.Format(time.DateOnly))
+		if err != nil {
+			return err
+		}
+		tiles := map[int64]map[int64]int{} // space → connection → widgets
 		for _, c := range list {
-			strip, err := stripOf(tx, c, first, days)
-			if err != nil {
-				return err
+			if tiles[c.SpaceID] == nil {
+				if tiles[c.SpaceID], err = tilesOf(tx, c.SpaceID); err != nil {
+					return err
+				}
 			}
-			out = append(out, strip)
+			out = append(out, stripOf(c, first, days, byConn[c.ID], healths[c.ID], tiles[c.SpaceID][c.ID]))
 		}
 		return nil
 	})
@@ -214,22 +243,47 @@ func History(d *sql.DB, who *access.Principal, connID int64, days int, now time.
 	if err != nil {
 		return Strip{}, err
 	}
+	first := now.AddDate(0, 0, -days+1)
+	since := first.Format(time.DateOnly)
+
 	var out Strip
 	err = db.WithRead(d, func(tx *sql.Tx) error {
-		out, err = stripOf(tx, c, now.AddDate(0, 0, -days+1), days)
-		return err
+		raw, err := data.DaysSince(tx, c.ID, since)
+		if err != nil {
+			return err
+		}
+		h, err := data.HealthSince(tx, c.ID, since)
+		if err != nil {
+			return err
+		}
+		tiles, err := tilesOf(tx, c.SpaceID)
+		if err != nil {
+			return err
+		}
+		out = stripOf(c, first, days, raw, h, tiles[c.ID])
+		return nil
 	})
 	return out, err
 }
 
-// stripOf counts c's fetches per day from first on, and the widgets of
-// its space that use it.
-func stripOf(tx *sql.Tx, c View, first time.Time, days int) (Strip, error) {
-	since := first.Format(time.DateOnly)
-	raw, err := data.DaysSince(tx, c.ID, since)
+// tilesOf counts the widgets of a space by the connection they use.
+func tilesOf(q db.Queryer, spaceID int64) (map[int64]int, error) {
+	ws, err := content.Widgets(q, []int64{spaceID})
 	if err != nil {
-		return Strip{}, err
+		return nil, err
 	}
+	out := map[int64]int{}
+	for _, w := range ws {
+		if w.ConnectionID != nil {
+			out[*w.ConnectionID]++
+		}
+	}
+	return out, nil
+}
+
+// stripOf builds c's strip from its days from first on (raw), their
+// sums (h) and the widgets of its space that use it.
+func stripOf(c View, first time.Time, days int, raw []data.ConnDay, h data.ConnHealth, tiles int) Strip {
 	byDay := map[string]data.ConnDay{}
 	ok, fail := 0, 0
 	for _, r := range raw {
@@ -237,25 +291,15 @@ func stripOf(tx *sql.Tx, c View, first time.Time, days int) (Strip, error) {
 		ok, fail = ok+r.OK, fail+r.Fail
 	}
 
-	strip := Strip{Name: c.Name, Service: string(c.Service), ID: c.ID}
+	strip := Strip{Name: c.Name, Service: string(c.Service), ID: c.ID, Tiles: tiles, LastError: h.LastError}
 	strip.FailPct, strip.Fetches = stripFailPct(ok, fail), ok+fail
-	if h, err := data.HealthSince(tx, c.ID, since); err == nil {
-		strip.LastError = h.LastError
-		if h.OK > 0 {
-			strip.AvgMs = int(h.MsSum / int64(h.OK))
-		}
-	}
-	if ws, err := content.Widgets(tx, []int64{c.SpaceID}); err == nil {
-		for _, w := range ws {
-			if w.ConnectionID != nil && *w.ConnectionID == c.ID {
-				strip.Tiles++
-			}
-		}
+	if h.OK > 0 {
+		strip.AvgMs = int(h.MsSum / int64(h.OK))
 	}
 	for i := range days {
 		day := first.AddDate(0, 0, i).Format(time.DateOnly)
 		r := byDay[day]
 		strip.Days = append(strip.Days, DayState{Day: day, OK: r.OK, Fail: r.Fail})
 	}
-	return strip, nil
+	return strip
 }
