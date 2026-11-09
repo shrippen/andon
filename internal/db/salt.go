@@ -88,7 +88,7 @@ func RemoveCopy(path string) error {
 // OpenRekeyed opens the copy Rekey wrote at path, to finish it before
 // the next start swaps it in.
 func OpenRekeyed(path string, key []byte) (*sql.DB, error) {
-	d, err := sql.Open(driverName, dsn(path+rekeyedSuffix, key, "&_txlock=immediate"))
+	d, err := openDB(dsn(path+rekeyedSuffix, key, "&_txlock=immediate"))
 	if err != nil {
 		return nil, err
 	}

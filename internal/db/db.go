@@ -26,7 +26,6 @@ import (
 	"strings"
 	"sync"
 
-	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/vfs/adiantum"
 )
 
@@ -76,7 +75,7 @@ func Open(path string, key []byte) (*sql.DB, error) {
 		return nil, fmt.Errorf("db: encrypt: %w", err)
 	}
 
-	sqlDB, err := sql.Open(driverName, dsn(path, key, "&_txlock=immediate"))
+	sqlDB, err := openDB(dsn(path, key, "&_txlock=immediate"))
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +132,7 @@ func encryptPlain(path string, key []byte) error {
 		return nil
 	}
 
-	plain, err := sql.Open(driverName, "file:"+url.PathEscape(path))
+	plain, err := openDB("file:" + url.PathEscape(path))
 	if err != nil {
 		return err
 	}
@@ -157,7 +156,7 @@ func swapRekeyed(path string, key []byte) error {
 	if _, err := os.Stat(next); err != nil {
 		return nil
 	}
-	probe, err := sql.Open(driverName, dsn(next, key, "&mode=ro"))
+	probe, err := openDB(dsn(next, key, "&mode=ro"))
 	if err != nil {
 		return err
 	}
