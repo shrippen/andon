@@ -16,6 +16,7 @@ package metrics
 
 import (
 	"slices"
+	"sort"
 	"strconv"
 	"time"
 
@@ -133,23 +134,62 @@ func (s span) overlap(a, b time.Time) time.Duration {
 	return max(to.Sub(from), 0)
 }
 
-// bestCover is the span covering most of [a, b) if it covers at least
-// coverShare of it; spans are assumed not to overlap each other much.
-func bestCover(spans []span, a, b time.Time) (span, bool) {
+// covers holds spans sorted by start, so a ride looks only at those
+// near it, not at all of them (2 M pairs for the demo's rides):
+//
+//	spans by from:  [a──)  [b────)   [c─)     [d──)
+//	ride [x, y):              [x─────y)
+//	                 ends ≤ x │ checked  │ from ≥ y
+//
+// reach[i] is the latest end among spans[:i+1]; once it is ≤ x, no
+// earlier span reaches the ride.
+type covers struct {
+	spans []span
+	order []int // index in the given slice: ties go to the first given
+	reach []time.Time
+}
+
+func coversOf(spans []span) covers {
+	order := make([]int, len(spans))
+	for i := range order {
+		order[i] = i
+	}
+	sort.SliceStable(order, func(i, j int) bool { return spans[order[i]].from.Before(spans[order[j]].from) })
+
+	c := covers{spans: make([]span, len(spans)), order: order, reach: make([]time.Time, len(spans))}
+	for i, k := range order {
+		c.spans[i] = spans[k]
+		c.reach[i] = spans[k].to
+		if i > 0 && c.reach[i-1].After(c.reach[i]) {
+			c.reach[i] = c.reach[i-1]
+		}
+	}
+	return c
+}
+
+// best is the span covering most of [a, b) if all spans together cover
+// at least coverShare of it; spans are assumed not to overlap each
+// other much.
+func (c covers) best(a, b time.Time) (span, bool) {
 	total := b.Sub(a)
 	if total <= 0 {
 		return span{}, false
 	}
-	var best span
+	end := sort.Search(len(c.spans), func(i int) bool { return !c.spans[i].from.Before(b) })
+
+	bestAt := -1
 	var bestD, sum time.Duration
-	for _, s := range spans {
-		d := s.overlap(a, b)
+	for i := end - 1; i >= 0 && c.reach[i].After(a); i-- {
+		d := c.spans[i].overlap(a, b)
 		sum += d
-		if d > bestD {
-			best, bestD = s, d
+		if d > bestD || (d == bestD && d > 0 && c.order[i] < c.order[bestAt]) {
+			bestAt, bestD = i, d
 		}
 	}
-	return best, bestD > 0 && float64(sum) >= coverShare*float64(total)
+	if bestAt < 0 || float64(sum) < coverShare*float64(total) {
+		return span{}, false
+	}
+	return c.spans[bestAt], true
 }
 
 func sheetSpans(kimai *sources.KimaiDataset, now time.Time) []span {
@@ -202,10 +242,10 @@ func bookedDays(kimai *sources.KimaiDataset) map[[2]any]bool {
 // Classify sorts rides into business, commute and private; kimai may be
 // nil (rules 1 and 2 then do not apply), manual too.
 func Classify(rides []Ride, book *Book, kimai *sources.KimaiDataset, base TravelBase, manual Overrides, now time.Time) []ClassedRide {
-	var sheets, plugin []span
+	var sheets, plugin covers
 	var booked map[[2]any]bool
 	if kimai != nil {
-		sheets, plugin, booked = sheetSpans(kimai, now), pluginSpans(kimai), bookedDays(kimai)
+		sheets, plugin, booked = coversOf(sheetSpans(kimai, now)), coversOf(pluginSpans(kimai)), bookedDays(kimai)
 	}
 
 	out := make([]ClassedRide, 0, len(rides))
@@ -221,12 +261,12 @@ func Classify(rides []Ride, book *Book, kimai *sources.KimaiDataset, base Travel
 	return out
 }
 
-func classify(c *ClassedRide, sheets, plugin []span, booked map[[2]any]bool, base TravelBase) {
-	if s, ok := bestCover(plugin, c.Start, c.End); ok {
+func classify(c *ClassedRide, sheets, plugin covers, booked map[[2]any]bool, base TravelBase) {
+	if s, ok := plugin.best(c.Start, c.End); ok {
 		c.Class, c.Reason, c.CustomerID, c.Trip = s.class, ReasonPlugin, s.customer, s.trip
 		return
 	}
-	if s, ok := bestCover(sheets, c.Start, c.End); ok {
+	if s, ok := sheets.best(c.Start, c.End); ok {
 		c.Class, c.Reason, c.CustomerID = ClassBusiness, ReasonKimai, s.customer
 		return
 	}
