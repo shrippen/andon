@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"andon/internal/db/dbtest"
 	"andon/internal/enums"
 	"andon/internal/metrics"
 	"andon/internal/services/connections"
@@ -796,5 +797,34 @@ func TestTakenScanDropsDay(t *testing.T) {
 	got := plan.Steps[1].Item
 	if got.Scan != 0 || got.Day != second.Txn.Date {
 		t.Errorf("second case: scan %d, day %s, want none and bank day %s", got.Scan, got.Day, second.Txn.Date)
+	}
+}
+
+// TestOpenQueries: a period with cases costs no more statements than
+// one without; the receipts pair opens once per page, not per case
+// (/vat took 280 ms in the demo).
+func TestOpenQueries(t *testing.T) {
+	d := testkit.DB(t)
+	who, space := testkit.User(t, d, "owner@x.de", enums.RoleUser)
+	conn := testkit.Conn(t, d, who, space, enums.ServiceInvoiceNinja, "demo://invoiceninja")
+	testkit.Conn(t, d, who, space, enums.ServicePaperless, "demo://paperless")
+	ctx := context.Background()
+	today := time.Now().UTC()
+
+	cost := map[bool]int{} // with cases → statements
+	for _, s := range metrics.VATSpans(today, "monthly", 6) {
+		if _, err := vatcheck.Open(ctx, d, who, scopeOf(conn), s.Key, today); err != nil {
+			t.Fatalf("open %s: %v", s.Key, err)
+		}
+		count := dbtest.Statements(t, d)
+		p, _ := vatcheck.Open(ctx, d, who, scopeOf(conn), s.Key, today)
+		cases := len(p.Cases)+len(p.Gaps)+len(p.Docs) > 0
+		cost[cases] = max(cost[cases], count())
+	}
+	if cost[true] == 0 || cost[false] == 0 {
+		t.Fatalf("demo lacks a period with and one without cases: %v", cost)
+	}
+	if cost[true] > cost[false] {
+		t.Errorf("period with cases: %d statements, without: %d", cost[true], cost[false])
 	}
 }

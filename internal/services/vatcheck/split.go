@@ -113,7 +113,7 @@ func (b book) splitPool(ctx context.Context, d *sql.DB, who *access.Principal, s
 	if from.Year() != s.Start.Year() {
 		from = time.Date(s.Start.Year(), time.January, 1, 0, 0, 0, 0, time.UTC)
 	}
-	scans, _ := receipts.Unbooked(ctx, d, who, b.conn.ID, from, s.End.AddDate(0, 0, splitDays))
+	scans, _ := b.pair.Unbooked(ctx, from, s.End.AddDate(0, 0, splitDays))
 	return scans
 }
 
