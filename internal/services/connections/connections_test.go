@@ -339,7 +339,7 @@ func TestListingQueries(t *testing.T) {
 		if _, err := connections.Listing(d, who, enums.RightUse); err != nil {
 			t.Fatalf("listing: %v", err)
 		}
-		return count()
+		return len(count())
 	}
 
 	add(1)
@@ -413,7 +413,7 @@ func TestStripsQueries(t *testing.T) {
 		if _, err := connections.Strips(d, who, 7, now); err != nil {
 			t.Fatalf("strips: %v", err)
 		}
-		return count()
+		return len(count())
 	}
 
 	add(1)

@@ -160,14 +160,7 @@ func hostConnection(q db.Queryer, who *access.Principal, widget *model.Widget, h
 // (verbund.Partner); for a service that pairs with nothing (caps.Paired)
 // every candidate, whose data the tile merges; verbund.ErrAmbiguous when
 // several partners fit and the tile chose none.
-func peerConnections(q db.Queryer, who *access.Principal, widget *model.Widget, service enums.ServiceType) ([]*model.Connection, error) {
-	at := verbund.Asker{SpaceID: widget.SpaceID}
-	if widget.ConnectionID != nil {
-		at.ConnID = *widget.ConnectionID
-	}
-	if id, ok := widget.Config[widgets.VerbundKey].(float64); ok {
-		at.LinkID = int64(id)
-	}
+func peerConnections(q db.Queryer, who *access.Principal, at verbund.Asker, service enums.ServiceType) ([]*model.Connection, error) {
 	c, state, err := verbund.Partner(q, who, at, service)
 	switch {
 	case err != nil:
@@ -180,6 +173,19 @@ func peerConnections(q db.Queryer, who *access.Principal, widget *model.Widget, 
 		return nil, nil
 	}
 	return []*model.Connection{c}, nil
+}
+
+// askerOf is who a widget is when it asks for a partner: its space, its
+// connection and the Verbund it chose.
+func askerOf(widget *model.Widget) verbund.Asker {
+	at := verbund.Asker{SpaceID: widget.SpaceID}
+	if widget.ConnectionID != nil {
+		at.ConnID = *widget.ConnectionID
+	}
+	if id, ok := widget.Config[widgets.VerbundKey].(float64); ok {
+		at.LinkID = int64(id)
+	}
+	return at
 }
 
 // mergeSlot joins another peer's slot into a: data that merges
@@ -321,7 +327,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 				target = demoConn(q.Service)
 				break
 			}
-			peers, err := peerConnections(d, who, widget, q.Service)
+			peers, err := memoOf(ctx).peers(d, who, askerOf(widget), q.Service)
 			if errors.Is(err, verbund.ErrAmbiguous) {
 				frag.Slots[q.Name] = Slot{Error: err.Error()}
 				continue
