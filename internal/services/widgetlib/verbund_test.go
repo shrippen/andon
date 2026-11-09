@@ -109,7 +109,8 @@ func TestPeerSpaceWideMerges(t *testing.T) {
 
 // TestPeerOncePerBoard: tiles of a board that ask the same Verbund for
 // the same service ask it once (a board of 40 tiles read all Verbünde
-// and connections per tile: 28 % of /boards/1).
+// and connections per tile: 28 % of /boards/1); tiles with the space's
+// history read it once (14 %).
 func TestPeerOncePerBoard(t *testing.T) {
 	d := openTestDB(t)
 	u := addUser(t, d, "memo@b.c")
@@ -139,7 +140,7 @@ func TestPeerOncePerBoard(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, q := range seen.Statements() {
-		if strings.Contains(q, "FROM links") || strings.Contains(q, "FROM connections WHERE space_id IN") {
+		if strings.Contains(q, "FROM links") || strings.Contains(q, "FROM connections WHERE") || strings.Contains(q, "FROM samples") {
 			t.Errorf("second tile asked again: %s", q)
 		}
 	}

@@ -528,7 +528,7 @@ func load(ctx context.Context, d *sql.DB, who *access.Principal, widget *model.W
 		frag.Slots[widgets.RideModelSlot] = Slot{Data: sites.Learned(d, conn, who)}
 	}
 	if kind.Extra == widgets.ExtraHistory {
-		h, err := history.Load(d, widget.SpaceID, 0, time.Now().UTC())
+		h, err := memoOf(ctx).history(d, widget.SpaceID, time.Now().UTC())
 		if err != nil {
 			return nil, err
 		}
