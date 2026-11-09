@@ -816,10 +816,10 @@ func TestOpenQueries(t *testing.T) {
 		if _, err := vatcheck.Open(ctx, d, who, scopeOf(conn), s.Key, today); err != nil {
 			t.Fatalf("open %s: %v", s.Key, err)
 		}
-		count := dbtest.Statements(t, d)
+		count := dbtest.Trace(t, d)
 		p, _ := vatcheck.Open(ctx, d, who, scopeOf(conn), s.Key, today)
 		cases := len(p.Cases)+len(p.Gaps)+len(p.Docs) > 0
-		cost[cases] = max(cost[cases], len(count()))
+		cost[cases] = max(cost[cases], len(count.Statements()))
 	}
 	if cost[true] == 0 || cost[false] == 0 {
 		t.Fatalf("demo lacks a period with and one without cases: %v", cost)

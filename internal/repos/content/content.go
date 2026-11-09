@@ -273,6 +273,21 @@ func Connections(q db.Queryer, spaceIDs []int64) ([]*model.Connection, error) {
 	return scanConnections(rows)
 }
 
+// ServiceConnections returns the connections of one service in the
+// given spaces, ordered by name.
+func ServiceConnections(q db.Queryer, spaceIDs []int64, service string) ([]*model.Connection, error) {
+	if len(spaceIDs) == 0 {
+		return nil, nil
+	}
+	query, args := inClause("SELECT "+connCols+" FROM connections WHERE service = ? AND space_id IN (%s) ORDER BY name", spaceIDs)
+	rows, err := q.Query(query, append([]any{service}, args...)...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanConnections(rows)
+}
+
 // AllConnections returns every connection.
 func AllConnections(q db.Queryer) ([]*model.Connection, error) {
 	rows, err := q.Query("SELECT " + connCols + " FROM connections")

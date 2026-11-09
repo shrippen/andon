@@ -214,13 +214,13 @@ func candidates(q db.Queryer, spaces []int64, service enums.ServiceType, taken m
 	if len(spaces) == 0 {
 		return nil, nil
 	}
-	list, err := content.Connections(q, spaces)
+	list, err := content.ServiceConnections(q, spaces, string(service))
 	if err != nil {
 		return nil, err
 	}
 	var out []*model.Connection
 	for _, c := range list {
-		if c.Service == string(service) && !taken[c.ID] {
+		if !taken[c.ID] {
 			out = append(out, c)
 		}
 	}

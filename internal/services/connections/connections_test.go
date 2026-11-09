@@ -335,11 +335,11 @@ func TestListingQueries(t *testing.T) {
 		}
 	}
 	cost := func() int {
-		count := dbtest.Statements(t, d)
+		count := dbtest.Trace(t, d)
 		if _, err := connections.Listing(d, who, enums.RightUse); err != nil {
 			t.Fatalf("listing: %v", err)
 		}
-		return len(count())
+		return len(count.Statements())
 	}
 
 	add(1)
@@ -409,11 +409,11 @@ func TestStripsQueries(t *testing.T) {
 		}
 	}
 	cost := func() int {
-		count := dbtest.Statements(t, d)
+		count := dbtest.Trace(t, d)
 		if _, err := connections.Strips(d, who, 7, now); err != nil {
 			t.Fatalf("strips: %v", err)
 		}
-		return len(count())
+		return len(count.Statements())
 	}
 
 	add(1)
