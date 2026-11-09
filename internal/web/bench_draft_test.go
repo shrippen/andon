@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 )
 
 // TestBenchDraft: a case kept by the VAT page comes back on its next
@@ -23,9 +22,9 @@ func TestBenchDraft(t *testing.T) {
 			"service": {service}, "name": {service}, "url": {"demo://" + service}, "mode": {"shared"}, "tls": {"verify"}})
 	}
 
-	// The month of demo-b-studio (8 days ago): /vat alone shows last
-	// month until the 10th, without the case on the 9th and 10th.
-	vat := "/vat?span=" + time.Now().UTC().AddDate(0, 0, -8).Format("2006-01")
+	// The month of demo-b-studio: /vat alone shows last month until the
+	// 10th, without the case on the 9th and 10th.
+	vat := "/vat?span=" + studioMonth()
 	page := string(mustGet(t, srv, client, vat))
 	m := regexp.MustCompile(`data-draft-place="([^"]*)"`).FindStringSubmatch(page)
 	if m == nil || !strings.Contains(page, `data-draft-case="demo-b-studio"`) {
