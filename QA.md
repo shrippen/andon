@@ -10,7 +10,7 @@ Feste User Journeys für explorative QA-Sitzungen: Wer etwas an Andon prüft, sp
 3. Jede Journey auf dem Desktop (1440×960) und die markierten (📱) auch auf dem Handy (390×844).
 4. Nebenher beobachten: Server-Log (`level=ERROR`, `request failed`), Browser-Konsole (Fehler, CSP-Meldungen), Antworten ≥ 400, seitliches Scrollen, abgeschnittene Texte, rohe Katalogschlüssel (`hint.xyz.title`, `{n}`), Englisch auf deutschen Seiten und umgekehrt.
 5. Fund notieren mit: Stufe (Fehler, Reibung, unlogisch, kosmetisch), Journey und Schritt, was passierte gegen was erwartet war, Beleg (Screenshot, Log-Zeile, URL). Nur Beobachtetes, Ungetestetes ausdrücklich nennen.
-6. Gefundene Fehler: zuerst ein Test, der fehlschlägt, dann die Korrektur (siehe `agent.md`).
+6. Gefundene Fehler: zuerst ein Test, der fehlschlägt, dann die Korrektur (siehe `RULES.md`).
 
 Werkzeug: Playwright (Chromium) mit kleinen Skripten je Journey; Login über `#email`, `#password`, Enter. Die Demo schreibt nicht in Dienste (Verbindungen `demo://`): prüfen, ob die Oberfläche das verständlich sagt.
 

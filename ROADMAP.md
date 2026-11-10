@@ -516,7 +516,7 @@ Alle Beträge, Sätze und Fristen werden im Editor je Bereich gepflegt, typische
 
 ## 9. Design: Kante (shrippen Design System)
 
-Das Dashboard ist eine **App** im Sinne des Design Systems und nutzt daher die App-Komponenten. Das Design System liefert zugleich das einzige mitgelieferte Theme (Abschnitt 6). Stand: **Kante 1.7**. Regel für die Oberfläche (`agent.md`, „GUI rule“; Text in `kante/AGENT-RULE.md` des Design-System-Repos): Sie wird aus Kante erzeugt, nicht davon inspiriert. Was Kante fehlt, kommt zuerst nach Kante und erst dann hierher; lokal gebaut wird es nicht.
+Das Dashboard ist eine **App** im Sinne des Design Systems und nutzt daher die App-Komponenten. Das Design System liefert zugleich das einzige mitgelieferte Theme (Abschnitt 6). Stand: **Kante 1.7**. Regel für die Oberfläche (`RULES.md`, „GUI rule“; Text in `kante/AGENT-RULE.md` des Design-System-Repos): Sie wird aus Kante erzeugt, nicht davon inspiriert. Was Kante fehlt, kommt zuerst nach Kante und erst dann hierher; lokal gebaut wird es nicht.
 
 **Einbindung**
 
