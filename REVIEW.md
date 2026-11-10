@@ -1,6 +1,6 @@
 # Review guide
 
-Every PR is reviewed before it is merged (rule in `agent.md`): by PR-Agent
+Every PR is reviewed before it is merged (rule in `RULES.md` and the skill `pr-review`): by PR-Agent
 (owner, 22.10.2026); a new Claude agent checks the **Wichtig** of earlier
 rounds, and reviews when PR-Agent fails. The
 reviewer knows nothing of the session that wrote the change: it gets the
@@ -42,7 +42,7 @@ that matters is one a user sees, or one that costs data or trust:
   first connection in scope; capabilities via `caps`, not flags.
 - Bug fixes: a test that failed before the fix, and the cause removed,
   not one case hidden. A changed flow changes its journey in `QA.md`;
-  a release follows the release rule (log in `CHANGELOG.md`, the same
+  a release follows `RELEASE.md` (log in `CHANGELOG.md`, the same
   text in `docs/index.html` `#changes` and the Gitea release notes,
   shots `docs/shots/release-<version>-*`, the footer version,
   `versions.json` in shrippen.github.io).
@@ -69,5 +69,5 @@ that matters is one a user sees, or one that costs data or trust:
 - In a later round: say for each open **Wichtig** of the last round whether
   it is fixed, or whether its answer is accepted, with the reason. PR-Agent
   sees no earlier round: it reports only its own findings with their labels,
-  and a new Claude agent closes the open ones (`agent.md`).
+  and a new Claude agent closes the open ones (skill `pr-review`).
 - Findings in German, code names as they are.
