@@ -50,7 +50,7 @@ func TestRunStrips(t *testing.T) {
 			{Status: sources.HeartbeatUp, At: at, Link: "https://j/runs/1"}, {Status: sources.HeartbeatDown, At: at}, {Status: sources.HeartbeatPaused, At: at}}},
 		{Name: "b"}})
 	if len(got) != 1 || len(got[0].States) != 3 || got[0].States[0] != "ok" || got[0].States[1] != "bad" || got[0].States[2] != "off" ||
-		got[0].Titles[0] != "2026-11-02 01:05 UTC" || got[0].Links[0] != "https://j/runs/1" {
+		got[0].Titles[0] != at.In(clockZone()).Format("2006-01-02 15:04") || got[0].Words[2] != "heartbeat.run.paused" || got[0].Links[0] != "https://j/runs/1" {
 		t.Fatalf("strips %+v", got)
 	}
 }

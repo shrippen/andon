@@ -190,7 +190,7 @@
     {{with .Foot}}<tfoot><tr>{{range $i, $c := .}}<td{{if numCol $.Data.Num $i}} class="num"{{end}}>{{tv $c.Value}}</td>{{end}}</tr></tfoot>{{end}}
   </table></div>{{end}}
   {{else if eq $k "strips"}}
-  <div class="detail-rows">{{range .Data}}<span>{{.Name}}</span><svg class="uptime" viewBox="0 0 {{len .States}} 1" preserveAspectRatio="none" role="img" aria-label="{{.Name}}">{{if .Titles}}{{range stripBars .}}{{if .Href}}<a href="{{.Href}}" target="_blank" rel="noopener noreferrer">{{end}}<path data-state="{{.State}}" d="{{.D}}"><title>{{.Title}} · {{t (print "chart.state." .State)}}</title></path>{{if .Href}}</a>{{end}}{{end}}{{else}}{{range stripPaths .States}}<path data-state="{{.State}}" d="{{.D}}"/>{{end}}{{end}}</svg><span>{{tv .Value}}</span>{{end}}</div>
+  <div class="detail-rows">{{range .Data}}<span>{{.Name}}</span><svg class="uptime" viewBox="0 0 {{len .States}} 1" preserveAspectRatio="none" role="img" aria-label="{{.Name}}">{{if .Titles}}{{range stripBars .}}{{if .Href}}<a href="{{.Href}}" target="_blank" rel="noopener noreferrer">{{end}}<path data-state="{{.State}}" d="{{.D}}"><title>{{.Title}} · {{if .Word}}{{t .Word}}{{else}}{{t (print "chart.state." .State)}}{{end}}</title></path>{{if .Href}}</a>{{end}}{{end}}{{else}}{{range stripPaths .States}}<path data-state="{{.State}}" d="{{.D}}"/>{{end}}{{end}}</svg><span>{{tv .Value}}</span>{{end}}</div>
   {{with .Ticks}}<div class="detail-ticks">{{range .}}<span>{{tv .}}</span>{{end}}</div>{{end}}
   {{template "state_legend" stripStates .Data}}
   {{else if eq $k "bars"}}

@@ -13,7 +13,7 @@ func TestTraits(t *testing.T) {
 	if got := Restorable(); !slices.Equal(got, want) {
 		t.Fatalf("restorable %v", got)
 	}
-	if !TraitsOf(enums.ServiceJidoka).Webhooks || !TraitsOf(enums.ServicePGBackWeb).Webhooks || TraitsOf(enums.ServiceBorgBackup).Webhooks {
+	if PushOnly(enums.ServiceJidoka) || !PushOnly(enums.ServicePGBackWeb) || !TraitsOf(enums.ServiceJidoka).Webhooks || !TraitsOf(enums.ServicePGBackWeb).Webhooks || TraitsOf(enums.ServiceBorgBackup).Webhooks {
 		t.Fatal("webhooks")
 	}
 	for s, m := range map[enums.ServiceType]SignIn{enums.ServiceGitea: SignInRedirect, enums.ServiceNextcloud: SignInLink,

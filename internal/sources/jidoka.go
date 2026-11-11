@@ -8,7 +8,8 @@ package sources
 //	GET api/v1/jobs     Bearer → {jobs: [{id, name, state, reason, summary, last, next, tail, url}], total}
 //
 // Jidoka pushes a state change to the connection's webhook
-// (hooks.Accepts), which drops the cache, so a hint stands at once.
+// (hooks.Accepts), which drops the cache; the hint follows with the next
+// analysis run.
 
 import (
 	"context"
@@ -221,7 +222,6 @@ func (d *JidokaDataset) Down() []Heartbeat { return DownBeats(d.Heartbeats()) }
 func DemoJidoka(now time.Time) *JidokaDataset {
 	var w struct {
 		Settings struct {
-			BaseURL  string
 			Channels map[string]any
 		}
 		Jobs []struct {
@@ -230,6 +230,7 @@ func DemoJidoka(now time.Time) *JidokaDataset {
 			Config  struct {
 				Name string
 				Tags []string
+				Link string // the page of what the job works on; none = no link
 			}
 			Script struct {
 				Output []string
@@ -259,7 +260,7 @@ func DemoJidoka(now time.Time) *JidokaDataset {
 	}
 	demoworld.MustDecode("jobs", now, &w)
 
-	in := JidokaInstance{URL: w.Settings.BaseURL}
+	var in JidokaInstance
 	for _, j := range w.Jobs {
 		if j.Invalid {
 			in.Invalid++
@@ -268,7 +269,7 @@ func DemoJidoka(now time.Time) *JidokaDataset {
 		}
 
 		b := Heartbeat{Name: j.Config.Name, Tags: j.Config.Tags, Status: HeartbeatUp, Tool: string(enums.ServiceJidoka),
-			Link: strings.TrimRight(w.Settings.BaseURL, "/") + jidokaJobPage + j.ID}
+			Link: j.Config.Link}
 		if len(j.History.Summaries) > 0 {
 			b.Summary = j.History.Summaries[0]
 		}

@@ -1250,6 +1250,7 @@ widget:
   unsupported: Passt nicht zur gewählten Verbindung.
 connection:
   secret_for_host: 'Neuer Server: Zugang neu eingeben oder den gespeicherten ausdrücklich mitnehmen.'
+  url_needed: 'Dieser Dienst braucht seine Adresse.'
   unknown_service: 'Diesen Dienst kennt Andon nicht.'
   use_move: 'Anderer Server: bitte „Umziehen“ nutzen.'
   adopt_self: 'Eine Verbindung kann nicht von sich selbst übernehmen.'
@@ -1540,7 +1541,7 @@ conn:
   options_hint_healthchecks: 'URL von healthchecks.io oder der eigenen Instanz, z. B. https://healthchecks.io. Token = API-Schlüssel des Projekts; der Nur-Lese-Schlüssel reicht (Projekt → Einstellungen → API-Zugang).'
   about_healthchecks: 'Cron-Jobs: Herzschläge, Ausfälle'
   what_healthchecks: 'Healthchecks überwacht geplante Aufgaben: Jeder Job meldet sich nach dem Lauf, bleibt die Meldung aus, gilt er als ausgefallen.'
-  options_hint_jidoka: 'URL von Jidoka, z. B. https://jidoka.example. Token = ein API-Token mit dem Recht „lesen“ (Jidoka: Zugang). Jobs, Wächter und ihr Ergebnis werden zu Herzschlägen; Änderungen kommen sofort über den Webhook unten.'
+  options_hint_jidoka: 'URL von Jidoka, z. B. https://jidoka.example. Token = ein API-Token mit dem Recht „lesen“ (Jidoka: Zugang). Jobs, Wächter und ihr Ergebnis werden zu Herzschlägen; eine Änderung verwirft über den Webhook unten sofort den Zwischenspeicher, der Hinweis folgt beim nächsten Analyse-Lauf.'
   about_jidoka: 'Cron-Skripte: Jobs, Wächter, Ausfälle'
   what_jidoka: 'Jidoka führt kleine Skripte nach Plan aus und wacht über die Meldungen anderer Jobs; Andon zeigt sie als Herzschläge und warnt, wenn einer scheitert, ausbleibt oder Jidoka selbst nicht mehr senden kann.'
   options_hint_prometheus: 'URL des Prometheus-Servers, z. B. http://prometheus:9090. Ohne Anmeldung Token leer lassen; sonst Bearer-Token oder benutzer:passwort für Basic Auth (etwa hinter einem Proxy). Feuernde Alerts werden zu Hinweisen, die Stufe kommt aus dem Label severity.'
@@ -6042,6 +6043,11 @@ prometheus:
     summary: 'Beschreibung'
     since: 'Seit'
 heartbeat:
+  run:
+    up: 'ok'
+    down: 'fehlgeschlagen'
+    started: 'läuft'
+    paused: 'nicht gezählt'
   runs: 'Läufe'
   older: 'älter'
   newest: 'neuester Lauf'

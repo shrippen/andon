@@ -146,7 +146,7 @@ func TestDemoJidoka(t *testing.T) {
 		case b.Status == sources.HeartbeatPaused:
 			paused++
 		}
-		if b.Link == "" || b.Tool != "jidoka" {
+		if strings.Contains(b.Link, "localhost") || b.Tool != "jidoka" {
 			t.Fatalf("beat %+v", b)
 		}
 	}

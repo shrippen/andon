@@ -15,7 +15,8 @@ const (
 
 // Traits are what a service offers besides shared domains.
 type Traits struct {
-	Webhooks    bool   // fed by webhooks instead of polling (hooks.Accepts)
+	Webhooks    bool   // takes webhooks (hooks.Accepts)
+	Polled      bool   // with Webhooks: Andon also queries it, so its address stays required
 	Restore     bool   // keeps backups that deserve a restore test
 	SignIn      SignIn // at best; connect.MethodOf narrows it by address and options
 	OAuthClient bool   // sign-in needs a registered OAuth client first
@@ -29,7 +30,7 @@ var traits = []struct {
 	{enums.ServiceBorgBackup, Traits{Restore: true}},
 	{enums.ServicePGBackWeb, Traits{Restore: true, Webhooks: true}},
 	{enums.ServiceHansei, Traits{Webhooks: true}},
-	{enums.ServiceJidoka, Traits{Webhooks: true}},
+	{enums.ServiceJidoka, Traits{Webhooks: true, Polled: true}},
 	{enums.ServiceTrueNAS, Traits{Restore: true}},
 	{enums.ServiceProxmox, Traits{Restore: true}},
 	{enums.ServiceHomeAssistant, Traits{SignIn: SignInRedirect}},
@@ -48,6 +49,13 @@ func TraitsOf(s enums.ServiceType) Traits {
 		}
 	}
 	return Traits{}
+}
+
+// PushOnly reports whether a service only reports by webhook: Andon
+// queries nothing, so its address is optional.
+func PushOnly(s enums.ServiceType) bool {
+	t := TraitsOf(s)
+	return t.Webhooks && !t.Polled
 }
 
 // Restorable lists the services whose backups deserve a restore test.

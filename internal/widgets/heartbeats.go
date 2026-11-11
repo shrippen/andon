@@ -137,7 +137,7 @@ func heartbeatsDetail(cfg HeartbeatsConfig, results map[string]any, _ ViewCtx) D
 	}
 	body.Blocks = append(body.Blocks, tails...)
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
-	return DetailView{Body: body}
+	return zoned(DetailView{Body: body}, clockZone())
 }
 
 // heartbeatPlan is when a check expects its pings: its cron line, or
@@ -165,13 +165,16 @@ func durationText(seconds int) string {
 	return strconv.Itoa(seconds/minute) + " min"
 }
 
-// heartbeatRunState is the strip state of a run; paused ones are "no data".
+// heartbeatRunState is the strip state of a run. One that is still
+// running or did not count has no result: "no data" (Kante's grey), its
+// tooltip says which.
 var heartbeatRunState = map[sources.HeartbeatState]string{
-	sources.HeartbeatUp: "ok", sources.HeartbeatDown: "bad", sources.HeartbeatStarted: "warn",
+	sources.HeartbeatUp: "ok", sources.HeartbeatDown: "bad",
 }
 
 // runStrips draws the runs of every job that has a history, oldest left.
-// A tooltip names the start (UTC) and a click opens the run.
+// A tooltip names the start (in the clock zone) and the state, a click
+// opens the run.
 func runStrips(beats []sources.Heartbeat) []Strip {
 	var out []Strip
 	for _, c := range beats {
@@ -185,7 +188,8 @@ func runStrips(beats []sources.Heartbeat) []Strip {
 				state = "off"
 			}
 			strip.States = append(strip.States, state)
-			strip.Titles = append(strip.Titles, r.At.UTC().Format("2006-01-02 15:04")+" UTC")
+			strip.Titles = append(strip.Titles, r.At.In(clockZone()).Format("2006-01-02 15:04"))
+			strip.Words = append(strip.Words, "heartbeat.run."+string(r.Status))
 			strip.Links = append(strip.Links, r.Link)
 		}
 		out = append(out, strip)

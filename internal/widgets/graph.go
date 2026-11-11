@@ -59,6 +59,9 @@ type Strip struct {
 
 	// Titles and Links, when set, hold one entry per state: the bar's
 	// tooltip and the page a click on it opens.
+	// Words, when set, name each bar's state as a catalog key in the
+	// tooltip, where the legend's wording does not fit (a run in progress).
 	Titles []string
 	Links  []string
+	Words  []string
 }

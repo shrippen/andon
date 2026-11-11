@@ -1250,6 +1250,7 @@ widget:
   unsupported: Does not fit the chosen connection.
 connection:
   secret_for_host: 'New server: enter the credential again or take the stored one along on purpose.'
+  url_needed: 'This service needs its address.'
   unknown_service: 'Andon does not know this service.'
   use_move: 'Another server: please use “Move”.'
   adopt_self: 'A connection cannot take over from itself.'
@@ -1540,7 +1541,7 @@ conn:
   options_hint_healthchecks: 'URL of healthchecks.io or your own instance, e.g. https://healthchecks.io. Token = the project''s API key; the read-only key is enough (project → settings → API access).'
   about_healthchecks: 'Cron jobs: heartbeats, outages'
   what_healthchecks: 'Healthchecks watches scheduled jobs: each job pings after its run; when the ping stays away, the job counts as down.'
-  options_hint_jidoka: 'URL of Jidoka, e.g. https://jidoka.example. Token = an API token with the right read (Jidoka: Access). Jobs, watches and their outcome become heartbeats; changes arrive at once through the webhook below.'
+  options_hint_jidoka: 'URL of Jidoka, e.g. https://jidoka.example. Token = an API token with the right read (Jidoka: Access). Jobs, watches and their outcome become heartbeats; a change drops the cache at once through the webhook below, the hint follows with the next analysis run.'
   about_jidoka: 'Cron scripts: jobs, watches, outages'
   what_jidoka: 'Jidoka runs small scripts on a schedule and watches pings of other jobs; Andon shows them as heartbeats and warns when one fails, stays away or Jidoka itself cannot send.'
   options_hint_prometheus: 'URL of the Prometheus server, e.g. http://prometheus:9090. Leave the token empty without login; otherwise a bearer token or user:password for basic auth (e.g. behind a proxy). Firing alerts become hints, their level from the severity label.'
@@ -6041,6 +6042,11 @@ prometheus:
     summary: 'Description'
     since: 'Since'
 heartbeat:
+  run:
+    up: 'ok'
+    down: 'failed'
+    started: 'running'
+    paused: 'not counted'
   runs: 'Runs'
   older: 'older'
   newest: 'newest run'
