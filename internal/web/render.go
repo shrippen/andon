@@ -97,6 +97,7 @@ func mustParse() *template.Template {
 		"spanLen":     spanLen,
 		"isHex":       isHex,
 		"stripPaths":  stripPaths,
+		"stripBars":   stripBars,
 		"sparkPath":   sparkPath,
 		"trendPath":   trendPath,
 		"msChartOf":   msChartOf,

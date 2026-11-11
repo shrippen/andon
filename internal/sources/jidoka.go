@@ -48,6 +48,12 @@ const (
 	jidokaInvalid  = "invalid"
 )
 
+// jidokaRun maps a run's state; aborted and skipped runs did not count.
+var jidokaRun = map[string]HeartbeatState{
+	jidokaOK: HeartbeatUp, jidokaFail: HeartbeatDown, jidokaTimeout: HeartbeatDown,
+	jidokaRunning: HeartbeatStarted, "aborted": HeartbeatPaused, "skipped": HeartbeatPaused,
+}
+
 // jidokaBeat maps a Jidoka state to the heartbeat state and the reason
 // it is down; invalid jobs are no heartbeat (they were not loaded).
 var jidokaBeat = map[string]struct {
@@ -149,7 +155,19 @@ func (in *JidokaInstance) addJob(j map[string]any, sctx Ctx) {
 	last := asMap(j["last"])
 	b := Heartbeat{Name: asStr(j["name"]), Status: beat.state, Reason: beat.reason, Summary: asStr(j["summary"]),
 		Link: asStr(j["url"]), Tool: string(enums.ServiceJidoka), ConnID: sctx.ConnID, Tail: asStr(j["tail"]),
-		LastPing: parseTime(cmpTime(last["end"], last["start"])), NextPing: parseTime(j["next"])}
+		LastPing: parseTime(cmpTime(last["end"], last["start"])), NextPing: parseTime(j["next"]),
+		Schedule: asStr(j["schedule"])}
+	for _, t := range asList(j["tags"]) {
+		b.Tags = append(b.Tags, asStr(t))
+	}
+	for _, item := range asList(j["history"]) {
+		r := asMap(item)
+		run := HeartbeatRun{Status: jidokaRun[asStr(r["state"])], At: parseTime(r["start"])}
+		if id := asInt64(r["id"]); id != 0 {
+			run.Link = jidokaRunURL(b.Link, id)
+		}
+		b.History = append(b.History, run)
+	}
 	if id := asInt64(last["id"]); id != 0 {
 		b.RunLink = jidokaRunURL(b.Link, id)
 	}

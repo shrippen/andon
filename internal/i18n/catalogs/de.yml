@@ -6042,6 +6042,9 @@ prometheus:
     summary: 'Beschreibung'
     since: 'Seit'
 heartbeat:
+  runs: 'Läufe'
+  older: 'älter'
+  newest: 'neuester Lauf'
   up: 'melden sich'
   never: 'nie gemeldet'
   checks: 'Checks'

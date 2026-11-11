@@ -6041,6 +6041,9 @@ prometheus:
     summary: 'Description'
     since: 'Since'
 heartbeat:
+  runs: 'Runs'
+  older: 'older'
+  newest: 'newest run'
   up: 'reporting'
   never: 'never pinged'
   checks: 'Checks'

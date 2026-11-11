@@ -40,3 +40,17 @@ func TestHeartbeatsDetailJidoka(t *testing.T) {
 		t.Fatalf("blocks %+v", body.Blocks)
 	}
 }
+
+// TestRunStrips: a job's runs become bars, oldest first, each with a
+// tooltip and its run page; jobs without history draw nothing.
+func TestRunStrips(t *testing.T) {
+	at := time.Date(2026, 11, 2, 1, 5, 0, 0, time.UTC)
+	got := runStrips([]sources.Heartbeat{
+		{Name: "a", Status: sources.HeartbeatDown, History: []sources.HeartbeatRun{
+			{Status: sources.HeartbeatUp, At: at, Link: "https://j/runs/1"}, {Status: sources.HeartbeatDown, At: at}, {Status: sources.HeartbeatPaused, At: at}}},
+		{Name: "b"}})
+	if len(got) != 1 || len(got[0].States) != 3 || got[0].States[0] != "ok" || got[0].States[1] != "bad" || got[0].States[2] != "off" ||
+		got[0].Titles[0] != "2026-11-02 01:05 UTC" || got[0].Links[0] != "https://j/runs/1" {
+		t.Fatalf("strips %+v", got)
+	}
+}

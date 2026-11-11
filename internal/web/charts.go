@@ -264,6 +264,26 @@ func stripPaths(states []string) []statePath {
 	return out
 }
 
+// stripBar is one bar of a strip with its tooltip and link.
+type stripBar struct{ State, D, Title, Href string }
+
+// stripBars draws a strip bar by bar, for strips whose runs have a
+// tooltip or a page: same columns as stripPaths.
+func stripBars(s widgets.Strip) []stripBar {
+	out := make([]stripBar, 0, len(s.States))
+	for i, st := range s.States {
+		b := stripBar{State: st, D: "M" + fmtF(float64(i)+.1) + " 0h.8v1h-.8z"}
+		if i < len(s.Titles) {
+			b.Title = s.Titles[i]
+		}
+		if i < len(s.Links) {
+			b.Href = s.Links[i]
+		}
+		out = append(out, b)
+	}
+	return out
+}
+
 // stripStates lists the states strips use, in stripOrder (their legend).
 func stripStates(strips []widgets.Strip) []string {
 	used := map[string]bool{}

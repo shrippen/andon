@@ -131,6 +131,10 @@ func heartbeatsDetail(cfg HeartbeatsConfig, results map[string]any, _ ViewCtx) D
 			Head: []Text{T("heartbeat.col.name"), T("heartbeat.col.state"), T("heartbeat.col.last"), T("heartbeat.col.plan"), T("heartbeat.col.tags")},
 			Rows: rows}}},
 	}
+	if strips := runStrips(taggedChecks(sources.HeartbeatsOf(results), cfg.Tags)); len(strips) > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockStrips, Label: T("heartbeat.runs"), Meta: len(strips), Data: strips,
+			Ticks: []any{Txt("heartbeat.older"), Txt("heartbeat.newest")}})
+	}
 	body.Blocks = append(body.Blocks, tails...)
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Body: body}
@@ -159,4 +163,32 @@ func durationText(seconds int) string {
 		return strconv.Itoa(seconds/hour) + " h"
 	}
 	return strconv.Itoa(seconds/minute) + " min"
+}
+
+// heartbeatRunState is the strip state of a run; paused ones are "no data".
+var heartbeatRunState = map[sources.HeartbeatState]string{
+	sources.HeartbeatUp: "ok", sources.HeartbeatDown: "bad", sources.HeartbeatStarted: "warn",
+}
+
+// runStrips draws the runs of every job that has a history, oldest left.
+// A tooltip names the start (UTC) and a click opens the run.
+func runStrips(beats []sources.Heartbeat) []Strip {
+	var out []Strip
+	for _, c := range beats {
+		if len(c.History) == 0 {
+			continue
+		}
+		strip := Strip{Name: c.Name, Value: Txt("heartbeat.state." + string(c.Status))}
+		for _, r := range c.History {
+			state, ok := heartbeatRunState[r.Status]
+			if !ok {
+				state = "off"
+			}
+			strip.States = append(strip.States, state)
+			strip.Titles = append(strip.Titles, r.At.UTC().Format("2006-01-02 15:04")+" UTC")
+			strip.Links = append(strip.Links, r.Link)
+		}
+		out = append(out, strip)
+	}
+	return out
 }

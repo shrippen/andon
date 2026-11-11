@@ -56,4 +56,9 @@ type Strip struct {
 	Name   string
 	States []string
 	Value  any // text or typed value
+
+	// Titles and Links, when set, hold one entry per state: the bar's
+	// tooltip and the page a click on it opens.
+	Titles []string
+	Links  []string
 }

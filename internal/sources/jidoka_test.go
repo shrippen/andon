@@ -36,7 +36,9 @@ func jidokaServer(t *testing.T, n int, jobCalls *atomic.Int32) *httptest.Server 
 				}
 				jobs = append(jobs, fmt.Sprintf(`{"id":"j%d","name":"job %d","kind":"job","state":%q,"reason":%s,"summary":"s%d",`+
 					`"last":{"id":%d,"state":%q,"start":"2026-11-02T01:00:00Z","end":"2026-11-02T01:00:05Z"},"next":"2026-11-03T01:00:00Z",`+
-					`"tail":"line","url":"https://jidoka.example/jobs/j%d"}`, i, i, state, reason, i, i+100, state, i))
+					`"tail":"line","url":"https://jidoka.example/jobs/j%d","tags":["nas","night"],"schedule":"0 2 * * *",`+
+					`"history":[{"id":%d,"state":"ok","start":"2026-11-01T01:00:00Z","end":null},{"id":%d,"state":%q,"start":"2026-11-02T01:00:00Z","end":null}]}`,
+					i, i, state, reason, i, i+100, state, i, i+50, i+100, state))
 			}
 			jobs = append(jobs, `{"id":"bad","name":"broken","kind":"job","state":"invalid","reason":null,"summary":"","last":null,"next":null,"tail":"","url":""}`)
 			w.Write([]byte(`{"jobs":[` + strings.Join(jobs, ",") + `],"total":` + fmt.Sprint(n+1) + `}`))
@@ -96,6 +98,13 @@ func TestJidokaHeartbeat(t *testing.T) {
 		bad.Link != "https://jidoka.example/jobs/j9" || bad.RunLink != "https://jidoka.example/runs/109" ||
 		!bad.LastPing.Equal(time.Date(2026, 11, 2, 1, 0, 5, 0, time.UTC)) {
 		t.Fatalf("bad %+v", bad)
+	}
+	if len(bad.Tags) != 2 || bad.Tags[1] != "night" || bad.Schedule != "0 2 * * *" {
+		t.Fatalf("tags %v schedule %q", bad.Tags, bad.Schedule)
+	}
+	if len(bad.History) != 2 || bad.History[0].Status != sources.HeartbeatUp || bad.History[1].Status != sources.HeartbeatDown ||
+		bad.History[1].Link != "https://jidoka.example/runs/109" {
+		t.Fatalf("history %+v", bad.History)
 	}
 }
 
