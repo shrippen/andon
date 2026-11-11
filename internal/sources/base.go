@@ -28,6 +28,7 @@ func newSourceError(format string, args ...any) SourceError {
 // Ctx is what a source needs to run one fetch: the connection's own
 // settings plus per-call parameters (e.g. an RSS feed's URL and limit).
 type Ctx struct {
+	ConnID    int64 // the connection the data is fetched for, 0 none
 	URL       string
 	Secret    string
 	VerifyTLS bool

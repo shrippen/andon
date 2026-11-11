@@ -50,9 +50,13 @@ func Sync(q db.Queryer, spaceID int64, userID *int64, connID *int64, ruleIDs []s
 
 	for _, item := range findings {
 		// Two connections of one service in a space must not share fingerprints.
+		own := connID
+		if item.ConnID != 0 {
+			own = &item.ConnID
+		}
 		fingerprint := item.Fingerprint
-		if connID != nil {
-			fingerprint = fmt.Sprintf("%d:%s", *connID, item.Fingerprint)
+		if own != nil {
+			fingerprint = fmt.Sprintf("%d:%s", *own, item.Fingerprint)
 		}
 		seen[fingerprint] = true
 
@@ -62,7 +66,7 @@ func Sync(q db.Queryer, spaceID int64, userID *int64, connID *int64, ruleIDs []s
 		}
 		if hint == nil {
 			hint = &model.Hint{SpaceID: spaceID, UserID: userID, Fingerprint: fingerprint, FirstSeen: now}
-			fill(hint, item, connID, now)
+			fill(hint, item, own, now)
 			if err := data.AddHint(q, hint); err != nil {
 				return 0, err
 			}
@@ -85,7 +89,7 @@ func Sync(q db.Queryer, spaceID int64, userID *int64, connID *int64, ruleIDs []s
 			fresh++
 		}
 		wasCritical := hint.Severity == enums.SeverityCritical
-		fill(hint, item, connID, now)
+		fill(hint, item, own, now)
 		if overdue(hint, item, now) {
 			hint.Severity = enums.SeverityCritical
 			if !wasCritical {

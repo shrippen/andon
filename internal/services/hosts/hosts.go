@@ -142,7 +142,7 @@ func collect(ctx context.Context, d *sql.DB, who *access.Principal) (map[string]
 	var kuma []*sources.KumaDataset
 	var certs []*sources.CertDataset
 	var proms []*sources.PrometheusDataset
-	var beats []*sources.HealthchecksDataset
+	var beats []sources.Heartbeat
 	var nvd *sources.NVDDataset
 	running := map[string]any{} // Docker and Gitea datasets, for the images in use
 	for _, c := range conns {
@@ -157,8 +157,8 @@ func collect(ctx context.Context, d *sql.DB, who *access.Principal) (map[string]
 			certs = append(certs, data)
 		case *sources.PrometheusDataset:
 			proms = append(proms, data)
-		case *sources.HealthchecksDataset:
-			beats = append(beats, data)
+		case sources.HeartbeatSource:
+			beats = append(beats, data.Heartbeats()...)
 		case *sources.NVDDataset:
 			nvd = data
 		case *sources.DockerDataset, *sources.GiteaDataset:
@@ -299,19 +299,17 @@ func addAlerts(out map[string]*Host, proms []*sources.PrometheusDataset) {
 
 // addBeats puts each check on the hosts whose first label is one of its
 // tags: tag "nas" → nas.lan.
-func addBeats(out map[string]*Host, beats []*sources.HealthchecksDataset) {
+func addBeats(out map[string]*Host, beats []sources.Heartbeat) {
 	for name, h := range out {
 		label, _, _ := strings.Cut(name, ".")
-		for _, data := range beats {
-			for _, c := range data.Checks {
-				if !slices.ContainsFunc(c.Tags, func(t string) bool { return strings.EqualFold(t, label) }) {
-					continue
-				}
-				if c.Status == sources.HeartbeatDown {
-					h.Problems++
-				}
-				h.Beats = append(h.Beats, c)
+		for _, c := range beats {
+			if !slices.ContainsFunc(c.Tags, func(t string) bool { return strings.EqualFold(t, label) }) {
+				continue
 			}
+			if c.Status == sources.HeartbeatDown {
+				h.Problems++
+			}
+			h.Beats = append(h.Beats, c)
 		}
 	}
 }

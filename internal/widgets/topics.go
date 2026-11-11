@@ -40,6 +40,7 @@ var starterPick = map[enums.ServiceType]string{
 	enums.ServiceInvoiceNinja: "invoice_aging",
 	enums.ServiceGlances:      "sysinfo",
 	enums.ServiceSpeedtest:    "speedtest",
+	enums.ServiceHealthchecks: "heartbeats",
 }
 
 // noStarter lists service types that show nothing without setup first.

@@ -218,8 +218,9 @@ func startsFixed(service enums.ServiceType, spaces []access.SpaceRef, chosen int
 // widgetsFor lists the widget types that show a service's data.
 func widgetsFor(service enums.ServiceType) []widgets.WidgetType {
 	var out []widgets.WidgetType
+	starter, _ := widgets.Starter(service) // a starter without own service, e.g. heartbeats
 	for _, kind := range widgets.AllTypes() {
-		if kind.Service == service {
+		if kind.Service == service || kind.Key == starter {
 			out = append(out, kind)
 		}
 	}

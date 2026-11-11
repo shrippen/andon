@@ -198,7 +198,7 @@
 {{define "aging_band"}}{{if eq .Key "current"}}{{t "aging.current"}}{{else if .Over}}{{t "aging.over" "days" .Over}}{{else}}{{t "aging.span" "from" .From "to" .To}}{{end}}{{end}}
 
 {{define "widgets/heartbeats"}}
-{{with $slot := index .Frag.Slots "data"}}{{template "widget-slot-state" $slot}}{{end}}
+{{range $slot := .Frag.Slots}}{{if ne $slot.Error "connection.missing"}}{{template "widget-slot-state" $slot}}{{end}}{{end}}
 {{with $v := .Frag.View}}{{if $v.Total}}
 <div class="tile-head"><b class="tile-value" data-live>{{$v.Up}} / {{$v.Total}}</b><span class="tile-note">{{t "heartbeat.up"}}</span></div>
 {{with $v.Lines}}<ul class="plain-list">

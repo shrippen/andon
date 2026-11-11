@@ -2421,6 +2421,9 @@ hint:
     down:
       title: 'Heartbeat missing: {name}'
       why: 'Last ping: {since}. The job did not run or no longer pings.'
+    failed:
+      title: 'Job failed: {name}'
+      why: 'Last ping: {since}. {summary}'
   dns:
     device_spike:
       title: '{device} queries unusually much'
