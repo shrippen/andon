@@ -2421,6 +2421,9 @@ hint:
     down:
       title: 'Herzschlag fehlt: {name}'
       why: 'Zuletzt gemeldet: {since}. Der Job lief nicht oder meldet sich nicht mehr.'
+    failed:
+      title: 'Job fehlgeschlagen: {name}'
+      why: 'Zuletzt gemeldet: {since}. {summary}'
   dns:
     device_spike:
       title: '{device} fragt ungewöhnlich viel'

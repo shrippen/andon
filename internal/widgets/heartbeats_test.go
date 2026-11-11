@@ -10,7 +10,7 @@ import (
 // TestHeartbeatsView: paused checks count neither way; problems come
 // first and alone with only_problems; a tag filter keeps its checks.
 func TestHeartbeatsView(t *testing.T) {
-	data := sources.DemoHealthchecks(time.Now())
+	data := map[string]any{"healthchecks": sources.DemoHealthchecks(time.Now())}
 	v := heartbeatsView(HeartbeatsConfig{OnlyProblems: true}, data, ViewCtx{})
 	lines := v["Lines"].([]HeartbeatLine)
 	if v["Total"] != 5 || v["Up"] != 3 || len(lines) != 2 || lines[0].Status != sources.HeartbeatDown || lines[0].Pill != "failed" {

@@ -222,9 +222,10 @@ func PrometheusInfo(data *sources.PrometheusDataset) []InfoPart {
 }
 
 // HealthchecksInfo: "4 / 5 checks · 1 down".
-func HealthchecksInfo(data *sources.HealthchecksDataset) []InfoPart {
+func HealthchecksInfo(data sources.HeartbeatSource) []InfoPart {
+	beats := data.Heartbeats()
 	up, total := 0, 0
-	for _, c := range data.Checks {
+	for _, c := range beats {
 		if c.Status == sources.HeartbeatPaused {
 			continue
 		}
@@ -234,7 +235,7 @@ func HealthchecksInfo(data *sources.HealthchecksDataset) []InfoPart {
 		}
 	}
 	found := []InfoPart{part("healthchecks.up", map[string]any{"up": up, "count": total})}
-	if down := len(data.Down()); down > 0 {
+	if down := len(sources.DownBeats(beats)); down > 0 {
 		found = append(found, part("healthchecks.down", map[string]any{"count": down}))
 	}
 	return found

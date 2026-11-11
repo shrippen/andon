@@ -1,6 +1,7 @@
 package widgets
 
-// "heartbeats": the Healthchecks checks, problems first. The tile counts
+// "heartbeats": the jobs of every heartbeat tool of the space
+// (sources.HeartbeatSource, e.g. Healthchecks), problems first. The tile counts
 // the healthy ones and names those down or late; the dialog lists every
 // check with its last ping and the hints, including a check that
 // disagrees with the backup it watches (cross.heartbeat_backup).
@@ -11,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	"andon/internal/enums"
 	"andon/internal/sources"
 )
 
@@ -22,14 +22,22 @@ type HeartbeatsConfig struct {
 }
 
 func init() {
-	Tile[HeartbeatsConfig]{Key: "heartbeats", Detail: dataDetail(heartbeatsDetail), Category: CategoryInsight, Topic: TopicHomelab,
-		Service: enums.ServiceHealthchecks, RefreshS: 300,
-		Fields: []Field{{Key: "tags", Input: InputList}, {Key: "only_problems", Input: InputCheck, Default: true}},
+	Tile[HeartbeatsConfig]{Key: "heartbeats", Detail: heartbeatsDetail, Category: CategoryInsight, Topic: TopicHomelab,
+		RefreshS: 300,
+		Fields:   []Field{{Key: "tags", Input: InputList}, {Key: "only_problems", Input: InputCheck, Default: true}},
 		Decode: func(r Raw) HeartbeatsConfig {
 			return HeartbeatsConfig{Tags: r.Lower("tags"), OnlyProblems: r.Bool("only_problems")}
 		},
-		Queries: ownData[HeartbeatsConfig], View: dataView(heartbeatsView),
+		Queries: heartbeatsQueries, View: heartbeatsView,
 		Calm: func(v map[string]any) bool { return v["Total"] != nil && v["Total"] != 0 && v["Up"] == v["Total"] }}.add()
+}
+
+func heartbeatsQueries(HeartbeatsConfig) []Query {
+	var out []Query
+	for _, s := range sources.HeartbeatServices() {
+		out = append(out, Query{Name: string(s), Source: "data", Conn: ConnPeer, Service: s})
+	}
+	return out
 }
 
 // heartbeatPill is the Kante pill state of a check's status; paused and
@@ -59,9 +67,9 @@ func troubled(c sources.Heartbeat) bool {
 
 // taggedChecks keeps the checks with one of the tags (all without tags),
 // problems first, then by name.
-func taggedChecks(data *sources.HealthchecksDataset, tags []string) []sources.Heartbeat {
+func taggedChecks(all []sources.Heartbeat, tags []string) []sources.Heartbeat {
 	var out []sources.Heartbeat
-	for _, c := range data.Checks {
+	for _, c := range all {
 		if len(tags) > 0 && !slices.ContainsFunc(c.Tags, func(t string) bool { return slices.Contains(tags, strings.ToLower(t)) }) {
 			continue
 		}
@@ -81,10 +89,10 @@ func taggedChecks(data *sources.HealthchecksDataset, tags []string) []sources.He
 	return out
 }
 
-func heartbeatsView(cfg HeartbeatsConfig, data *sources.HealthchecksDataset, _ ViewCtx) map[string]any {
+func heartbeatsView(cfg HeartbeatsConfig, results map[string]any, _ ViewCtx) map[string]any {
 	up, total := 0, 0
 	var lines []HeartbeatLine
-	for _, c := range taggedChecks(data, cfg.Tags) {
+	for _, c := range taggedChecks(sources.HeartbeatsOf(results), cfg.Tags) {
 		if counted(c) {
 			total++
 		}
@@ -102,10 +110,10 @@ func heartbeatsView(cfg HeartbeatsConfig, data *sources.HealthchecksDataset, _ V
 // heartbeatState is the Kante state of a check in the dialog's table.
 var heartbeatState = map[sources.HeartbeatState]string{sources.HeartbeatDown: "bad", sources.HeartbeatGrace: "warn"}
 
-func heartbeatsDetail(cfg HeartbeatsConfig, data *sources.HealthchecksDataset, _ ViewCtx, results map[string]any) DetailView {
+func heartbeatsDetail(cfg HeartbeatsConfig, results map[string]any, _ ViewCtx) DetailView {
 	counts := map[sources.HeartbeatState]int{}
 	var rows [][]Cell
-	for _, c := range taggedChecks(data, cfg.Tags) {
+	for _, c := range taggedChecks(sources.HeartbeatsOf(results), cfg.Tags) {
 		counts[c.Status]++
 		rows = append(rows, []Cell{{Value: c.Name}, {Value: Txt("heartbeat.state." + string(c.Status)), State: heartbeatState[c.Status]},
 			{Value: agoOf(c.LastPing)}, {Value: heartbeatPlan(c)}, {Value: strings.Join(c.Tags, " ")}})

@@ -8,6 +8,8 @@ package sources
 
 import (
 	"context"
+	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -18,31 +20,6 @@ import (
 
 const hcChecks = "api/v3/checks/"
 
-// HeartbeatState is a check's status as Healthchecks names it.
-type HeartbeatState string
-
-const (
-	HeartbeatUp      HeartbeatState = "up"
-	HeartbeatDown    HeartbeatState = "down"
-	HeartbeatGrace   HeartbeatState = "grace"   // late, not down yet
-	HeartbeatPaused  HeartbeatState = "paused"  // switched off on purpose
-	HeartbeatNew     HeartbeatState = "new"     // never pinged
-	HeartbeatStarted HeartbeatState = "started" // a run is going on
-)
-
-// Heartbeat is one check.
-type Heartbeat struct {
-	Name     string
-	Tags     []string
-	Status   HeartbeatState
-	LastPing time.Time // zero = never
-	NextPing time.Time // zero = unknown (cron checks) or paused
-	Grace    int       // seconds a ping may be late
-	Schedule string    // cron expression, "" for period checks
-	Timeout  int       // seconds between pings of a period check
-	Pings    int
-}
-
 // HealthchecksDataset is every check the key sees.
 type HealthchecksDataset struct {
 	URL    string
@@ -50,6 +27,9 @@ type HealthchecksDataset struct {
 }
 
 var HealthchecksData = source{key: "healthchecks.data", ttl: dataTTL, service: enums.ServiceHealthchecks, fetch: fetchHealthchecks}
+
+// hcDetails is the path of a check's page in the Healthchecks UI.
+const hcDetails = "checks/%s/details/"
 
 func fetchHealthchecks(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
@@ -66,27 +46,52 @@ func fetchHealthchecks(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	data := &HealthchecksDataset{URL: sctx.URL}
 	for _, item := range asList(asMap(raw)["checks"]) {
-		data.Checks = append(data.Checks, heartbeatOf(asMap(item)))
+		data.Checks = append(data.Checks, heartbeatOf(asMap(item), sctx.URL))
 	}
 	return data, nil
 }
 
-func heartbeatOf(c map[string]any) Heartbeat {
-	return Heartbeat{Name: asStr(c["name"]), Tags: strings.Fields(asStr(c["tags"])), Status: HeartbeatState(asStr(c["status"])),
+// heartbeatOf reads a check. The API cannot tell a failure signal from
+// a missing ping, so a down or late check counts as missed. The link
+// goes to the check's page when the key sees its uuid (read-write keys),
+// else to the instance.
+func heartbeatOf(c map[string]any, base string) Heartbeat {
+	b := Heartbeat{Name: asStr(c["name"]), Tags: strings.Fields(asStr(c["tags"])), Status: HeartbeatState(asStr(c["status"])),
 		LastPing: parseTime(c["last_ping"]), NextPing: parseTime(c["next_ping"]), Grace: int(asFloat(c["grace"])),
-		Schedule: asStr(c["schedule"]), Timeout: int(asFloat(c["timeout"])), Pings: int(asFloat(c["n_pings"]))}
+		Schedule: asStr(c["schedule"]), Timeout: int(asFloat(c["timeout"])), Pings: int(asFloat(c["n_pings"])),
+		Tool: string(enums.ServiceHealthchecks), Link: base}
+	b.Reason = hcReason(b.Status)
+	if uuid := asStr(c["uuid"]); uuid != "" {
+		b.Link = strings.TrimRight(base, "/") + "/" + fmt.Sprintf(hcDetails, uuid)
+	}
+	return b
+}
+
+// hcReason: a down or late check missed its ping.
+func hcReason(s HeartbeatState) HeartbeatReason {
+	if s == HeartbeatDown || s == HeartbeatGrace {
+		return HeartbeatMissed
+	}
+	return HeartbeatNoReason
+}
+
+func (d *HealthchecksDataset) Heartbeats() []Heartbeat {
+	if d == nil {
+		return nil
+	}
+	return d.Checks
+}
+
+func (d *HealthchecksDataset) Merge(o any) any {
+	x, ok := o.(*HealthchecksDataset)
+	if !ok {
+		return d
+	}
+	return &HealthchecksDataset{URL: d.URL, Checks: slices.Concat(d.Checks, x.Checks)}
 }
 
 // Down lists the checks that are down.
-func (d *HealthchecksDataset) Down() []Heartbeat {
-	var out []Heartbeat
-	for _, c := range d.Checks {
-		if c.Status == HeartbeatDown {
-			out = append(out, c)
-		}
-	}
-	return out
-}
+func (d *HealthchecksDataset) Down() []Heartbeat { return DownBeats(d.Checks) }
 
 // DemoHealthchecks is Studio Weber's checks.
 func DemoHealthchecks(now time.Time) *HealthchecksDataset {
@@ -102,12 +107,16 @@ func DemoHealthchecks(now time.Time) *HealthchecksDataset {
 	for _, c := range p.Checks {
 		h := c.Heartbeat
 		h.Tags = strings.Fields(c.Tags)
+		h.Tool = string(enums.ServiceHealthchecks)
+		h.Link = p.URL
+		h.Reason = hcReason(h.Status)
 		data.Checks = append(data.Checks, h)
 	}
 	return data
 }
 
 func init() {
+	registerHeartbeat(enums.ServiceHealthchecks)
 	Register(HealthchecksData)
 	Register(testOf{HealthchecksData, func(d any) map[string]any {
 		data := d.(*HealthchecksDataset)
