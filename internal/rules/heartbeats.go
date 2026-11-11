@@ -26,7 +26,7 @@ const minItemName = 3
 
 func init() {
 	Register("heartbeat.down", Cross, nil, heartbeatDown)
-	Needs("heartbeat.down", healthchecksSvc)
+	Needs("heartbeat.down", healthchecksSvc, jidokaSvc)
 	Register("cross.heartbeat_backup", Cross, map[string]any{"backup_hours": 26.0}, heartbeatBackup)
 }
 

@@ -70,6 +70,7 @@ action:
   open_in_github: 'Open in GitHub'
   open_in_kdestore: 'Open in KDE Store'
   open_in_healthchecks: 'Open in Healthchecks'
+  open_in_jidoka: 'Open in Jidoka'
   open_in_prometheus: 'Open in Prometheus'
   open_in_nvd: 'Open in the NVD'
   open_in_drone: 'Open in Drone'
@@ -1539,6 +1540,9 @@ conn:
   options_hint_healthchecks: 'URL of healthchecks.io or your own instance, e.g. https://healthchecks.io. Token = the project''s API key; the read-only key is enough (project → settings → API access).'
   about_healthchecks: 'Cron jobs: heartbeats, outages'
   what_healthchecks: 'Healthchecks watches scheduled jobs: each job pings after its run; when the ping stays away, the job counts as down.'
+  options_hint_jidoka: 'URL of Jidoka, e.g. https://jidoka.example. Token = an API token with the right read (Jidoka: Access). Jobs, watches and their outcome become heartbeats; changes arrive at once through the webhook below.'
+  about_jidoka: 'Cron scripts: jobs, watches, outages'
+  what_jidoka: 'Jidoka runs small scripts on a schedule and watches pings of other jobs; Andon shows them as heartbeats and warns when one fails, stays away or Jidoka itself cannot send.'
   options_hint_prometheus: 'URL of the Prometheus server, e.g. http://prometheus:9090. Leave the token empty without login; otherwise a bearer token or user:password for basic auth (e.g. behind a proxy). Firing alerts become hints, their level from the severity label.'
   about_prometheus: 'Alerts as hints, PromQL values'
   what_prometheus: 'Prometheus collects metrics (e.g. via node_exporter) and fires alerts by its rules.'
@@ -1804,6 +1808,7 @@ conn:
   hook_rotate: Generate new URL
   hook_rotate_confirm: 'The current URL stops working at once. Enter the new URL in the service afterwards.'
   hook_hint_hansei: 'Enter it in Hansei as its webhook address. Keep the URL secret.'
+  hook_hint_jidoka: 'Enter it in Jidoka as the secret ANDON_HOOK_URL; Jidoka then reports each state change at once. Keep the URL secret.'
   hook_local: 'The address starts with localhost: a service on another host would call itself. Set BASE_URL to an address where that host reaches Andon.'
   url_hooked_hint: 'Only for the “Open” link. Andon queries nothing here: the service reports by webhook, its address shows on the overview after saving.'
   options_hint_linkwarden: 'collections: [Homelab, Tools] – collections compared with this space''s link tiles (empty = all). Token = access token (settings → access tokens).'
@@ -1886,6 +1891,7 @@ service:
   github: 'GitHub'
   kdestore: 'KDE Store'
   healthchecks: 'Healthchecks'
+  jidoka: 'Jidoka'
   prometheus: 'Prometheus'
   nvd: 'CVE (NVD)'
   drone: 'Drone CI'
@@ -2424,6 +2430,13 @@ hint:
     failed:
       title: 'Job failed: {name}'
       why: 'Last ping: {since}. {summary}'
+  jidoka:
+    invalid:
+      title: '{count} Jidoka job files not loaded'
+      why: 'These do not run: {names}. Fix the files in the jobs repository and reload.'
+    channel_down:
+      title: 'Jidoka channel down: {channel}'
+      why: 'Failing since {since}. Jidoka cannot send messages through it.'
   dns:
     device_spike:
       title: '{device} queries unusually much'
@@ -3673,6 +3686,8 @@ rule_name:
   cross.image_cve: 'Vulnerability in a running image'
   prometheus.alert: 'Prometheus alert'
   heartbeat.down: 'Heartbeat missing'
+  jidoka.invalid: 'Jidoka jobs not loaded'
+  jidoka.channel_down: 'Jidoka channel down'
   cross.heartbeat_backup: 'Heartbeat against backup'
   system.partner_ambiguous: Bundle missing
   system.connector_down: Connection failing

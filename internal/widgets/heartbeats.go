@@ -113,10 +113,14 @@ var heartbeatState = map[sources.HeartbeatState]string{sources.HeartbeatDown: "b
 func heartbeatsDetail(cfg HeartbeatsConfig, results map[string]any, _ ViewCtx) DetailView {
 	counts := map[sources.HeartbeatState]int{}
 	var rows [][]Cell
+	var tails []Block // the output of a job's last run, where it went wrong
 	for _, c := range taggedChecks(sources.HeartbeatsOf(results), cfg.Tags) {
 		counts[c.Status]++
-		rows = append(rows, []Cell{{Value: c.Name}, {Value: Txt("heartbeat.state." + string(c.Status)), State: heartbeatState[c.Status]},
-			{Value: agoOf(c.LastPing)}, {Value: heartbeatPlan(c)}, {Value: strings.Join(c.Tags, " ")}})
+		rows = append(rows, []Cell{{Value: c.Name, Href: c.Link}, {Value: Txt("heartbeat.state." + string(c.Status)), State: heartbeatState[c.Status]},
+			{Value: agoOf(c.LastPing), Href: c.RunLink}, {Value: heartbeatPlan(c)}, {Value: strings.Join(c.Tags, " ")}})
+		if troubled(c) && c.Tail != "" {
+			tails = append(tails, Block{Kind: BlockCode, Label: Plain(c.Name), Data: c.Tail})
+		}
 	}
 	body := &DetailBody{
 		Facts: []Kpi{{Value: counts[sources.HeartbeatUp] + counts[sources.HeartbeatStarted], Label: T("heartbeat.facts.up"), Tier: "green"},
@@ -127,6 +131,7 @@ func heartbeatsDetail(cfg HeartbeatsConfig, results map[string]any, _ ViewCtx) D
 			Head: []Text{T("heartbeat.col.name"), T("heartbeat.col.state"), T("heartbeat.col.last"), T("heartbeat.col.plan"), T("heartbeat.col.tags")},
 			Rows: rows}}},
 	}
+	body.Blocks = append(body.Blocks, tails...)
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
 	return DetailView{Body: body}
 }

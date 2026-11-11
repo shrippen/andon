@@ -44,6 +44,8 @@ type Heartbeat struct {
 	Reason   HeartbeatReason
 	Summary  string    // the tool's own words on it, "" none
 	Link     string    // the job's page in the tool, "" none
+	RunLink  string    // the last run's page, "" none
+	Tail     string    // end of the last run's output, "" none
 	Tool     string    // service key, e.g. "healthchecks"
 	ConnID   int64     // the connection it comes from, 0 unknown
 	LastPing time.Time // zero = never

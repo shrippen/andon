@@ -14,6 +14,7 @@ connections:
   - {id: github, type: github, name: GitHub, url: "demo://github", credentials: shared, options: {repos: [studio/website, studio/showreel]}}
   - {id: borg, type: borgbackup, name: Borg Backup, url: "demo://borg", credentials: shared}
   - {id: healthchecks, type: healthchecks, name: Healthchecks, url: "demo://healthchecks", credentials: shared}
+  - {id: jidoka, type: jidoka, name: Jidoka, url: "demo://jidoka", credentials: shared}
   - {id: prometheus, type: prometheus, name: Prometheus, url: "demo://prometheus", credentials: shared}
   - {id: nvd, type: nvd, name: NVD, url: "demo://nvd", credentials: shared}
   - {id: docker, type: docker, name: Docker, url: "demo://docker", credentials: shared}

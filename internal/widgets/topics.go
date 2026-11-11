@@ -41,6 +41,7 @@ var starterPick = map[enums.ServiceType]string{
 	enums.ServiceGlances:      "sysinfo",
 	enums.ServiceSpeedtest:    "speedtest",
 	enums.ServiceHealthchecks: "heartbeats",
+	enums.ServiceJidoka:       "heartbeats",
 }
 
 // noStarter lists service types that show nothing without setup first.
