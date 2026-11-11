@@ -3,6 +3,7 @@ package analysis_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -393,5 +394,39 @@ func TestTeamLoginRunsInTeamSpace(t *testing.T) {
 	}
 	if n := count(instance.ID); n != 0 {
 		t.Fatalf("instance got %d hints for a team's login", n)
+	}
+}
+
+// TestHeartbeatHintHangsOnConnection: a down check's hint belongs to the
+// Healthchecks connection it came from (badge, connection page) under the
+// fingerprint the per-connection rule used before it became a cross rule.
+func TestHeartbeatHintHangsOnConnection(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"checks":[{"name":"nightly","status":"down","last_ping":null}]}`))
+	}))
+	defer srv.Close()
+
+	d := openTestDB(t)
+	sid := addSpace(t, d)
+	conn := &model.Connection{
+		SpaceID: sid, Key: "hc", Name: "Healthchecks", Service: "healthchecks", URL: srv.URL,
+		CredentialMode: enums.CredentialShared, VerifyTLS: true, CreatedAt: time.Now().UTC(),
+		SecretEnc: encryptedSecret(t, "ro-key"),
+	}
+	if err := content.AddConnection(d, conn); err != nil {
+		t.Fatalf("add connection: %v", err)
+	}
+	if _, err := analysis.RunAll(context.Background(), d, time.Now().UTC()); err != nil {
+		t.Fatalf("run all: %v", err)
+	}
+
+	var connID sql.NullInt64
+	var fp string
+	err := d.QueryRow("SELECT connection_id, fingerprint FROM hints WHERE rule = 'heartbeat.down' AND resolved_at IS NULL").Scan(&connID, &fp)
+	if err != nil {
+		t.Fatalf("hint: %v", err)
+	}
+	if !connID.Valid || connID.Int64 != conn.ID || fp != fmt.Sprintf("%d:down:nightly", conn.ID) {
+		t.Fatalf("connection %+v, fingerprint %q", connID, fp)
 	}
 }

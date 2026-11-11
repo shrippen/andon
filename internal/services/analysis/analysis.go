@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"log/slog"
 	"maps"
+	"strconv"
 	"sync"
 	"time"
 
@@ -588,7 +589,7 @@ func applyAll(specs []rules.Spec, dataset any, envs []rules.Env) ([]rules.Findin
 			}
 		}
 		for _, f := range found {
-			key := f.Rule + "\x00" + f.Fingerprint
+			key := f.Rule + "\x00" + strconv.FormatInt(f.ConnID, 10) + "\x00" + f.Fingerprint
 			if !seen[key] {
 				seen[key] = true
 				findings = append(findings, f)

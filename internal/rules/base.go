@@ -47,6 +47,9 @@ type Finding struct {
 	ActionLabel string
 	Due         string
 	Sources     []string
+	// ConnID is the connection a cross rule's finding belongs to (its
+	// hint hangs there, badge and fingerprint included), 0 for none.
+	ConnID int64
 	// EscalateDays > 0 raises the hint to critical once it has been open
 	// that long (rule setting escalate_days, filled in by the analysis).
 	EscalateDays int

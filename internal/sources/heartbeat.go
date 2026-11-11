@@ -45,6 +45,7 @@ type Heartbeat struct {
 	Summary  string    // the tool's own words on it, "" none
 	Link     string    // the job's page in the tool, "" none
 	Tool     string    // service key, e.g. "healthchecks"
+	ConnID   int64     // the connection it comes from, 0 unknown
 	LastPing time.Time // zero = never
 	NextPing time.Time // zero = unknown (cron checks) or paused
 	Grace    int       // seconds a ping may be late

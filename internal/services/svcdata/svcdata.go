@@ -144,7 +144,7 @@ func buildCtx(q db.Queryer, conn *model.Connection, h model.Holder, params map[s
 	}
 
 	return sources.Ctx{
-		URL: conn.URL, Secret: secret, VerifyTLS: conn.VerifyTLS, Options: conn.Options, Params: params,
+		ConnID: conn.ID, URL: conn.URL, Secret: secret, VerifyTLS: conn.VerifyTLS, Options: conn.Options, Params: params,
 	}, nil
 }
 

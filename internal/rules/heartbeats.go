@@ -45,6 +45,7 @@ func heartbeatDown(_ any, _ map[string]any, env Env) []Finding {
 		}
 		f := svcFinding(c.Tool, "heartbeat.down", "down:"+c.Name, msg, enums.SeverityWarn,
 			c.Link, map[string]any{"name": c.Name, "since": agoParam(c.LastPing), "summary": c.Summary})
+		f.ConnID = c.ConnID
 		found = append(found, f)
 	}
 	return found

@@ -33,7 +33,11 @@ const hcDetails = "checks/%s/details/"
 
 func fetchHealthchecks(ctx context.Context, sctx Ctx) (any, error) {
 	if isDemo(sctx) {
-		return DemoHealthchecks(time.Now().UTC()), nil
+		data := DemoHealthchecks(time.Now().UTC())
+		for i := range data.Checks {
+			data.Checks[i].ConnID = sctx.ConnID
+		}
+		return data, nil
 	}
 	secret, err := needSecret(sctx)
 	if err != nil {
@@ -46,7 +50,7 @@ func fetchHealthchecks(ctx context.Context, sctx Ctx) (any, error) {
 	}
 	data := &HealthchecksDataset{URL: sctx.URL}
 	for _, item := range asList(asMap(raw)["checks"]) {
-		data.Checks = append(data.Checks, heartbeatOf(asMap(item), sctx.URL))
+		data.Checks = append(data.Checks, heartbeatOf(asMap(item), sctx))
 	}
 	return data, nil
 }
@@ -55,11 +59,12 @@ func fetchHealthchecks(ctx context.Context, sctx Ctx) (any, error) {
 // a missing ping, so a down or late check counts as missed. The link
 // goes to the check's page when the key sees its uuid (read-write keys),
 // else to the instance.
-func heartbeatOf(c map[string]any, base string) Heartbeat {
+func heartbeatOf(c map[string]any, sctx Ctx) Heartbeat {
+	base := sctx.URL
 	b := Heartbeat{Name: asStr(c["name"]), Tags: strings.Fields(asStr(c["tags"])), Status: HeartbeatState(asStr(c["status"])),
 		LastPing: parseTime(c["last_ping"]), NextPing: parseTime(c["next_ping"]), Grace: int(asFloat(c["grace"])),
 		Schedule: asStr(c["schedule"]), Timeout: int(asFloat(c["timeout"])), Pings: int(asFloat(c["n_pings"])),
-		Tool: string(enums.ServiceHealthchecks), Link: base}
+		Tool: string(enums.ServiceHealthchecks), Link: base, ConnID: sctx.ConnID}
 	b.Reason = hcReason(b.Status)
 	if uuid := asStr(c["uuid"]); uuid != "" {
 		b.Link = strings.TrimRight(base, "/") + "/" + fmt.Sprintf(hcDetails, uuid)
