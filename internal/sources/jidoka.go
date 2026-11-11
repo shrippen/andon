@@ -2,10 +2,10 @@ package sources
 
 // Jidoka (the sibling service for cron scripts and watches): every job
 // and watch becomes a Heartbeat, so the heartbeat tile and its rules read
-// it like Healthchecks. Two requests per fetch, however many jobs:
+// it like Healthchecks. One request per fetch, however many jobs:
 //
-//	GET api/v1/status   Bearer → {version, commit, invalid, channels: [{channel, down, since, last_ok}], …}
-//	GET api/v1/jobs     Bearer → {jobs: [{id, name, state, reason, summary, last, next, tail, url}], total}
+//	GET api/v1/jobs   Bearer → {jobs: [{id, name, state, reason, summary, last, next, tail, url, …}], total,
+//	                            status: {version, commit, invalid, channels: [{channel, down, since, last_ok}], …}}
 //
 // Jidoka pushes a state change to the connection's webhook
 // (hooks.Accepts), which drops the cache; the hint follows with the next
@@ -25,8 +25,7 @@ import (
 )
 
 const (
-	jidokaStatusPath = "api/v1/status"
-	jidokaJobsPath   = "api/v1/jobs"
+	jidokaJobsPath = "api/v1/jobs"
 
 	// jidokaJobLimit is the most jobs one request lists (Jidoka's page maximum).
 	jidokaJobLimit = 500
@@ -114,18 +113,15 @@ func fetchJidoka(ctx context.Context, sctx Ctx) (any, error) {
 	}
 
 	api := services.BearerApi(sctx.URL, secret, sctx.TLS())
-	status, err := api.Get(ctx, jidokaStatusPath, nil)
-	if err != nil {
-		return nil, fetchError(err)
-	}
-	jobs, err := api.Get(ctx, jidokaJobsPath, url.Values{"limit": {strconv.Itoa(jidokaJobLimit)}})
+	body, err := api.Get(ctx, jidokaJobsPath, url.Values{"limit": {strconv.Itoa(jidokaJobLimit)}})
 	if err != nil {
 		return nil, fetchError(err)
 	}
 
-	in := jidokaStatus(asMap(status))
+	list := asMap(body)
+	in := jidokaStatus(asMap(list["status"]))
 	in.ConnID, in.URL = sctx.ConnID, sctx.URL
-	for _, item := range asList(asMap(jobs)["jobs"]) {
+	for _, item := range asList(list["jobs"]) {
 		in.addJob(asMap(item), sctx)
 	}
 	return &JidokaDataset{Instances: []JidokaInstance{in}}, nil

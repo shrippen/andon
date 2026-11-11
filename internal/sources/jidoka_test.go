@@ -14,20 +14,17 @@ import (
 )
 
 // jidokaServer answers like Jidoka's API with n jobs (every tenth one
-// failed) and counts the calls to the job list.
-func jidokaServer(t *testing.T, n int, jobCalls *atomic.Int32) *httptest.Server {
+// failed) and counts every call to it (any path).
+func jidokaServer(t *testing.T, n int, calls *atomic.Int32) *httptest.Server {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer tok" || r.URL.Query().Get("token") != "" {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
+		calls.Add(1)
 		switch r.URL.Path {
-		case "/api/v1/status":
-			w.Write([]byte(`{"version":"1.0","commit":"abc","reloaded_at":null,"invalid":1,` +
-				`"channels":[{"channel":"mail","down":true,"since":"2026-11-01T08:00:00Z","last_ok":null}],"last_tick":null}`))
 		case "/api/v1/jobs":
-			jobCalls.Add(1)
 			var jobs []string
 			for i := 0; i < n; i++ {
 				state, reason := "ok", "null"
@@ -41,7 +38,9 @@ func jidokaServer(t *testing.T, n int, jobCalls *atomic.Int32) *httptest.Server 
 					i, i, state, reason, i, i+100, state, i, i+50, i+100, state))
 			}
 			jobs = append(jobs, `{"id":"bad","name":"broken","kind":"job","state":"invalid","reason":null,"summary":"","last":null,"next":null,"tail":"","url":""}`)
-			w.Write([]byte(`{"jobs":[` + strings.Join(jobs, ",") + `],"total":` + fmt.Sprint(n+1) + `}`))
+			status := `{"version":"1.0","commit":"abc","reloaded_at":null,"invalid":1,` +
+				`"channels":[{"channel":"mail","down":true,"since":"2026-11-01T08:00:00Z","last_ok":null}],"last_tick":null}`
+			w.Write([]byte(`{"jobs":[` + strings.Join(jobs, ",") + `],"total":` + fmt.Sprint(n+1) + `,"status":` + status + `}`))
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -63,7 +62,7 @@ func TestJidokaOneJobRequest(t *testing.T) {
 			t.Fatalf("%d jobs: %v", n, err)
 		}
 		if calls.Load() != 1 {
-			t.Fatalf("%d jobs: %d requests to /jobs", n, calls.Load())
+			t.Fatalf("%d jobs: %d requests to Jidoka", n, calls.Load())
 		}
 
 		data := raw.(*sources.JidokaDataset)
