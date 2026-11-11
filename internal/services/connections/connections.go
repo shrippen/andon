@@ -46,6 +46,17 @@ var ErrLocationPersonal = errors.New("connections: location data must stay perso
 // ErrUnknownService means a service Andon has no integration for.
 var ErrUnknownService = errors.New("connection.unknown_service")
 
+// ErrURLNeeded: a service Andon queries (also one with webhooks) has no address.
+var ErrURLNeeded = errors.New("connection.url_needed")
+
+// checkURL refuses an empty address where Andon queries the service.
+func checkURL(service enums.ServiceType, url string) error {
+	if caps.TraitsOf(service).Polled && strings.TrimSpace(url) == "" {
+		return ErrURLNeeded
+	}
+	return nil
+}
+
 // ErrNotFound means the connection does not exist.
 var ErrNotFound = util.ErrNotFound
 
@@ -265,6 +276,9 @@ func Create(d *sql.DB, who *access.Principal, spaceID int64, service enums.Servi
 	if !service.Known() {
 		return 0, ErrUnknownService
 	}
+	if err := checkURL(service, url); err != nil {
+		return 0, err
+	}
 	var id int64
 	err := db.WithTx(d, func(tx *sql.Tx) error {
 		space, err := access.SpaceOf(tx, who, spaceID)
@@ -368,6 +382,9 @@ func Update(d *sql.DB, who *access.Principal, connID int64, name, url string, mo
 			conn.Name = n
 		}
 		newURL := strings.TrimRight(strings.TrimSpace(url), "/")
+		if err := checkURL(enums.ServiceType(conn.Service), newURL); err != nil {
+			return err
+		}
 		if hostOf(newURL) != hostOf(conn.URL) {
 			return ErrMoveHost
 		}

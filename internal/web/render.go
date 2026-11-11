@@ -18,6 +18,7 @@ import (
 
 	"andon/internal/widgets"
 
+	"andon/internal/caps"
 	"andon/internal/crypto"
 	"andon/internal/enums"
 	"andon/internal/i18n"
@@ -97,6 +98,7 @@ func mustParse() *template.Template {
 		"spanLen":     spanLen,
 		"isHex":       isHex,
 		"stripPaths":  stripPaths,
+		"stripBars":   stripBars,
 		"sparkPath":   sparkPath,
 		"trendPath":   trendPath,
 		"msChartOf":   msChartOf,
@@ -140,6 +142,7 @@ func mustParse() *template.Template {
 		"defaultURL":       defaultURL,
 		"canSignIn":        canSignIn,
 		"hooked":           hooks.Accepts,
+		"pushOnly":         caps.PushOnly,
 		"setupFields":      setupFieldsOf,
 		"projectURL":       projectURL,
 		"optText":          optText,

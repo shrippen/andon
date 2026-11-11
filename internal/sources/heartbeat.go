@@ -36,21 +36,31 @@ const (
 	HeartbeatMissed   HeartbeatReason = "missed" // the ping stayed away
 )
 
+// HeartbeatRun is one run of a job, for its history.
+type HeartbeatRun struct {
+	Status HeartbeatState // up, down, started; paused for a run that did not count
+	At     time.Time      // when it began
+	Link   string         // the run's page, "" none
+}
+
 // Heartbeat is one watched job.
 type Heartbeat struct {
 	Name     string
 	Tags     []string
 	Status   HeartbeatState
 	Reason   HeartbeatReason
-	Summary  string    // the tool's own words on it, "" none
-	Link     string    // the job's page in the tool, "" none
-	Tool     string    // service key, e.g. "healthchecks"
-	ConnID   int64     // the connection it comes from, 0 unknown
-	LastPing time.Time // zero = never
-	NextPing time.Time // zero = unknown (cron checks) or paused
-	Grace    int       // seconds a ping may be late
-	Schedule string    // cron expression, "" for period checks
-	Timeout  int       // seconds between pings of a period check
+	Summary  string         // the tool's own words on it, "" none
+	Link     string         // the job's page in the tool, "" none
+	RunLink  string         // the last run's page, "" none
+	Tail     string         // end of the last run's output, "" none
+	History  []HeartbeatRun // the last runs, oldest first
+	Tool     string         // service key, e.g. "healthchecks"
+	ConnID   int64          // the connection it comes from, 0 unknown
+	LastPing time.Time      // zero = never
+	NextPing time.Time      // zero = unknown (cron checks) or paused
+	Grace    int            // seconds a ping may be late
+	Schedule string         // cron expression, "" for period checks
+	Timeout  int            // seconds between pings of a period check
 	Pings    int
 }
 

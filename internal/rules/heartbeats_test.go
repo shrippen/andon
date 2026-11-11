@@ -98,3 +98,37 @@ func TestHeartbeatBackup(t *testing.T) {
 		t.Fatalf("no tool: %+v", got)
 	}
 }
+
+// TestJidokaRules: invalid job files and a failing channel are hints of
+// their connection; heartbeat.down shows a failed Jidoka job with its
+// own text.
+func TestJidokaRules(t *testing.T) {
+	env := todayEnv(nil)
+	env.Datasets = map[string]any{"jidoka": &sources.JidokaDataset{Instances: []sources.JidokaInstance{{
+		ConnID: 3, URL: "https://jidoka.example", Invalid: 2, InvalidJobs: []string{"a", "b"},
+		Channels: []sources.JidokaChannel{{Name: "mail", Down: true, Since: time.Now()}, {Name: "apprise"}},
+		Jobs: []sources.Heartbeat{{Name: "paperless", Status: sources.HeartbeatDown, Reason: sources.HeartbeatFailed,
+			Summary: "HTTP 502", Tool: "jidoka", ConnID: 3, Link: "https://jidoka.example/jobs/p"}},
+	}}}}
+
+	invalid := run(t, "jidoka.invalid", env.Datasets["jidoka"], env)
+	if len(invalid) != 1 || invalid[0].ConnID != 3 || invalid[0].Params["count"] != 2 || invalid[0].Params["names"] != "a, b" {
+		t.Fatalf("invalid: %+v", invalid)
+	}
+	channel := run(t, "jidoka.channel_down", env.Datasets["jidoka"], env)
+	if len(channel) != 1 || channel[0].ConnID != 3 || channel[0].Params["channel"] != "mail" {
+		t.Fatalf("channel: %+v", channel)
+	}
+	down := run(t, "heartbeat.down", nil, env)
+	if len(down) != 1 || down[0].Message != "heartbeat.failed" || down[0].ConnID != 3 || down[0].Params["summary"] != "HTTP 502" {
+		t.Fatalf("down: %+v", down)
+	}
+
+	env.Datasets["jidoka"] = &sources.JidokaDataset{Instances: []sources.JidokaInstance{{Channels: []sources.JidokaChannel{{Name: "mail"}}}}}
+	if got := run(t, "jidoka.invalid", env.Datasets["jidoka"], env); len(got) != 0 {
+		t.Fatalf("calm: %+v", got)
+	}
+	if got := run(t, "jidoka.channel_down", env.Datasets["jidoka"], env); len(got) != 0 {
+		t.Fatalf("calm: %+v", got)
+	}
+}

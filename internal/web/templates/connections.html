@@ -217,7 +217,7 @@
       <label for="name">{{t "field.name"}}</label>
       <input class="input" id="name" name="name" value="{{with .Conn}}{{.Name}}{{end}}" required>
 
-      {{$hooked := hooked .Service}}
+      {{$hooked := pushOnly .Service}}
       <label for="url">{{if eq $shape "ical"}}{{t "field.ical_url"}}{{else if $hooked}}{{t "field.url_hooked"}}{{else}}{{t "field.url"}}{{end}}</label>
       <input class="input" id="url" name="url" type="url" value="{{with .Conn}}{{.URL}}{{else}}{{defaultURL .Service}}{{end}}"{{if not $hooked}} required{{end}}>
       {{if $hooked}}<p class="small muted">{{t "conn.url_hooked_hint"}}</p>{{end}}

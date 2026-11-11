@@ -113,10 +113,14 @@ var heartbeatState = map[sources.HeartbeatState]string{sources.HeartbeatDown: "b
 func heartbeatsDetail(cfg HeartbeatsConfig, results map[string]any, _ ViewCtx) DetailView {
 	counts := map[sources.HeartbeatState]int{}
 	var rows [][]Cell
+	var tails []Block // the output of a job's last run, where it went wrong
 	for _, c := range taggedChecks(sources.HeartbeatsOf(results), cfg.Tags) {
 		counts[c.Status]++
-		rows = append(rows, []Cell{{Value: c.Name}, {Value: Txt("heartbeat.state." + string(c.Status)), State: heartbeatState[c.Status]},
-			{Value: agoOf(c.LastPing)}, {Value: heartbeatPlan(c)}, {Value: strings.Join(c.Tags, " ")}})
+		rows = append(rows, []Cell{{Value: c.Name, Href: c.Link}, {Value: Txt("heartbeat.state." + string(c.Status)), State: heartbeatState[c.Status]},
+			{Value: agoOf(c.LastPing), Href: c.RunLink}, {Value: heartbeatPlan(c)}, {Value: strings.Join(c.Tags, " ")}})
+		if troubled(c) && c.Tail != "" {
+			tails = append(tails, Block{Kind: BlockCode, Label: Plain(c.Name), Data: c.Tail})
+		}
 	}
 	body := &DetailBody{
 		Facts: []Kpi{{Value: counts[sources.HeartbeatUp] + counts[sources.HeartbeatStarted], Label: T("heartbeat.facts.up"), Tier: "green"},
@@ -127,8 +131,13 @@ func heartbeatsDetail(cfg HeartbeatsConfig, results map[string]any, _ ViewCtx) D
 			Head: []Text{T("heartbeat.col.name"), T("heartbeat.col.state"), T("heartbeat.col.last"), T("heartbeat.col.plan"), T("heartbeat.col.tags")},
 			Rows: rows}}},
 	}
+	if strips := runStrips(taggedChecks(sources.HeartbeatsOf(results), cfg.Tags)); len(strips) > 0 {
+		body.Blocks = append(body.Blocks, Block{Kind: BlockStrips, Label: T("heartbeat.runs"), Meta: len(strips), Data: strips,
+			Ticks: []any{Txt("heartbeat.older"), Txt("heartbeat.newest")}})
+	}
+	body.Blocks = append(body.Blocks, tails...)
 	body.Blocks = append(body.Blocks, hintsBlock(results)...)
-	return DetailView{Body: body}
+	return zoned(DetailView{Body: body}, clockZone())
 }
 
 // heartbeatPlan is when a check expects its pings: its cron line, or
@@ -154,4 +163,36 @@ func durationText(seconds int) string {
 		return strconv.Itoa(seconds/hour) + " h"
 	}
 	return strconv.Itoa(seconds/minute) + " min"
+}
+
+// heartbeatRunState is the strip state of a run. One that is still
+// running or did not count has no result: "no data" (Kante's grey), its
+// tooltip says which.
+var heartbeatRunState = map[sources.HeartbeatState]string{
+	sources.HeartbeatUp: "ok", sources.HeartbeatDown: "bad",
+}
+
+// runStrips draws the runs of every job that has a history, oldest left.
+// A tooltip names the start (in the clock zone) and the state, a click
+// opens the run.
+func runStrips(beats []sources.Heartbeat) []Strip {
+	var out []Strip
+	for _, c := range beats {
+		if len(c.History) == 0 {
+			continue
+		}
+		strip := Strip{Name: c.Name, Value: Txt("heartbeat.state." + string(c.Status))}
+		for _, r := range c.History {
+			state, ok := heartbeatRunState[r.Status]
+			if !ok {
+				state = "off"
+			}
+			strip.States = append(strip.States, state)
+			strip.Titles = append(strip.Titles, r.At.In(clockZone()).Format("2006-01-02 15:04"))
+			strip.Words = append(strip.Words, "heartbeat.run."+string(r.Status))
+			strip.Links = append(strip.Links, r.Link)
+		}
+		out = append(out, strip)
+	}
+	return out
 }

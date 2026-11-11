@@ -131,6 +131,7 @@ const (
 	ServiceGitHub         ServiceType = "github"
 	ServiceKDEStore       ServiceType = "kdestore"
 	ServiceHealthchecks   ServiceType = "healthchecks"
+	ServiceJidoka         ServiceType = "jidoka"
 	ServicePrometheus     ServiceType = "prometheus"
 	ServiceNVD            ServiceType = "nvd"
 	ServiceDrone          ServiceType = "drone"
@@ -187,7 +188,7 @@ var Services = []ServiceType{
 	ServiceTrueNAS, ServiceKomodo, ServicePangolin, ServiceAuthentik,
 	ServicePihole, ServiceAdGuard, ServiceNextcloud, ServiceSabnzbd, ServiceGluetun, ServiceDomains, ServiceBlacklist,
 	ServiceTailscale, ServiceGateway, ServiceMediaServer, ServiceArr, ServiceVaultwarden,
-	ServiceSpeedtest, ServiceGrocy, ServiceTandoor, ServiceDWD, ServiceGitHub, ServiceKDEStore, ServiceHealthchecks, ServicePrometheus, ServiceNVD, ServiceDrone, ServicePBS, ServiceKopia, ServiceDuplicati, ServiceBackrest, ServiceUrBackup, ServiceWUD, ServiceWatchtower, ServicePeaNUT, ServiceApcupsd, ServiceOpenDTU, ServiceEVCC, ServiceTraefik, ServiceCaddy, ServiceNPM, ServiceTechnitium, ServiceFritzBox, ServiceTautulli, ServiceJellystat, ServiceNavidrome, ServiceAudiobookshelf, ServiceSeerr, ServiceVikunja, ServiceNews, ServiceTwitch, ServiceESPHome, ServiceFediverse, ServiceLemmy, ServiceFirefly, ServiceGhostfolio, ServiceTibber, ServiceCalendar,
+	ServiceSpeedtest, ServiceGrocy, ServiceTandoor, ServiceDWD, ServiceGitHub, ServiceKDEStore, ServiceHealthchecks, ServiceJidoka, ServicePrometheus, ServiceNVD, ServiceDrone, ServicePBS, ServiceKopia, ServiceDuplicati, ServiceBackrest, ServiceUrBackup, ServiceWUD, ServiceWatchtower, ServicePeaNUT, ServiceApcupsd, ServiceOpenDTU, ServiceEVCC, ServiceTraefik, ServiceCaddy, ServiceNPM, ServiceTechnitium, ServiceFritzBox, ServiceTautulli, ServiceJellystat, ServiceNavidrome, ServiceAudiobookshelf, ServiceSeerr, ServiceVikunja, ServiceNews, ServiceTwitch, ServiceESPHome, ServiceFediverse, ServiceLemmy, ServiceFirefly, ServiceGhostfolio, ServiceTibber, ServiceCalendar,
 	ServiceKintsugi, ServiceWallos, ServiceHansei, ServiceHomelable,
 	ServiceClaudeAPI, ServiceOpenRouter, ServiceOpenAI, ServiceDeepSeek, ServiceLiteLLM, ServiceXAI, ServiceJSONAPI,
 }

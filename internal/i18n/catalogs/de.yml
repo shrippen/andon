@@ -70,6 +70,7 @@ action:
   open_in_github: 'In GitHub öffnen'
   open_in_kdestore: 'Im KDE Store öffnen'
   open_in_healthchecks: 'In Healthchecks öffnen'
+  open_in_jidoka: 'In Jidoka öffnen'
   open_in_prometheus: 'In Prometheus öffnen'
   open_in_nvd: 'In der NVD öffnen'
   open_in_drone: 'In Drone öffnen'
@@ -1249,6 +1250,7 @@ widget:
   unsupported: Passt nicht zur gewählten Verbindung.
 connection:
   secret_for_host: 'Neuer Server: Zugang neu eingeben oder den gespeicherten ausdrücklich mitnehmen.'
+  url_needed: 'Dieser Dienst braucht seine Adresse.'
   unknown_service: 'Diesen Dienst kennt Andon nicht.'
   use_move: 'Anderer Server: bitte „Umziehen“ nutzen.'
   adopt_self: 'Eine Verbindung kann nicht von sich selbst übernehmen.'
@@ -1539,6 +1541,9 @@ conn:
   options_hint_healthchecks: 'URL von healthchecks.io oder der eigenen Instanz, z. B. https://healthchecks.io. Token = API-Schlüssel des Projekts; der Nur-Lese-Schlüssel reicht (Projekt → Einstellungen → API-Zugang).'
   about_healthchecks: 'Cron-Jobs: Herzschläge, Ausfälle'
   what_healthchecks: 'Healthchecks überwacht geplante Aufgaben: Jeder Job meldet sich nach dem Lauf, bleibt die Meldung aus, gilt er als ausgefallen.'
+  options_hint_jidoka: 'URL von Jidoka, z. B. https://jidoka.example. Token = ein API-Token mit dem Recht „lesen“ (Jidoka: Zugang). Jobs, Wächter und ihr Ergebnis werden zu Herzschlägen; eine Änderung verwirft über den Webhook unten sofort den Zwischenspeicher, der Hinweis folgt beim nächsten Analyse-Lauf.'
+  about_jidoka: 'Cron-Skripte: Jobs, Wächter, Ausfälle'
+  what_jidoka: 'Jidoka führt kleine Skripte nach Plan aus und wacht über die Meldungen anderer Jobs; Andon zeigt sie als Herzschläge und warnt, wenn einer scheitert, ausbleibt oder Jidoka selbst nicht mehr senden kann.'
   options_hint_prometheus: 'URL des Prometheus-Servers, z. B. http://prometheus:9090. Ohne Anmeldung Token leer lassen; sonst Bearer-Token oder benutzer:passwort für Basic Auth (etwa hinter einem Proxy). Feuernde Alerts werden zu Hinweisen, die Stufe kommt aus dem Label severity.'
   about_prometheus: 'Alerts als Hinweise, PromQL-Werte'
   what_prometheus: 'Prometheus sammelt Messwerte (etwa über node_exporter) und löst nach Regeln Alerts aus.'
@@ -1804,6 +1809,7 @@ conn:
   hook_rotate: Neue URL erzeugen
   hook_rotate_confirm: 'Die bisherige URL hört sofort auf zu funktionieren. Danach die neue URL im Dienst eintragen.'
   hook_hint_hansei: 'In Hansei als Webhook-Adresse eintragen. Die URL ist geheim.'
+  hook_hint_jidoka: 'In Jidoka als Geheimnis ANDON_HOOK_URL eintragen; Jidoka meldet dann jeden Zustandswechsel sofort. Die URL ist geheim.'
   hook_local: 'Die Adresse beginnt mit localhost: Ein Dienst auf einem anderen Rechner ruft damit sich selbst auf. BASE_URL auf eine Adresse setzen, unter der Andon von dort erreichbar ist.'
   url_hooked_hint: 'Nur für den Link „Öffnen“. Andon fragt hier nichts ab: Der Dienst meldet sich per Webhook, die Adresse dafür steht nach dem Speichern in der Übersicht.'
   options_hint_linkwarden: 'collections: [Homelab, Werkzeuge] – Sammlungen, die mit den Link-Kacheln dieses Bereichs abgeglichen werden (leer = alle). Token = Zugriffstoken (Einstellungen → Zugriffstoken).'
@@ -1886,6 +1892,7 @@ service:
   github: 'GitHub'
   kdestore: 'KDE Store'
   healthchecks: 'Healthchecks'
+  jidoka: 'Jidoka'
   prometheus: 'Prometheus'
   nvd: 'CVE (NVD)'
   drone: 'Drone CI'
@@ -2424,6 +2431,13 @@ hint:
     failed:
       title: 'Job fehlgeschlagen: {name}'
       why: 'Zuletzt gemeldet: {since}. {summary}'
+  jidoka:
+    invalid:
+      title: '{count} Jidoka-Jobdateien nicht geladen'
+      why: 'Diese laufen nicht: {names}. Dateien im Jobs-Repository korrigieren und neu laden.'
+    channel_down:
+      title: 'Jidoka-Kanal gestört: {channel}'
+      why: 'Gestört seit {since}. Jidoka kann darüber nichts senden.'
   dns:
     device_spike:
       title: '{device} fragt ungewöhnlich viel'
@@ -3674,6 +3688,8 @@ rule_name:
   cross.image_cve: 'Sicherheitslücke in laufendem Image'
   prometheus.alert: 'Prometheus-Alert'
   heartbeat.down: 'Herzschlag fehlt'
+  jidoka.invalid: 'Jidoka-Jobs nicht geladen'
+  jidoka.channel_down: 'Jidoka-Kanal gestört'
   cross.heartbeat_backup: 'Herzschlag gegen Sicherung'
   system.partner_ambiguous: Verbund fehlt
   system.connector_down: Verbindung gestört
@@ -6027,6 +6043,14 @@ prometheus:
     summary: 'Beschreibung'
     since: 'Seit'
 heartbeat:
+  run:
+    up: 'ok'
+    down: 'fehlgeschlagen'
+    started: 'läuft'
+    paused: 'nicht gezählt'
+  runs: 'Läufe'
+  older: 'älter'
+  newest: 'neuester Lauf'
   up: 'melden sich'
   never: 'nie gemeldet'
   checks: 'Checks'

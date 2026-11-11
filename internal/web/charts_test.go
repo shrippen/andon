@@ -119,3 +119,11 @@ func TestHoverLabels(t *testing.T) {
 		t.Fatalf("line labels %v", got)
 	}
 }
+
+// TestStripBars: one bar per state with its tooltip and link.
+func TestStripBars(t *testing.T) {
+	got := stripBars(widgets.Strip{States: []string{"ok", "bad"}, Titles: []string{"a", "b"}, Links: []string{"", "/runs/2"}})
+	if len(got) != 2 || got[1].D != "M1.1 0h.8v1h-.8z" || got[1].Title != "b" || got[1].Href != "/runs/2" || got[0].Href != "" {
+		t.Fatalf("%+v", got)
+	}
+}

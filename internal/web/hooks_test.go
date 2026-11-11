@@ -120,3 +120,69 @@ func TestHookWithoutURL(t *testing.T) {
 		t.Fatal("no hook URL to copy on the overview")
 	}
 }
+
+// TestJidokaHook: Jidoka reports a state change as {"source","job","state"}
+// to the connection's signed URL; its state is a word, not Hansei's object.
+func TestJidokaHook(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	space := regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))
+	resp := postForm(t, client, srv.URL+"/connections", url.Values{
+		"csrf": {csrfToken(t, srv, client)}, "space_id": {string(space[1])}, "service": {"jidoka"}, "name": {"Jidoka"},
+		"url": {"https://jidoka.lan"}, "secret": {"token"}, "mode": {"shared"}, "tls": {"verify"},
+	})
+	hook := regexp.MustCompile(`http://dash\.test(/hooks/\d+/[A-Za-z0-9_-]+)`).FindStringSubmatch(string(mustGet(t, srv, client, resp.Header.Get("Location"))))
+	if hook == nil {
+		t.Fatal("no hook URL on the edit page")
+	}
+
+	post := func(path, body string) int {
+		r, err := http.Post(srv.URL+path, "application/json", strings.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.Body.Close()
+		return r.StatusCode
+	}
+	if got := post(hook[1], `{"source":"jidoka","job":"paperless-eingang","state":"fail"}`); got != http.StatusNoContent {
+		t.Fatalf("hook: %d", got)
+	}
+	if got := post(hook[1]+"x", `{"source":"jidoka","job":"a","state":"fail"}`); got != http.StatusNotFound {
+		t.Fatalf("bad signature: %d", got)
+	}
+}
+
+// TestJidokaFormNeedsURL: Andon queries Jidoka, so its address is
+// required and the form does not say that nothing is queried; a
+// webhook-only service (PG Back Web) keeps the optional address.
+func TestJidokaFormNeedsURL(t *testing.T) {
+	srv, client, code := newTestServer(t)
+	setupAdmin(t, srv, client, code)
+	login(t, srv, client)
+
+	urlInput := regexp.MustCompile(`<input[^>]*id="url"[^>]*>`)
+	form := string(mustGet(t, srv, client, "/connections/new?service=jidoka"))
+	if in := urlInput.FindString(form); !strings.Contains(in, " required") || hookedHint(form) {
+		t.Fatalf("jidoka url input %q", in)
+	}
+	form = string(mustGet(t, srv, client, "/connections/new?service=pgbackweb"))
+	if in := urlInput.FindString(form); strings.Contains(in, " required") || !hookedHint(form) {
+		t.Fatalf("pgbackweb url input %q", in)
+	}
+
+	space := regexp.MustCompile(`<option value="(\d+)">`).FindSubmatch(mustGet(t, srv, client, "/connections/new?service=kimai"))
+	resp := postForm(t, client, srv.URL+"/connections", url.Values{
+		"csrf": {csrfToken(t, srv, client)}, "space_id": {string(space[1])}, "service": {"jidoka"}, "name": {"Jidoka"},
+		"secret": {"token"}, "mode": {"shared"}, "tls": {"verify"},
+	})
+	if strings.Contains(resp.Header.Get("Location"), "/connections/") && resp.StatusCode == http.StatusSeeOther {
+		t.Fatalf("saved without an address: %d %s", resp.StatusCode, resp.Header.Get("Location"))
+	}
+}
+
+// hookedHint reports whether a form says that Andon queries nothing.
+func hookedHint(form string) bool {
+	return strings.Contains(form, "queries nothing here") || strings.Contains(form, "fragt hier nichts ab")
+}
