@@ -61,7 +61,7 @@ make check    # structure limits, gofmt, go vet, go test
 make build    # release binary in ./bin/andon (-tags release, checked for demo data)
 ```
 
-Layers: `web → services → repos | sources | outbound → db | drivers`. See `agent.md`.
+Layers: `web → services → repos | sources | outbound → db | drivers`. See `ARCHITECTURE.md` in the repository.
 
 ### Demo
 
