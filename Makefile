@@ -7,6 +7,7 @@ check: lint test
 GOFMT = $(shell GOTOOLCHAIN=$$(awk '/^toolchain/ {print $$2}' go.mod) go env GOROOT)/bin/gofmt
 
 lint:
+	pipx run tools/structure-check.py
 	$(GOFMT) -l cmd internal | grep . && exit 1 || true
 	go vet ./...
 	go vet -tags release ./...

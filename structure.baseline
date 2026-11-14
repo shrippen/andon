@@ -1,0 +1,227 @@
+# What is over a structure limit today (tools/structure-check.py). An entry may shrink,
+# never grow; a raised or new entry needs its reason in the PR. Rewrite with --update.
+# Lines: exclude<TAB>glob | path<TAB>function or - for the file<TAB>metric=value ...
+cmd/andon/main.go	run	ccn=26 length=167
+demo/make-sample.py	main	ccn=17
+internal/drivers/httpclient/meter.go	noteUsage	ccn=16
+internal/i18n/catalog_test.go	TestCapsKeysExist	nesting=5
+internal/metrics/clients.go	ClientCards	ccn=20
+internal/metrics/costs.go	JobPrices	ccn=18
+internal/metrics/crossfin.go	BudgetForecasts	ccn=17
+internal/metrics/crossfin.go	WorkloadOf	ccn=16
+internal/metrics/cve.go	RunningImages	nesting=5
+internal/metrics/docgraph_test.go	TestDocGraphPlacesHostsAndServices	ccn=22
+internal/metrics/drafts.go	Drafts	ccn=16
+internal/metrics/elster.go	ElsterOf	ccn=29 length=143
+internal/metrics/elster_test.go	TestElster	ccn=16
+internal/metrics/freelance.go	Cashflow	ccn=25 length=90
+internal/metrics/history.go	init	length=139
+internal/metrics/homelabx.go	-	lines=905
+internal/metrics/homelabx.go	DomainChains	ccn=17
+internal/metrics/homelabx.go	PendingUpdates	ccn=30
+internal/metrics/homelabx.go	UpdateWindow	ccn=19
+internal/metrics/itdocs_deploy.go	CheckDeploys	ccn=17
+internal/metrics/itdocs_drift.go	imageDrift	ccn=19
+internal/metrics/itdocs_drift.go	proxyHosts	nesting=6
+internal/metrics/subs.go	ninjaCases	ccn=20
+internal/metrics/subs_live_test.go	TestSubCasesLive	ccn=20
+internal/metrics/surecatguess_test.go	TestUncategorizedLearned	ccn=16
+internal/metrics/updates_live_test.go	TestUpdateCasesLive	ccn=19
+internal/metrics/vatcheck.go	-	lines=931
+internal/metrics/vatcheck.go	BankCases	ccn=16
+internal/metrics/vatcheck.go	transferOf	ccn=16
+internal/metrics/vatcheck_test.go	TestBankCases	ccn=33
+internal/metrics/week.go	WeekGaps	ccn=22
+internal/metrics/year.go	ReviewYear	ccn=24
+internal/outbound/homelable_test.go	TestHomelableSyncDrawsTheCanvas	ccn=25
+internal/outbound/homelable_test.go	serve	ccn=18
+internal/outbound/kept_test.go	TestKeptWrites	ccn=17
+internal/repos/users/users_test.go	TestTeamMembershipLifecycle	ccn=22
+internal/rules/cross.go	timeWithoutVisit	ccn=16
+internal/rules/custom.go	Measure	ccn=17
+internal/rules/discovery.go	noTile	ccn=19
+internal/rules/homelabx_test.go	TestExposureLoginsDNS	ccn=17
+internal/services/analysis/analysis.go	runSpace	ccn=22 length=123
+internal/services/auth/auth.go	-	lines=945
+internal/services/auth/auth_test.go	TestTOTPLifecycle	ccn=16
+internal/services/billing/billing.go	Create	ccn=23 length=82
+internal/services/billing/export.go	Export	ccn=32 length=122
+internal/services/billing/payments.go	Book	ccn=19
+internal/services/boards/boards.go	viewSection	ccn=27 length=113
+internal/services/boards/bulk.go	anonymous__0	ccn=17
+internal/services/boards/edit.go	anonymous__4	ccn=18
+internal/services/boards/edit.go	anonymous__8	ccn=21
+internal/services/boards/suggest.go	suggest	ccn=16
+internal/services/boards/suggest_test.go	TestSuggestAndApply	ccn=24
+internal/services/clients/clients_test.go	TestListAndOneShowSpaceCustomers	ccn=16
+internal/services/connections/adopt_test.go	TestAdopt	ccn=23 length=112
+internal/services/connections/connections.go	anonymous__2	ccn=16
+internal/services/connections/connections.go	anonymous__3	ccn=20
+internal/services/connections/move_test.go	TestMoveShared	ccn=18
+internal/services/euer/euer_test.go	TestEuerBench	ccn=34
+internal/services/hints/hints.go	Sync	ccn=21
+internal/services/hints/workflow_test.go	TestHintWorkflow	ccn=23
+internal/services/hosts/hosts.go	collect	ccn=23 length=92
+internal/services/hosts/hosts_test.go	TestHostHints	ccn=17
+internal/services/hosts/hosts_test.go	TestListGroupsConnectionsByHost	ccn=18
+internal/services/itdocs/itdocs_test.go	TestFindingsPerStack	ccn=38 length=84
+internal/services/learn/learn_test.go	TestTrainStoreReset	ccn=20
+internal/services/linkstatus/linkstatus_test.go	TestHistoryDaysAndIncidents	ccn=21
+internal/services/mailfwd/mailfwd.go	Forward	ccn=18
+internal/services/notify/notify.go	dispatchUser	length=81
+internal/services/oidc/oidc.go	anonymous__1	ccn=23
+internal/services/onboarding/onboarding.go	steps	ccn=16
+internal/services/porting/dashy.go	dashyWidget	ccn=19
+internal/services/porting/porting.go	-	lines=895
+internal/services/porting/porting.go	anonymous__0	ccn=17
+internal/services/porting/porting.go	anonymous__1	ccn=17
+internal/services/porting/porting.go	boardDoc	ccn=23
+internal/services/porting/porting.go	importBoard	ccn=29 length=113
+internal/services/porting/porting_test.go	TestDashyImport	ccn=23
+internal/services/porting/porting_test.go	TestExportImportRoundtrip	ccn=17
+internal/services/receipts/fields.go	suggest	ccn=17
+internal/services/receipts/worklist.go	FindScans	ccn=18
+internal/services/receipts/write.go	Search	ccn=18
+internal/services/seed/seed_test.go	TestDemoFillsBoardsAndFiresRules	ccn=22
+internal/services/selfbackup/selfbackup_test.go	TestRunVerifiesAndPrunes	ccn=22
+internal/services/shares/shares.go	Info	length=101
+internal/services/shares/shares.go	anonymous__0	ccn=24 length=97
+internal/services/sites/sites_test.go	TestAssignWithoutPlugin	ccn=20
+internal/services/sites/write.go	Sync	ccn=16
+internal/services/spaces/spaces.go	ParseRules	nesting=5
+internal/services/svcdata/svcdata.go	Get	ccn=19
+internal/services/system/server_test.go	TestServerSettings	ccn=18
+internal/services/themes/manage.go	ImportZip	ccn=19
+internal/services/themes/themes.go	anonymous__1	ccn=18
+internal/services/timer/timer_test.go	TestSplitAndDelete	ccn=16
+internal/services/updates/updates_test.go	TestUpdates	ccn=21
+internal/services/vatcheck/split.go	part	ccn=18
+internal/services/vatcheck/split.go	splitOf	ccn=19
+internal/services/vatcheck/vatcheck.go	Open	ccn=19 length=91
+internal/services/vatcheck/vatcheck.go	apply	ccn=16
+internal/services/vatcheck/vatcheck_test.go	-	lines=830
+internal/services/vatcheck/vatcheck_test.go	TestAccounts	ccn=21
+internal/services/vatcheck/vatcheck_test.go	TestApplyNewExpenseFields	ccn=23
+internal/services/vatcheck/vatcheck_test.go	TestApplyWritesConfirmedSteps	ccn=21
+internal/services/vatcheck/vatcheck_test.go	TestFillGaps	ccn=25
+internal/services/vatcheck/vatcheck_test.go	TestFillSearchedScan	ccn=16
+internal/services/vatcheck/vatcheck_test.go	TestReceiptCase	ccn=17
+internal/services/vatcheck/vatcheck_test.go	TestTakenScanDropsDay	ccn=16
+internal/services/vatcheck/write.go	Check	ccn=22
+internal/services/vatcheck/write.go	scanTitle	ccn=16
+internal/services/verbund/accounts.go	accountRows	ccn=17
+internal/services/verbund/accounts_test.go	TestAccounts	ccn=20
+internal/services/verbund/customers.go	AlignName	ccn=16
+internal/services/verbund/customers.go	customerRows	ccn=19
+internal/services/verbund/customers_test.go	TestCustomers	ccn=46 length=127
+internal/services/verbund/verbund_test.go	TestImplicitSettle	ccn=16
+internal/services/weekly/weekly.go	StorySince	ccn=18
+internal/services/widgetlib/detail.go	loadTileDetail	ccn=18
+internal/services/widgetlib/detail_demo_test.go	anonymous__0	ccn=27
+internal/services/widgetlib/display.go	-	lines=991
+internal/services/widgetlib/display.go	load	ccn=120 length=380
+internal/services/workbench/draft_test.go	TestDraft	ccn=20 length=82
+internal/services/workbench/scope_test.go	TestScopes	ccn=18
+internal/sources/compose_test.go	TestGiteaReadsComposeStacks	ccn=20
+internal/sources/dawarich_test.go	TestDawarichDataReadsTracksOnce	ccn=18
+internal/sources/demo.go	-	lines=999
+internal/sources/demo_bank.go	demoNinjaBank	ccn=19 length=115
+internal/sources/firefly.go	fetchFirefly	ccn=16
+internal/sources/fritz_test.go	TestFritzMore	ccn=55
+internal/sources/fritzlists.go	parseNetwork	ccn=24 length=87
+internal/sources/grant_test.go	TestGrantFresh	ccn=17
+internal/sources/hass_energy_test.go	TestReadEnergy	ccn=22
+internal/sources/household.go	-	lines=816
+internal/sources/ical.go	Occurrences	ccn=17
+internal/sources/ical.go	expand	ccn=17
+internal/sources/infra.go	fetchTrueNAS	ccn=17
+internal/sources/infra.go	loadAuthentik	ccn=16 length=82
+internal/sources/integrations_test.go	-	lines=1047
+internal/sources/integrations_test.go	TestListening	ccn=19
+internal/sources/integrations_test.go	TestPowerSources	ccn=25
+internal/sources/integrations_test.go	TestPrometheus	ccn=17
+internal/sources/integrations_test.go	TestProxies	ccn=17
+internal/sources/integrations_test.go	TestTechnitiumFritz	ccn=24
+internal/sources/itdocs_test.go	TestGiteaReadsITDocs	ccn=28
+internal/sources/jidoka.go	DemoJidoka	ccn=17 length=93
+internal/sources/jidoka_test.go	TestDemoJidoka	ccn=17
+internal/sources/jidoka_test.go	TestJidokaHeartbeat	ccn=21
+internal/sources/kept_test.go	TestKept	ccn=25
+internal/sources/kimai.go	loadKimai	ccn=16 length=84
+internal/sources/kintsugi_test.go	TestKintsugiFetch	ccn=16
+internal/sources/lemmy_test.go	TestLemmy	ccn=16
+internal/sources/mail.go	fetchMail	ccn=17 length=85
+internal/sources/ninja.go	loadNinja	ccn=30 length=150
+internal/sources/nvd.go	cveOf	ccn=17
+internal/sources/reading_test.go	TestNews	ccn=18
+internal/sources/web.go	fetchFeedSource	ccn=18
+internal/web/board_test.go	TestLinkTileAndLayout	ccn=19 length=111
+internal/web/catalog_render_test.go	TestCatalogTilesRender	length=81
+internal/web/charts.go	geomOf	ccn=22
+internal/web/forms.go	flush	ccn=19
+internal/web/freelance_test.go	TestBillingDraftAndExport	ccn=18 length=97
+internal/web/freelance_test.go	TestKimaiLiteEditsDay	ccn=22 length=107
+internal/web/freelance_test.go	TestKimaiTimerStops	ccn=28 length=123
+internal/web/palette_test.go	TestPaletteFindsConnectionsAndHints	ccn=16
+internal/web/receipts_page_test.go	TestReceiptsPage	ccn=47 length=135
+internal/web/render.go	Page	ccn=17
+internal/web/render.go	mustParse	length=118
+internal/web/routes_boards.go	-	lines=814
+internal/web/routes_boards.go	boardPage	ccn=18
+internal/web/routes_connections.go	handleConnectionUpdate	ccn=19
+internal/web/routes_editor.go	-	lines=840
+internal/web/routes_more.go	boardCards	nesting=5
+internal/web/routes_record.go	recordValues	ccn=21
+internal/web/static/andon.js	(anonymous)	ccn=18
+internal/web/static/andon.js	(anonymous)#2	ccn=29 nesting=6
+internal/web/static/andon.js	(anonymous)#3	length=3527
+internal/web/static/andon.js	-	lines=3528
+internal/web/static/andon.js	benchChanged	ccn=22
+internal/web/static/andon.js	loadStart	ccn=19
+internal/web/static/andon.js	setupDetail	length=89
+internal/web/static/andon.js	setupReceiptKeys	length=122
+internal/web/static/andon.js	wallBalance	ccn=19
+internal/web/static/editor.js	(anonymous)	length=215
+internal/web/static/editor.js	(anonymous)#2	length=310
+internal/web/static/gallery.js	(anonymous)	length=231
+internal/web/themes_test.go	TestThemeDuplicateEditFontExportImport	ccn=16
+internal/web/vat_page_test.go	TestVATPage	ccn=20
+internal/web/verbund_test.go	TestVerbundCustomersPage	ccn=24 length=110
+internal/web/verbund_test.go	TestVerbundPage	ccn=20
+internal/web/web_test.go	-	lines=1331
+internal/web/web_test.go	TestConnectionsCreateEditDelete	length=83
+internal/web/web_test.go	newTestServer	length=89
+internal/widgets/bank_peer_test.go	TestCashflowDepotLine	nesting=5
+internal/widgets/catalog.go	kimaiSplitView	ccn=16
+internal/widgets/crossfin.go	crossRows	ccn=23
+internal/widgets/detail_homelab.go	-	lines=1422
+internal/widgets/detail_homelab.go	backupsDetail	ccn=32 length=122
+internal/widgets/detail_homelab.go	disksDetail	ccn=19
+internal/widgets/detail_homelab.go	dockerDetail	ccn=20 length=87
+internal/widgets/detail_homelab.go	homelabCostDetail	ccn=16
+internal/widgets/detail_homelab.go	immichDetail	ccn=17
+internal/widgets/detail_homelab.go	komodoDetail	ccn=23 length=85
+internal/widgets/detail_homelab.go	storageDetail	ccn=17
+internal/widgets/detail_homelab.go	truenasDetail	ccn=25 length=104
+internal/widgets/detail_insight.go	tableCell	ccn=20
+internal/widgets/detail_money.go	cashflowDetail	ccn=26 length=97
+internal/widgets/detail_money.go	rateTrendDetail	ccn=18
+internal/widgets/detail_net.go	dnsDetail	ccn=17
+internal/widgets/detail_net.go	gatewayDetail	ccn=17
+internal/widgets/detail_net.go	publicIPDetail	ccn=19
+internal/widgets/detail_overview.go	calendarDetail	ccn=17
+internal/widgets/detail_work.go	monthCloseDetail	ccn=17
+internal/widgets/extra.go	monitorsView	ccn=20
+internal/widgets/fields.go	ParseForm	ccn=24
+internal/widgets/frame_test.go	TestFrame	ccn=19
+internal/widgets/fritz.go	fritzView	ccn=21
+internal/widgets/insight.go	kpiNinja	ccn=23 length=86
+internal/widgets/insight_tables.go	tableRows	ccn=31 length=86
+internal/widgets/monthclose.go	monthCloseView	ccn=28 length=85
+internal/widgets/more.go	init	length=87
+internal/widgets/power.go	powerView	ccn=17
+internal/widgets/start.go	linkView	ccn=64 length=135
+internal/widgets/today.go	todayView	ccn=23
+internal/widgets/travel_detail.go	travelYear	ccn=16
+tools/bench-desk.py	-	lines=873
+tools/loading.py	check	length=128

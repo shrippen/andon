@@ -38,7 +38,7 @@ db/         database/sql, Tx     drivers/  rohes HTTP je Dienst
 - Unexportierte (kleingeschriebene) Namen; Export nach außen nur mit Rückfrage.
 
 ## Konventionen
-- Go (aktuelle Stable-Version), gofmt, go vet. `make check` vor jedem Commit.
+- Go (aktuelle Stable-Version), gofmt, go vet. `make check` vor jedem Commit. Dazu gehört die Strukturprüfung (`tools/structure-check.py`, Bestandsliste `structure.baseline`); die CI führt sie vor den Tests aus.
 - Texte nur über `t(key)` (Kataloge `internal/i18n/catalogs/*.yml`); Hinweise speichern Schlüssel + Parameter.
 - CSS nur mit Theme-Tokens, keine Hex-Werte außerhalb `themes/`.
 - Zugangsdaten nur verschlüsselt (`internal/crypto`), nie im Log, nie im Export.

@@ -57,7 +57,7 @@ Tailscale needs an OAuth client with `devices:core:read`. Renewing tokens
 
 ```sh
 make run      # http://localhost:8080, data in ./data, dev master key
-make check    # gofmt, go vet, go test
+make check    # structure limits, gofmt, go vet, go test
 make build    # release binary in ./bin/andon (-tags release, checked for demo data)
 ```
 
