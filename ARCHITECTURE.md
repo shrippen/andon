@@ -57,8 +57,8 @@ All under `internal/` unless the path starts elsewhere.
 - A service never uses a driver. It reaches the database through `repos/`; it may
   open the transaction itself, but SQL stands in `repos/` only.
 - `widgets`, `metrics` and `rules` do no I/O and know no service, repository or
-  driver. Of `sources` they use the record types and pure helpers, never a fetch. A rule gets the time from
-  the analysis run, not from the clock.
+  driver. Of `sources` they use the record types and pure helpers, never a
+  fetch. A rule gets the time from the analysis run, not from the clock.
 - The lower layers never reach up: `repos`, `sources`, `outbound` and `drivers` know
   nothing of `services`, `web` or the pure packages above them.
 - `internal/arch` proves these rules for every layer on each test run.
@@ -83,7 +83,7 @@ All under `internal/` unless the path starts elsewhere.
 | A new workbench | A service package of its own built on the shared part `services/workbench/`, its page in `web/`, its writes in `outbound/` |
 | A new page or form | A route and template in `web/`, the logic in a service |
 | A new table or column | A migration in `db/migrations`, its functions in `repos/` |
-| A new instance setting | Its name once in `services/system/`, stored through `repos/misc/`, its form on the settings page in `web/`; an operating value from the environment in `settings/` |
+| A new instance setting | Its name once in the service of its topic (general ones in `services/system/`), stored through `repos/misc/`, its form in `web/`; an operating value from the environment in `settings/` |
 | A new background job | The work in the service of its topic, the job in the list in `cmd/andon/jobs.go` |
 | A design element that is missing | Kante, then `tools/sync-design.sh`; no colour outside the themes |
 
@@ -102,6 +102,6 @@ All under `internal/` unless the path starts elsewhere.
 - The shape of values in hints is built in five places (`AUDIT.md`, finding 7).
 - "Check the certificate" has four forms in the drivers (`AUDIT.md`, finding 8).
 - Twelve workbenches copied the same loading flow (`AUDIT.md`, finding 9).
-- Some routes check the admin right themselves, and the service behind them
-  checks nothing: the settings page, own CSS, the connection test and others
+- Some routes check the admin right themselves (settings page, own CSS, the hint
+  at the connection test); behind the settings page the service checks nothing
   (not in `AUDIT.md`).
