@@ -1,7 +1,7 @@
 # Code-Audit andon, 14.11.2026, Stand 9cf9149
 
 ## Urteil
-Andon ist wartbar. Die Schichten halten ihre Richtung ein: Regeln lesen nur Kennzahlen, Kennzahlen nur Datensätze, die Web-Schicht ruft fast nur Dienste auf, und fast jedes Paket hat Tests. Teuer wird die nächste Änderung durch Wiederholung und durch Absprachen in freiem Text: Namen von Einstellungen und Messreihen stehen an mehreren Stellen von Hand, dieselben kleinen Hilfen und Abläufe sind mehrfach geschrieben, und einige Dateien sind weit über der Grenze von 800 Zeilen. Dies ist das erste Audit, einen Vergleich gibt es nicht. Wegen der Größe haben vier Agenten je einen Teil geprüft; aus ihren 23 Funden stehen hier die zehn mit dem besten Verhältnis von Nutzen zu Aufwand, die übrigen nennt der PR zu diesem Bericht. Eine `ARCHITECTURE.md` fehlt; geprüft wurde gegen `agent.md` und den Schichttest des Repos.
+Andon ist wartbar. Die Schichten halten ihre Richtung ein: Regeln lesen nur Kennzahlen und Datensätze, Kennzahlen nur Datensätze, die Web-Schicht ruft fast nur Dienste auf, und fast jedes Paket hat Tests. Teuer wird die nächste Änderung durch Wiederholung und durch Absprachen in freiem Text: Namen von Einstellungen und Messreihen stehen an mehreren Stellen von Hand, dieselben kleinen Hilfen und Abläufe sind mehrfach geschrieben, und einige Dateien sind weit über der Grenze von 800 Zeilen. Dies ist das erste Audit, einen Vergleich gibt es nicht.
 
 ## Kennzahlen
 | | letztes Audit | jetzt |
@@ -9,7 +9,7 @@ Andon ist wartbar. Die Schichten halten ihre Richtung ein: Regeln lesen nur Kenn
 | Quelldateien | – | 1253 |
 | Einträge in der Bestandsliste | – | 224 |
 | größte Datei (Zeilen) | – | 3528 (Hauptskript der Oberfläche); größte Go-Datei 1422 |
-| längste Funktion (Zeilen) | – | 3527 (die eine Hülle um das Hauptskript); längste Go-Funktion 380 |
+| längste Funktion (Zeilen) | – | 3527 (das ganze Hauptskript ist eine einzige Funktion); längste Go-Funktion 380 |
 
 ## Funde
 
@@ -79,7 +79,7 @@ Aufwand: mittel (viele Dateien, je wenige Zeilen). Risiko: gering; jede Werkbank
 Beleg: `internal/services/feeds/feeds.go:98`–`internal/services/feeds/feeds.go:121`, `internal/services/vendors/vendors.go:91`–`internal/services/vendors/vendors.go:111`, `internal/services/dunning/dunning.go:124`–`internal/services/dunning/dunning.go:143`, `internal/services/purchases/purchases.go:122`–`internal/services/purchases/purchases.go:147`, weitere Kopien der Regel in `internal/services/euer/euer.go:162`, `internal/services/categorize/categorize.go:128`, `internal/services/billing/travel.go:66`. Die Fehlerbegründung: `internal/services/feeds/feeds.go:242`, `internal/services/dunning/dunning.go:274`, abweichend nur `internal/services/vatcheck/write.go:517`.
 
 ### 10. Bestandsliste: was sich an einer Naht trennen lässt und was bleiben kann
-Die Bestandsliste ist die Datei `structure.baseline`. Sie nennt die Stellen, die heute über den Grenzen der Strukturprüfung liegen (Länge, Verzweigungen, Verschachtelung); rund die Hälfte der 224 Einträge sind Tests.
+Die Bestandsliste ist die Datei `structure.baseline`. Sie nennt die Stellen, die heute über den Grenzen der Strukturprüfung liegen (Länge, Verzweigungen, Verschachtelung); 80 der 224 Einträge sind Tests. Wer eine der großen Stellen ändert, muss sie erst ganz lesen, und weil fast jede Änderung sie berührt, prallen Änderungen dort leicht aufeinander.
 
 An einer Naht trennen sich:
 - Die Funktion, die jede Kachel lädt (380 Zeilen, 120 Verzweigungen), ist der größte Eintrag in Go. Sie hat für jede der 17 Sonderarten von Kacheln einen eigenen Abschnitt; je Sonderart eine kleine Ladefunktion in einer Tabelle löst sie auf. Aufwand mittel, Tests vorhanden.
