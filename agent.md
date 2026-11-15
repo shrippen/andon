@@ -23,21 +23,12 @@ Implementierung: Go (`net/http`, `html/template`, htmx für Fragment-Lazy-Load).
 Vollständig auf Go umgestellt; die frühere Python-Fassung ist nur noch in
 der Git-Historie vorhanden.
 
-## Schichten (nur zum direkten Nachbarn darunter)
-```
-web/        Routen, Templates, Formulare        (net/http, html/template, htmx)
-  ↓
-services/   Anwendungslogik, Rechteprüfung      (einzige Stelle für Right-Prüfung)
-  ↓
-repos/      Datenbankzugriff     sources/  Dienst-Adapter (lesen)   outbound/  Apprise (senden)
-  ↓                                 ↓                                  ↓
-db/         database/sql, Tx     drivers/  rohes HTTP je Dienst
-```
-- Routen rufen nie Repos, Sources, Outbound oder Drivers direkt auf.
-- Widgets (`internal/widgets/`) rendern nur Daten, die ein Service liefert.
-- Unexportierte (kleingeschriebene) Namen; Export nach außen nur mit Rückfrage.
+## Aufbau
+Der Soll-Aufbau (Bausteine, Schichten, wo Neues hingehört, bekannte Abweichungen) steht in
+`ARCHITECTURE.md`.
 
 ## Konventionen
+- Unexportierte (kleingeschriebene) Namen; Export nach außen nur mit Rückfrage.
 - Go (aktuelle Stable-Version), gofmt, go vet. `make check` vor jedem Commit. Dazu gehört die Strukturprüfung (`tools/structure-check.py`, Bestandsliste `structure.baseline`); die CI führt sie vor den Tests aus.
 - Texte nur über `t(key)` (Kataloge `internal/i18n/catalogs/*.yml`); Hinweise speichern Schlüssel + Parameter.
 - CSS nur mit Theme-Tokens, keine Hex-Werte außerhalb `themes/`.
@@ -45,18 +36,7 @@ db/         database/sql, Tx     drivers/  rohes HTTP je Dienst
 
 - **Uhrzeiten nennen ihre Zone, wo der Browser abweicht:** Jede Uhrzeit, die der Server formatiert (Server-Zeit `TZ`, Andons Uhr-Zone oder die Zone einer Kachel), trägt `{{tzMark}}` bzw. `{{tzMark $v.Zone}}` dahinter, Eingabefelder für Uhrzeiten an ihrer Beschriftung; Detail-Dialoge mit Uhrzeiten setzen `Head.Zone` (`zoned(…)`). Die Marke ist versteckt und erscheint nur, wenn die Zone des Browsers anders ist (`andon.js showZones`). Vorbild: Kimai Lite.
 
-## Bausteine
-```
-internal/sources/*.go           <service>.data: `var XData = source{…}`, ein gecachter Datensatz je Verbindung (+ .test)
-internal/metrics/*.go           reine Funktionen: Datensatz → Kennzahlen (kein I/O)
-internal/rules/*.go             Register(id, scope, defaults, run): Datensatz → Finding (kein I/O)
-internal/widgets/*.go           Tile[C]: Felder, Thema, Decode(Raw), Queries, View (rein), Calm
-internal/services/analysis/     Job: Datensätze laden, Regeln anwenden, hints.Sync()
-internal/services/scheduler/    Background-Jobs (Timer je Job, ±5 % gestreut, panic-/error-isoliert)
-internal/caps/                  Fähigkeiten je Integration: Domäne × Operation (+ Arten, Voraussetzungen), kein I/O
-internal/services/verbund/      Verbünde: welche Verbindungen zusammenarbeiten (Partner) und ihre Zuordnungen
-internal/services/workbench/    Werkbänke: Verbund wählen (Scopes), Schritte prüfen, nach OK gegen frische Daten schreiben, Audit; Formular `scope`, `pick`/`act_<fall>`/`<feld>_<fall>` (web/bench.go)
-```
+## Neues hinzufügen
 - Neue Regel: Funktion in `internal/rules/`, Texte `hint.<message>.title|why` in beiden Katalogen, Test in `internal/rules/*_test.go`.
 - Neues Widget: `Tile[XConfig]{…}.add()` in `internal/widgets/` (Grenzen/Defaults nur im Field, gelesen über `Raw`), Template-Define `widgets/<key>` in `internal/web/templates/widgets_*.html`, `wtype.<key>` in den Katalogen.
 - Neue Integration: ihre Fähigkeiten in `internal/caps/declared.go` deklarieren (Domäne, Operation, Arten, Voraussetzungen wie Plugin, Recht, Schnittstelle, Einstellung). Die Quelle erkennt sie mit `caps.Detect`, der Datensatz liefert sie über `CapSet()`, die Test-Quelle unter `sources.TestCaps`; Texte `caps.*` in beiden Katalogen. Wer speichert, entscheidet `caps.Store`, nicht ein eigenes Flag im Datensatz (Tests: `TestDeclaredServicesReportCaps`, `TestCapsKeysExist`). Speichert sie IDs eines anderen Dienstes, nennt `Cap.Refs` sie. Eigenschaften neben den Domänen (Webhooks, Wiederherstellungstest, Anmeldung, OAuth-Client) stehen in `caps.Traits`, nicht in eigenen Tabellen.
