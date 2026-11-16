@@ -79,10 +79,11 @@ func (a ScrutinyApi) Summary(ctx context.Context) (any, error) {
 	return fetchJSON(ctx, joinURL(a.URL, "api/summary"), nil, nil, httpclient.TLSOf(a.Verify))
 }
 
-// Details returns /api/device/<wwn>/details: SMART results with every
-// attribute's status, plus attribute names in "metadata".
-func (a ScrutinyApi) Details(ctx context.Context, wwn string) (any, error) {
-	return fetchJSON(ctx, joinURL(a.URL, "api/device/"+url.PathEscape(wwn)+"/details"), nil, nil, httpclient.TLSOf(a.Verify))
+// Details returns /api/device/<id>/details: SMART results with every
+// attribute's status, plus attribute names in "metadata". The id is the
+// device's key in the summary (WWN before v0.10, scrutiny_uuid since).
+func (a ScrutinyApi) Details(ctx context.Context, id string) (any, error) {
+	return fetchJSON(ctx, joinURL(a.URL, "api/device/"+url.PathEscape(id)+"/details"), nil, nil, httpclient.TLSOf(a.Verify))
 }
 
 // ── Docker ──

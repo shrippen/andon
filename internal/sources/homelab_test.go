@@ -45,6 +45,31 @@ func TestScrutinyReadsSummary(t *testing.T) {
 	}
 }
 
+// Scrutiny v0.10 keys devices by scrutiny_uuid; details answer only to that
+// key, a WWN gets 500 "incorrect UUID length".
+func TestScrutinyDetailsByUUID(t *testing.T) {
+	const uuid = "1abf1536-5689-53a4-b7e2-205c23bd6c8a"
+	srv := jsonServer(t, map[string]any{
+		"/api/summary": map[string]any{"data": map[string]any{"summary": map[string]any{
+			uuid: map[string]any{"device": map[string]any{"device_name": "sdc", "device_status": 1, "wwn": "0x5000039d48d2be8c", "scrutiny_uuid": uuid},
+				"smart": map[string]any{}},
+		}}},
+		"/api/device/" + uuid + "/details": map[string]any{
+			"data":     map[string]any{"smart_results": []any{map[string]any{"attrs": map[string]any{"5": map[string]any{"attribute_id": 5, "raw_value": 37, "status": 1}}}}},
+			"metadata": map[string]any{"5": map[string]any{"display_name": "Reallocated Sectors Count"}},
+		},
+	}, nil)
+
+	out, err := sources.ScrutinyData.Fetch(context.Background(), sources.Ctx{URL: srv.URL, VerifyTLS: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	disks := out.(*sources.ScrutinyDataset).Disks
+	if len(disks) != 1 || disks[0].Failing != "Reallocated Sectors Count 37" {
+		t.Fatalf("disks: %+v", disks)
+	}
+}
+
 func TestImmichReadsStorageJobsVersion(t *testing.T) {
 	srv := jsonServer(t, map[string]any{
 		"/api/server/storage":       map[string]any{"diskUsagePercentage": 87.4, "diskAvailable": "412 GiB"},
