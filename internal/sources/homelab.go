@@ -56,6 +56,7 @@ type Disk struct {
 	WWN         string
 	Serial      string
 	Failing     string // failed disks: flagged attributes, "Reallocated Sectors Count 8"
+	id          string // key in /api/summary: WWN before v0.10, scrutiny_uuid since
 }
 
 type ScrutinyDataset struct {
@@ -78,10 +79,10 @@ func fetchScrutiny(ctx context.Context, sctx Ctx) (any, error) {
 
 	// A failed disk says why: its details name the flagged attributes.
 	for i, d := range data.Disks {
-		if d.Status == ScrutinyPassed || d.WWN == "" {
+		if d.Status == ScrutinyPassed || d.id == "" {
 			continue
 		}
-		if details, err := api.Details(ctx, d.WWN); err == nil {
+		if details, err := api.Details(ctx, d.id); err == nil {
 			data.Disks[i].Failing = failingAttrs(details)
 		}
 	}
@@ -123,7 +124,7 @@ func failingAttrs(details any) string {
 
 func parseScrutiny(base string, body any) *ScrutinyDataset {
 	data := &ScrutinyDataset{URL: base}
-	for _, raw := range asMap(asMap(asMap(body)["data"])["summary"]) {
+	for id, raw := range asMap(asMap(asMap(body)["data"])["summary"]) {
 		entry := asMap(raw)
 		dev, smart := asMap(entry["device"]), asMap(entry["smart"])
 		seen, _ := time.Parse(time.RFC3339, asStr(smart["collector_date"]))
@@ -131,6 +132,7 @@ func parseScrutiny(base string, body any) *ScrutinyDataset {
 			Name: asStr(dev["device_name"]), Model: asStr(dev["model_name"]),
 			Status: int(asFloat(dev["device_status"])), Temp: asFloat(smart["temp"]),
 			Hours: int(asFloat(smart["power_on_hours"])), Seen: seen.UTC(), WWN: asStr(dev["wwn"]), Serial: asStr(dev["serial_number"]),
+			id: id,
 		})
 	}
 	sort.Slice(data.Disks, func(i, j int) bool { return data.Disks[i].Name < data.Disks[j].Name })
